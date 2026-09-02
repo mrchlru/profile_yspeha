@@ -5,12 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
 import { Button } from "@/components/Button";
-import { AdminSettingsIcon } from "@/components/admin/AdminIconButton";
+import { AdminSettingsIcon, AdminTimewebLogsIcon } from "@/components/admin/AdminIconButton";
 import { AdminNavIcon } from "@/components/admin/AdminNavIcons";
 import {
   ADMIN_SETTINGS_HREF,
+  ADMIN_TIMEWEB_LOGS_HREF,
   adminSidebarNavItemsForRole,
   canAccessAdminSettings,
+  canAccessTimewebLogs,
   isAdminNavItemActive,
 } from "@/lib/admin/adminNav";
 import { ADMIN_ROLE_LABELS } from "@/lib/admin/adminRoles";
@@ -62,7 +64,9 @@ export function AdminShell({
 
   const navItems = adminSidebarNavItemsForRole(session.role);
   const settingsActive = isAdminNavItemActive(pathname, ADMIN_SETTINGS_HREF);
+  const timewebLogsActive = isAdminNavItemActive(pathname, ADMIN_TIMEWEB_LOGS_HREF);
   const showSettingsLink = canAccessAdminSettings(session.role);
+  const showTimewebLogsLink = canAccessTimewebLogs(session.role);
 
   return (
     <div className="min-h-screen bg-[#F2F2F2] text-[#4F4F4F]">
@@ -106,6 +110,8 @@ export function AdminShell({
             roleLabel={ADMIN_ROLE_LABELS[session.role]}
             showSettingsLink={showSettingsLink}
             settingsActive={settingsActive}
+            showTimewebLogsLink={showTimewebLogsLink}
+            timewebLogsActive={timewebLogsActive}
           />
         </aside>
 
@@ -125,6 +131,8 @@ export function AdminShell({
                 roleLabel={session.roleLabel}
                 showSettingsLink={showSettingsLink}
                 settingsActive={settingsActive}
+                showTimewebLogsLink={showTimewebLogsLink}
+                timewebLogsActive={timewebLogsActive}
                 compact
               />
               <Button type="button" variant="secondary" onClick={() => void logout()}>
@@ -163,6 +171,8 @@ type AdminProfileCardProps = {
   roleLabel: string;
   showSettingsLink: boolean;
   settingsActive: boolean;
+  showTimewebLogsLink: boolean;
+  timewebLogsActive: boolean;
   /** Компактный вид в шапке на телефонах. */
   compact?: boolean;
 };
@@ -172,32 +182,56 @@ function AdminProfileCard({
   roleLabel,
   showSettingsLink,
   settingsActive,
+  showTimewebLogsLink,
+  timewebLogsActive,
   compact = false,
 }: AdminProfileCardProps): React.ReactElement {
+  const profileActionsCount = Number(showSettingsLink) + Number(showTimewebLogsLink);
+  const profileActionsPadding =
+    profileActionsCount >= 2 ? "pr-[4.5rem]" : profileActionsCount === 1 ? "pr-10" : "";
+
   return (
     <div
       className={`relative text-[13px] leading-snug text-[#5F5E5E] ${
         compact
-          ? "rounded-2xl bg-[#DDDDDD] px-4 py-2 pr-10 lg:hidden"
-          : "rounded-2xl bg-white/50 px-4 py-3 pr-10"
+          ? `rounded-2xl bg-[#DDDDDD] px-4 py-2 ${profileActionsPadding} lg:hidden`
+          : `rounded-2xl bg-white/50 px-4 py-3 ${profileActionsPadding}`
       }`}
     >
       <p className={`font-extrabold ${compact ? "truncate" : "break-all"}`}>{email}</p>
       <p className="mt-1">{roleLabel}</p>
-      {showSettingsLink ? (
-        <Link
-          href={ADMIN_SETTINGS_HREF}
-          aria-label="Настройки"
-          title="Настройки"
-          className={`absolute bottom-2 right-2 inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)] transition [&_svg]:h-4 [&_svg]:w-4 ${
-            settingsActive
-              ? "bg-[#00B596]/15 text-[#007A68]"
-              : "text-[#8C8C8C] hover:bg-white"
-          }`}
-        >
-          <AdminSettingsIcon />
-        </Link>
-      ) : null}
+      {(showSettingsLink || showTimewebLogsLink) && (
+        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+          {showTimewebLogsLink ? (
+            <Link
+              href={ADMIN_TIMEWEB_LOGS_HREF}
+              aria-label="Логи Timeweb"
+              title="Логи Timeweb"
+              className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)] transition [&_svg]:h-4 [&_svg]:w-4 ${
+                timewebLogsActive
+                  ? "bg-[#00B596]/15 text-[#007A68]"
+                  : "text-[#8C8C8C] hover:bg-white"
+              }`}
+            >
+              <AdminTimewebLogsIcon />
+            </Link>
+          ) : null}
+          {showSettingsLink ? (
+            <Link
+              href={ADMIN_SETTINGS_HREF}
+              aria-label="Настройки"
+              title="Настройки"
+              className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)] transition [&_svg]:h-4 [&_svg]:w-4 ${
+                settingsActive
+                  ? "bg-[#00B596]/15 text-[#007A68]"
+                  : "text-[#8C8C8C] hover:bg-white"
+              }`}
+            >
+              <AdminSettingsIcon />
+            </Link>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

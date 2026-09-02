@@ -7,6 +7,7 @@ export type AdminNavIconId =
   | "invitations"
   | "results"
   | "settings"
+  | "timeweb-logs"
   | "institutions";
 
 export type AdminNavItem = {
@@ -21,6 +22,9 @@ export type AdminNavItem = {
 
 /** Ссылка на раздел настроек (иконка в карточке профиля). */
 export const ADMIN_SETTINGS_HREF = "/admin/settings";
+
+/** Ссылка на логи Timeweb (только главный администратор). */
+export const ADMIN_TIMEWEB_LOGS_HREF = "/admin/timeweb-logs";
 
 export const ADMIN_NAV_ITEMS: ReadonlyArray<AdminNavItem> = [
   {
@@ -60,6 +64,14 @@ export const ADMIN_NAV_ITEMS: ReadonlyArray<AdminNavItem> = [
     profileOnly: true,
   },
   {
+    iconId: "timeweb-logs",
+    href: ADMIN_TIMEWEB_LOGS_HREF,
+    label: "Логи Timeweb",
+    roles: [ADMIN_ROLE_ADMIN],
+    description: "Runtime и deploy логи на Timeweb Cloud",
+    profileOnly: true,
+  },
+  {
     iconId: "institutions",
     href: "/admin/institutions",
     label: "Учебные заведения",
@@ -92,6 +104,15 @@ export function canAccessAdminSettings(role: AdminRole): boolean {
 }
 
 /**
+ * Проверяет, доступны ли логи Timeweb для роли (только главный администратор).
+ */
+export function canAccessTimewebLogs(role: AdminRole): boolean {
+  return ADMIN_NAV_ITEMS.some(
+    (item) => item.href === ADMIN_TIMEWEB_LOGS_HREF && item.roles.includes(role)
+  );
+}
+
+/**
  * Проверяет, активен ли пункт меню для текущего пути.
  */
 export function isAdminNavItemActive(pathname: string, href: string): boolean {
@@ -102,6 +123,9 @@ export function isAdminNavItemActive(pathname: string, href: string): boolean {
     return pathname === href || pathname.startsWith("/admin/interview/");
   }
   if (href === ADMIN_SETTINGS_HREF) {
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+  if (href === ADMIN_TIMEWEB_LOGS_HREF) {
     return pathname === href || pathname.startsWith(`${href}/`);
   }
   return pathname === href || pathname.startsWith(`${href}/`);

@@ -75,3 +75,12 @@
 | `GOOGLE_SHEETS_TEST_TAB` (необязательно) | Имя листа для `npm run sheets:test` (по умолчанию «Тест подключения») |
 
 Таблицу нужно **расшарить** на email сервисного аккаунта (`client_email` из JSON) с правом **Редактор**. Ключ JSON хранить только на сервере, не коммитить в репозиторий. Проверка: `npm run sheets:test` из каталога `web/`.
+
+### Timeweb Cloud (логи приложения)
+
+| Переменная | Назначение |
+|------------|------------|
+| `TIMEWEB_API_TOKEN` | Bearer-токен Timeweb Cloud API (панель Timeweb → API) |
+| `TIMEWEB_APP_ID` | ID приложения App Platform в Timeweb |
+
+Просмотр логов в админ-панели (`/admin/timeweb-logs`) доступен **только главному администратору** (`ADMIN_PANEL_EMAIL` / роль `admin`). Токен и ID приложения хранить только на сервере.
