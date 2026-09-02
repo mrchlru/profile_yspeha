@@ -38,7 +38,8 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-EXPOSE 3000
+# Timeweb App Platform маршрутизирует HTTPS по EXPOSE, не по переменной PORT.
+EXPOSE 8080
 
-CMD ["sh", "-c", "npm run db:setup && npx next start -p ${PORT:-3000}"]
+CMD ["sh", "-c", "npm run db:setup && npx next start -H 0.0.0.0 -p ${PORT:-8080}"]
 
