@@ -4,6 +4,7 @@ import { buildAuditAiPipelineUserMessage } from "@/lib/ai/audit/buildAuditAiPipe
 import { OPENAI_SYSTEM_PROMPT_AUDIT_HR_SYNTHESIS } from "@/lib/ai/openaiPromptPolicy";
 import {
   buildOpenAiChatRequestBody,
+  openAiRequestHeaders,
   openAiChatCompletionsUrl,
   readResponseBodySnippet,
   resolveOpenAiChatModel,
@@ -40,10 +41,7 @@ export async function generateAuditConclusion(input: {
   try {
     res = await fetch(openAiChatCompletionsUrl(), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(
         buildOpenAiChatRequestBody({
           model,

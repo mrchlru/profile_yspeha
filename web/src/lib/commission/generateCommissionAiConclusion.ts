@@ -3,6 +3,7 @@ import {
 } from "@/lib/ai/openaiPromptPolicy";
 import {
   buildOpenAiChatRequestBody,
+  openAiRequestHeaders,
   openAiChatCompletionsUrl,
   readResponseBodySnippet,
   resolveOpenAiChatModel,
@@ -40,10 +41,7 @@ export async function generateCommissionAiConclusion(
   try {
     res = await fetch(openAiChatCompletionsUrl(), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(
         buildOpenAiChatRequestBody({
           model,

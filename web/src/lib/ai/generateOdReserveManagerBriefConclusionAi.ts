@@ -7,6 +7,7 @@ import {
 import {
   buildOpenAiChatRequestBody,
   classifyOpenAiHttpError,
+  openAiRequestHeaders,
   openAiChatCompletionsUrl,
   readResponseBodySnippet,
   resolveOpenAiManagerBriefChatModel,
@@ -51,10 +52,7 @@ export async function generateOdReserveManagerBriefConclusionAi(input: {
   try {
     res = await fetch(openAiChatCompletionsUrl(), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(
         buildOpenAiChatRequestBody({
           model,

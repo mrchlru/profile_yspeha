@@ -77,11 +77,31 @@ export function resolveOpenAiManagerBriefChatModel(): string {
 /**
  * Полный URL Chat Completions. База: `OPENAI_BASE_URL` или `https://api.openai.com`
  * (без завершающего `/`).
+ *
+ * Для РФ/Timeweb задайте Railway relay, например:
+ * `OPENAI_BASE_URL=https://telegram-relay2-production.up.railway.app`
+ * и `OPENAI_RELAY_SECRET` (см. `openAiRequestHeaders`).
  */
 export function openAiChatCompletionsUrl(): string {
   const raw = process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com";
   const base = raw.replace(/\/$/, "");
   return `${base}/v1/chat/completions`;
+}
+
+/**
+ * Заголовки для запросов к OpenAI (напрямую или через Railway relay).
+ * При `OPENAI_RELAY_SECRET` добавляет `X-Relay-Secret` для авторизации на relay.
+ */
+export function openAiRequestHeaders(apiKey: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  };
+  const relaySecret = process.env.OPENAI_RELAY_SECRET?.trim();
+  if (relaySecret) {
+    headers["X-Relay-Secret"] = relaySecret;
+  }
+  return headers;
 }
 
 /**

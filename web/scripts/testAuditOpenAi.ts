@@ -9,6 +9,7 @@ import { OPENAI_AUDIT_HR_RESPONSE_FORMAT } from "../src/lib/ai/audit/auditConclu
 import { buildAuditAiPipelinePayload } from "../src/lib/ai/audit/buildAuditAiPipelinePayload";
 import { OPENAI_SYSTEM_PROMPT_AUDIT_HR_SYNTHESIS } from "../src/lib/ai/openaiPromptPolicy";
 import {
+  openAiRequestHeaders,
   openAiChatCompletionsUrl,
   readResponseBodySnippet,
   resolveOpenAiChatModel,
@@ -83,10 +84,7 @@ async function main(): Promise<void> {
     console.log(`\n=== ${label} ===`);
     const res = await fetch(openAiChatCompletionsUrl(), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(body),
     });
     console.log("HTTP", res.status);

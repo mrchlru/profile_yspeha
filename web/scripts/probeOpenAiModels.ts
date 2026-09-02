@@ -6,6 +6,7 @@
 import "dotenv/config";
 import {
   buildOpenAiChatRequestBody,
+  openAiRequestHeaders,
   openAiChatCompletionsUrl,
   readResponseBodySnippet,
   resolveOpenAiManagerBriefChatModel,
@@ -67,10 +68,7 @@ async function probeOne(apiKey: string, probe: ProbeCase): Promise<void> {
   try {
     res = await fetch(openAiChatCompletionsUrl(), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
+      headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(body),
     });
   } catch (err) {
