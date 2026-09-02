@@ -9,7 +9,7 @@
  * 3) prisma migrate deploy — дальнейшие миграции применяются штатно.
  */
 
-import { execSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { Client } from "pg";
@@ -224,32 +224,63 @@ async function reconcileBootstrapAlreadyAppliedMigrations(databaseUrl) {
         continue;
       }
 
-      const row = await client.query(
+      const applied = await client.query(
         `
-          SELECT finished_at
-          FROM public._prisma_migrations
-          WHERE migration_name = $1
-          LIMIT 1
+          SELECT EXISTS (
+            SELECT 1
+            FROM public._prisma_migrations
+            WHERE migration_name = $1
+              AND finished_at IS NOT NULL
+          ) AS ok
         `,
         [check.migration]
       );
 
-      if (row.rows.length > 0 && row.rows[0].finished_at !== null) {
+      if (applied.rows[0]?.ok) {
         continue;
       }
 
       console.log(
         `[db:setup] reconcile: «${check.migration}» уже в схеме — resolve --applied`
       );
-      execSync(`npx prisma migrate resolve --applied "${check.migration}"`, {
-        cwd: process.cwd(),
-        env: toolEnv(),
-        stdio: "inherit",
-      });
+      runPrismaMigrateResolveApplied(check.migration);
     }
   } finally {
     await client.end();
   }
+}
+
+/**
+ * Помечает миграцию applied; P3008 («уже applied») не считается ошибкой.
+ */
+function runPrismaMigrateResolveApplied(migrationName) {
+  const result = spawnSync(
+    "npx",
+    ["prisma", "migrate", "resolve", "--applied", migrationName],
+    {
+      cwd: process.cwd(),
+      env: toolEnv(),
+      encoding: "utf8",
+    }
+  );
+
+  const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+  if (result.status === 0) {
+    if (output.trim()) {
+      process.stdout.write(output);
+    }
+    return;
+  }
+
+  if (output.includes("P3008") || output.includes("already recorded as applied")) {
+    console.log(`[db:setup] reconcile: «${migrationName}» уже applied — пропуск.`);
+    return;
+  }
+
+  if (output.trim()) {
+    process.stderr.write(output);
+  }
+  throw new Error(`prisma migrate resolve --applied failed for «${migrationName}»`);
 }
 
 /**
