@@ -1,0 +1,9 @@
+# Деплой: railway up только из КОРНЯ репозитория (не из web/).
+# В Railway у сервиса Root Directory = web — CLI загружает весь репо, сборка идёт из web/.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

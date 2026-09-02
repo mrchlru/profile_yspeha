@@ -1,0 +1,18 @@
+# Локальные клоны для справки (не коммитить)
+_ref_MugleHR/
+
+# Локальные исходники аудита состояния (вопросы, скриншоты, утилиты парсинга).
+.audit_tools/
+screen-research-audit/
+
+# Локальные материалы и черновики (не для прод-репозитория)
+_extracted_keys/
+materials/
+_recovery_extract.txt
+_xmind_profile/
+.cursor/
+
+# Локальные превью PDF
+web/audit-preview.pdf
+web/screening-preview.pdf
+

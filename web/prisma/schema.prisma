@@ -1,0 +1,492 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ScreeningSubmission {
+  id String @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessionId String @unique @map("session_id")
+  profileName String @map("profile_name")
+  personalDataConsent Boolean @map("personal_data_consent")
+  /** Момент фиксации согласия с политикой (на клиенте при установке галочки), UTC. */
+  consentRecordedAt DateTime @map("consent_recorded_at")
+
+  step1Data Json @map("step1_data")
+  step2Data Json @map("step2_data")
+  step3Data Json @map("step3_data")
+  step4Data Json @map("step4_data")
+
+  /** Автоподсчёт КОТ, ориентировочный IQ, заключение LLM, флаг отправки письма. */
+  kotReport Json? @map("kot_report")
+
+  accessInviteCode   String? @map("access_invite_code")
+  candidateFolderKey String? @map("candidate_folder_key")
+  interviewFolderKey String? @map("interview_folder_key")
+
+  @@index([candidateFolderKey], map: "screening_submission_candidate_folder_idx")
+  @@index([interviewFolderKey], map: "screening_submission_interview_folder_idx")
+  @@map("screening_submission")
+}
+
+/** Жизненный цикл папки кандидата: собеседование → результаты → архив. */
+model CandidateFolderRecord {
+  folderKey       String    @id @map("folder_key")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  lifecycleStatus String    @map("lifecycle_status")
+  lastName        String    @map("last_name")
+  firstName       String    @map("first_name")
+  middleName      String?   @map("middle_name")
+  birthDate       DateTime  @map("birth_date") @db.Date
+  activatedAt     DateTime? @map("activated_at")
+  archivedAt      DateTime? @map("archived_at")
+  archiveReason   String?   @map("archive_reason")
+
+  @@index([lifecycleStatus], map: "candidate_folder_record_status_idx")
+  @@index([lastName, firstName, birthDate], map: "candidate_folder_record_identity_idx")
+  @@map("candidate_folder_record")
+}
+
+/** Пометка архива для папок без жизненного цикла кандидата (например, аудит). */
+model FolderArchiveMark {
+  folderKey  String   @id @map("folder_key")
+  archivedAt DateTime @default(now()) @map("archived_at")
+
+  @@map("folder_archive_mark")
+}
+
+/**
+ * Прохождение аудита состояния — одна запись на сессию (=один заход
+ * сотрудника по уникальному коду доступа). Хранится JSON всех ответов
+ * по 24 шагам и канонический ключ респондента (`assessee_key`),
+ * который позволяет связать прохождения одного и того же сотрудника
+ * за разные годы (PR с динамикой год-к-году опирается на этот индекс).
+ *
+ * Скоринг и AI-заключение в этой модели пока опциональны — заполнятся
+ * следующими PR; здесь сохраняется источник правды (сырой ответ).
+ */
+model AuditSubmission {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessionId String @unique @map("session_id")
+
+  /**
+   * Канонический ключ респондента: `lastName|firstName` в нижнем регистре,
+   * с нормализованными пробелами и инвариантом «ё→е». Используется в
+   * админ-панели и для year-over-year сравнения.
+   */
+  assesseeKey     String @map("assessee_key")
+  assesseeKeyVer  Int    @map("assessee_key_version")
+  firstName       String @map("first_name")
+  lastName        String @map("last_name")
+
+  /** Согласие пользователя с условиями (на старте аудита). */
+  personalDataConsent Boolean  @map("personal_data_consent")
+  consentRecordedAt   DateTime @map("consent_recorded_at")
+
+  /**
+   * Ответы по всем шагам: `{ "1": { q1: "a", q2: "b", ... }, ... }`.
+   * Структура совпадает с `AuditAnswersMap` из `web/src/lib/audit/auditAnswers.ts`.
+   */
+  answers Json @map("answers")
+
+  /**
+   * AI-заключение, метрики шагов, YoY и флаги PDF/email (`AuditReportJson`, см. `auditReportTypes`).
+   */
+  auditReport Json? @map("audit_report")
+
+  /** Папка кандидата при прохождении батареи скрининга через `/api/audit/submit`. */
+  candidateFolderKey String? @map("candidate_folder_key")
+
+  @@index([assesseeKey, createdAt], map: "audit_submission_assessee_idx")
+  @@index([candidateFolderKey], map: "audit_submission_candidate_folder_idx")
+  @@map("audit_submission")
+}
+
+/**
+ * Прохождение теста на выгорание (опросник Маслач, 22 утверждения).
+ * Одна запись на сессию; сырые ответы и сырые суммы по шкалам EE/DP/PA.
+ */
+model BurnoutSubmission {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessionId String @unique @map("session_id")
+
+  assesseeKey    String @map("assessee_key")
+  assesseeKeyVer Int    @map("assessee_key_version")
+  firstName      String @map("first_name")
+  lastName       String @map("last_name")
+
+  personalDataConsent Boolean  @map("personal_data_consent")
+  consentRecordedAt   DateTime @map("consent_recorded_at")
+
+  /** Ответы: `{ "q1": 0..6, ..., "q22": 0..6 }`. */
+  answers Json @map("answers")
+
+  /** Сырые суммы EE, DP, PA и метаданные подсчёта. */
+  burnoutReport Json? @map("burnout_report")
+
+  accessInviteCode   String? @map("access_invite_code")
+  candidateFolderKey String? @map("candidate_folder_key")
+
+  @@index([assesseeKey, createdAt], map: "burnout_submission_assessee_idx")
+  @@index([candidateFolderKey], map: "burnout_submission_candidate_folder_idx")
+  @@map("burnout_submission")
+}
+
+/**
+ * Запланированное напоминание HRD/админу о повторном тесте на выгорание.
+ * Одна активная запись `scheduled` на сотрудника; при новом событии предыдущие отменяются.
+ */
+model BurnoutReminderSchedule {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assesseeKey        String  @map("assessee_key")
+  candidateFolderKey String? @map("candidate_folder_key")
+  personName         String  @map("person_name")
+
+  dueAt DateTime @map("due_at")
+  /** scheduled | sent | cancelled */
+  status String @default("scheduled") @map("status")
+  /** invite_created | submission_ok | submission_high */
+  triggerKind String @map("trigger_kind")
+
+  sentAt       DateTime? @map("sent_at")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelReason String?   @map("cancel_reason")
+
+  relatedInviteCode          String? @map("related_invite_code")
+  relatedSubmissionSessionId String? @map("related_submission_session_id")
+
+  @@index([status, dueAt], map: "burnout_reminder_status_due_idx")
+  @@index([assesseeKey, status], map: "burnout_reminder_assessee_status_idx")
+  @@map("burnout_reminder_schedule")
+}
+
+/**
+ * Прохождение анкеты «ПРОФ СБ + ПРОФ образование».
+ * Две части ответов: profSb и profEducation (структура уточняется с методикой).
+ */
+model ProfSbEducationSubmission {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessionId String @unique @map("session_id")
+
+  assesseeKey    String @map("assessee_key")
+  assesseeKeyVer Int    @map("assessee_key_version")
+  firstName      String @map("first_name")
+  lastName       String @map("last_name")
+
+  personalDataConsent Boolean  @map("personal_data_consent")
+  consentRecordedAt   DateTime @map("consent_recorded_at")
+
+  /** `{ profSb: {...}, profEducation: {...} }` */
+  answers Json @map("answers")
+
+  /** Сырые метаданные подсчёта и интерпретация (по мере внедрения методики). */
+  profReport Json? @map("prof_report")
+
+  accessInviteCode   String? @map("access_invite_code")
+  candidateFolderKey String? @map("candidate_folder_key")
+
+  @@index([assesseeKey, createdAt], map: "prof_sb_education_submission_assessee_idx")
+  @@index([candidateFolderKey], map: "prof_sb_education_submission_candidate_folder_idx")
+  @@map("prof_sb_education_submission")
+}
+
+/** Код доступа к прохождению теста (скрининг / аудит состояния). */
+model AccessInvite {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  code      String    @unique @map("code")
+  testKind  String    @map("test_kind")
+  /** Истечение срока действия кода (создание + 3 суток). */
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  /**
+   * Момент, когда кандидат завершил тестирование с этим кодом (UTC).
+   * После проставления код больше нельзя использовать для прохождения теста.
+   * NULL — код ещё не использован.
+   */
+  usedAt    DateTime? @map("used_at")
+
+  /** Данные соискателя при создании приглашения на скрининг. */
+  candidateLastName      String?   @map("candidate_last_name")
+  candidateFirstName     String?   @map("candidate_first_name")
+  candidateMiddleName    String?   @map("candidate_middle_name")
+  candidateBirthDate     DateTime? @map("candidate_birth_date") @db.Date
+  candidatePositionLevel String?   @map("candidate_position_level")
+  candidateFolderKey     String?   @map("candidate_folder_key")
+  /** Папка вакансии в разделе «Собеседование» (должность + дата первого скрининга). */
+  interviewFolderKey     String?   @map("interview_folder_key")
+  /**
+   * Плоский порядок шагов батареи ОД (массив stepIndex).
+   * Задаётся один раз при создании кода для `audit_middle`.
+   */
+  auditBatteryStepOrder Json?     @map("audit_battery_step_order")
+  /** Техническое приглашение: свободная навигация по шагам, dev-отчёт (только для главного админа). */
+  devMode               Boolean   @default(false) @map("dev_mode")
+
+  @@index([candidateFolderKey], map: "access_invite_candidate_folder_idx")
+  @@index([interviewFolderKey], map: "access_invite_interview_folder_idx")
+  @@map("access_invite")
+}
+
+/** Папка вакансии в разделе «Собеседование»: должность и дата первого скрининга. */
+model InterviewFolder {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now()) @map("created_at")
+  key              String   @unique @map("folder_key")
+  positionTitle    String   @map("position_title")
+  firstScreeningAt DateTime @map("first_screening_at") @db.Date
+  displayName      String   @map("display_name")
+
+  @@index([firstScreeningAt], map: "interview_folder_first_screening_idx")
+  @@map("interview_folder")
+}
+
+/** Участник комиссии собеседования по вакансии (до 4 на папку). */
+model InterviewCommissionMember {
+  id                String   @id @default(cuid())
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  interviewFolderKey String  @map("interview_folder_key")
+  firstName         String   @map("first_name")
+  lastName          String   @map("last_name")
+  email             String   @map("email")
+
+  @@unique([interviewFolderKey, email], map: "interview_commission_member_folder_email_key")
+  @@index([interviewFolderKey], map: "interview_commission_member_folder_idx")
+  @@map("interview_commission_member")
+}
+
+/** Учётная запись HrD для входа в админ-панель (создаётся администратором в настройках). */
+model HrdAccount {
+  id           String   @id @default(cuid())
+  email        String   @unique @map("email")
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("hrd_account")
+}
+
+/** Глобальные настройки уведомлений админ-панели (одна строка). */
+model AdminAppSettings {
+  id                      String   @id @default("default")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+  piExhaustionNotifyAdmin Boolean  @default(true) @map("pi_exhaustion_notify_admin")
+  piExhaustionNotifyHrd   Boolean  @default(true) @map("pi_exhaustion_notify_hrd")
+  /** Доп. адреса для алертов о ПИ (строка: через запятую или с новой строки). */
+  piExhaustionNotifyExtraEmails String @default("") @map("pi_exhaustion_notify_extra_emails")
+
+  @@map("admin_app_settings")
+}
+
+/** Файл, загруженный вручную в папку сотрудника (Word, Excel, PDF, фото, видео и т.д.). */
+model EmployeeFolderFile {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now()) @map("created_at")
+  folderKey  String   @map("folder_key")
+  fileName   String   @map("file_name")
+  mimeType   String   @map("mime_type")
+  sizeBytes  Int      @map("size_bytes")
+  data       Bytes    @map("data")
+  uploadedBy String   @map("uploaded_by")
+
+  @@index([folderKey, createdAt], map: "employee_folder_file_folder_idx")
+  @@map("employee_folder_file")
+}
+
+/** Вопрос для анкеты комиссии: категория навыков, уровни должностей и специальности. */
+model CommissionQuestion {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  text           String   @map("text")
+  category       String   @map("category")
+  positionLevels String[] @default([]) @map("position_levels")
+  specialties    String[] @default([]) @map("specialties")
+  sortOrder      Int      @default(0) @map("sort_order")
+  active         Boolean  @default(true) @map("active")
+  aiSuggested    Boolean  @default(false) @map("ai_suggested")
+  createdBy      String?  @map("created_by")
+
+  @@index([category], map: "commission_question_category_idx")
+  @@index([active], map: "commission_question_active_idx")
+  @@map("commission_question")
+}
+
+/** Зафиксированные 2 переменных вопроса участника комиссии на вакансию. */
+model CommissionMemberQuestionSet {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now()) @map("created_at")
+  memberId           String   @unique @map("member_id")
+  interviewFolderKey String   @map("interview_folder_key")
+  question1Text      String   @map("question1_text")
+  question2Text      String   @map("question2_text")
+
+  @@index([interviewFolderKey], map: "commission_member_question_set_folder_idx")
+  @@map("commission_member_question_set")
+}
+
+/** Оценочный лист участника комиссии по кандидату (доступ по токену). */
+model CommissionEvalSheet {
+  id                 String    @id @default(cuid())
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  accessToken        String    @unique @map("access_token")
+  interviewFolderKey String    @map("interview_folder_key")
+  candidateFolderKey String    @map("candidate_folder_key")
+  memberId           String    @map("member_id")
+  status             String    @default("draft") @map("status")
+  scaleAnswers       Json?     @map("scale_answers")
+  variableAnswers    Json?     @map("variable_answers")
+  submittedAt        DateTime? @map("submitted_at")
+  emailSentAt        DateTime? @map("email_sent_at")
+
+  @@unique([memberId, candidateFolderKey], map: "commission_eval_sheet_member_candidate_key")
+  @@index([candidateFolderKey, interviewFolderKey], map: "commission_eval_sheet_candidate_folder_idx")
+  @@map("commission_eval_sheet")
+}
+
+/** Сводное «Заключение комиссии» по кандидату после всех анкет. */
+model CommissionCandidateConclusion {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  interviewFolderKey String   @map("interview_folder_key")
+  candidateFolderKey String   @unique @map("candidate_folder_key")
+  reportHtml         String   @map("report_html")
+  reportData         Json     @map("report_data")
+  aiConclusion       String?  @map("ai_conclusion")
+
+  @@index([interviewFolderKey], map: "commission_candidate_conclusion_folder_idx")
+  @@map("commission_candidate_conclusion")
+}
+
+/** Лог неудачных сохранений анкеты комиссии (для вкладки «Логи» в настройках админа). */
+model CommissionEvalSaveFailureLog {
+  id                 String   @id @default(cuid())
+  createdAt          DateTime @default(now()) @map("created_at")
+  memberLastName     String   @map("member_last_name")
+  memberFirstName    String   @map("member_first_name")
+  questionText       String?  @map("question_text")
+  errorMessage       String   @map("error_message")
+  failureKind        String   @map("failure_kind")
+  interviewFolderKey String?  @map("interview_folder_key")
+  candidateFolderKey String?  @map("candidate_folder_key")
+  memberId           String?  @map("member_id")
+
+  @@index([createdAt], map: "commission_eval_save_failure_log_created_idx")
+  @@map("commission_eval_save_failure_log")
+}
+
+/** Сессия прокторинга (видео/аудио) во время HR-скрининга. */
+model ProctorSession {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now()) @map("created_at")
+  endedAt   DateTime? @map("ended_at")
+
+  /** Совпадает с `auditSubmission.sessionId` для батареи скрининга. */
+  sessionId          String  @unique @map("session_id")
+  accessCode         String  @map("access_code")
+  candidateFolderKey String? @map("candidate_folder_key")
+  testKind           String  @map("test_kind")
+
+  reportJson Json? @map("report_json")
+
+  events       ProctorEvent[]
+  sessionAudio ProctorSessionAudio?
+
+  @@index([candidateFolderKey, createdAt], map: "proctor_session_folder_idx")
+  @@map("proctor_session")
+}
+
+/** Непрерывная аудиозапись сессии прокторинга (webm/opus). */
+model ProctorSessionAudio {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  proctorSessionId String         @unique @map("proctor_session_id")
+  proctorSession   ProctorSession @relation(fields: [proctorSessionId], references: [id], onDelete: Cascade)
+
+  mimeType   String  @map("mime_type")
+  durationMs Int?    @map("duration_ms")
+  sizeBytes  Int     @map("size_bytes")
+  data       Bytes
+  isFinal    Boolean @default(false) @map("is_final")
+
+  @@map("proctor_session_audio")
+}
+
+/** Зафиксированное нарушение прокторинга. */
+model ProctorEvent {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now()) @map("created_at")
+  occurredAt DateTime @map("occurred_at")
+
+  proctorSessionId String         @map("proctor_session_id")
+  proctorSession   ProctorSession @relation(fields: [proctorSessionId], references: [id], onDelete: Cascade)
+
+  kind             String
+  clientFaceCount  Int?     @map("client_face_count")
+  serverFaceCount  Int?     @map("server_face_count")
+  serverVerified   Boolean? @map("server_verified")
+  metadata         Json?
+
+  snapshot ProctorSnapshot?
+  audioClip ProctorAudioClip?
+
+  @@index([proctorSessionId, occurredAt], map: "proctor_event_session_time_idx")
+  @@map("proctor_event")
+}
+
+/** Фрагмент аудио при звуковом нарушении (webm/opus). */
+model ProctorAudioClip {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  eventId String       @unique @map("event_id")
+  event   ProctorEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  mimeType  String @map("mime_type")
+  durationMs Int?  @map("duration_ms")
+  sizeBytes Int    @map("size_bytes")
+  data      Bytes
+
+  @@map("proctor_audio_clip")
+}
+
+/** Снимок кадра для видеонарушения (перепроверка на сервере). */
+model ProctorSnapshot {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  eventId String       @unique @map("event_id")
+  event   ProctorEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  mimeType  String @map("mime_type")
+  width     Int?
+  height    Int?
+  sizeBytes Int    @map("size_bytes")
+  data      Bytes
+
+  @@map("proctor_snapshot")
+}
+
