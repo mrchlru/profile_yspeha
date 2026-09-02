@@ -36,6 +36,8 @@ async function main() {
 
   await resolveFailedPrismaMigrations(databaseUrl);
 
+  await reconcileBootstrapAlreadyAppliedMigrations(databaseUrl);
+
   runPrismaMigrateDeploy();
 
   console.log("[db:setup] done.");
@@ -173,6 +175,73 @@ async function resolveFailedPrismaMigrations(databaseUrl) {
       const name = row.migration_name;
       console.log(`[db:setup] failed migration: resolve --rolled-back «${name}»`);
       execSync(`npx prisma migrate resolve --rolled-back "${name}"`, {
+        cwd: process.cwd(),
+        env: toolEnv(),
+        stdio: "inherit",
+      });
+    }
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Bootstrap SQL (create_tables.sql) иногда опережает Prisma migrate deploy.
+ * Если колонка/таблица уже есть, помечаем соответствующую мigration как applied,
+ * иначе deploy падает с duplicate column (42701) и контейнер не доходит до next start.
+ */
+async function reconcileBootstrapAlreadyAppliedMigrations(databaseUrl) {
+  const client = new Client({ connectionString: databaseUrl });
+  await client.connect();
+  try {
+    const pm = await client.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = '_prisma_migrations'
+      ) AS ok
+    `);
+    if (!pm.rows[0].ok) {
+      return;
+    }
+
+    const checks = [
+      {
+        migration: "20260511100000_access_invite_expires_at",
+        probe: `
+          SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'access_invite'
+              AND column_name = 'expires_at'
+          ) AS ok
+        `,
+      },
+    ];
+
+    for (const check of checks) {
+      const probe = await client.query(check.probe);
+      if (!probe.rows[0]?.ok) {
+        continue;
+      }
+
+      const row = await client.query(
+        `
+          SELECT finished_at
+          FROM public._prisma_migrations
+          WHERE migration_name = $1
+          LIMIT 1
+        `,
+        [check.migration]
+      );
+
+      if (row.rows.length > 0 && row.rows[0].finished_at !== null) {
+        continue;
+      }
+
+      console.log(
+        `[db:setup] reconcile: «${check.migration}» уже в схеме — resolve --applied`
+      );
+      execSync(`npx prisma migrate resolve --applied "${check.migration}"`, {
         cwd: process.cwd(),
         env: toolEnv(),
         stdio: "inherit",
