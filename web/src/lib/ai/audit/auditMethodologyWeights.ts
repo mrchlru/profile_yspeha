@@ -1,0 +1,20 @@
+/** Веса методик для risk engine (predictive value для retention/performance). */
+export const AUDIT_METHODOLOGY_WEIGHTS: Record<string, number> = {
+  burnout: 10,
+  loyalty: 10,
+  communication: 9,
+  motivation: 9,
+  locusOfControl: 8,
+  adaptability: 8,
+  goalPursuit: 7,
+  conflictStyle: 7,
+  tolerance: 6,
+  stressType: 6,
+  riskReadiness: 5,
+  decisionStyle: 5,
+  selfMonitoring: 4,
+  keirsey: 4,
+  paperwork: 3,
+  cfit: 3,
+  erudition: 2,
+};
