@@ -281,3 +281,108 @@ export function GoogleSheetsTestPanel(): React.ReactElement {
     </div>
   );
 }
+
+type OpenAiTestResponse = {
+  env: {
+    hasApiKey: boolean;
+    hasBaseUrl: boolean;
+    hasRelaySecret: boolean;
+    baseUrlHost: string | null;
+    model: string;
+  };
+  ok: boolean;
+  reply: string | null;
+  durationMs: number | null;
+  httpStatus: number | null;
+  message: string;
+  error: string | null;
+  hint: string | null;
+};
+
+/**
+ * Проверка OpenAI / Railway relay: короткий запрос и ответ модели.
+ */
+export function OpenAiTestPanel(): React.ReactElement {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<OpenAiTestResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function checkConnection(): Promise<void> {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/openai/test", { method: "POST" });
+      const body = (await res.json()) as OpenAiTestResponse | { error?: string };
+      if ("error" in body && body.error && !("ok" in body)) {
+        setError(body.error);
+        setResult(null);
+        return;
+      }
+      setResult(body as OpenAiTestResponse);
+    } catch {
+      setError("Сеть недоступна. Попробуйте ещё раз.");
+      setResult(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className={`space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
+      <div>
+        <h2 className={adminPanelSectionTitleClass}>OpenAI / ChatGPT</h2>
+        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
+          Проверка ключа и маршрута через Railway relay. На сервере:{" "}
+          <span className="font-mono text-[14px]">OPENAI_API_KEY</span>, при необходимости{" "}
+          <span className="font-mono text-[14px]">OPENAI_BASE_URL</span> и{" "}
+          <span className="font-mono text-[14px]">OPENAI_RELAY_SECRET</span>. Запрос минимальный
+          (одно слово в ответе).
+        </p>
+      </div>
+
+      <Button
+        type="button"
+        disabled={busy}
+        onClick={() => void checkConnection()}
+        className={stepNavPrimaryButtonClass}
+      >
+        {busy ? "Проверка…" : "Проверить связь с OpenAI"}
+      </Button>
+
+      {error ? (
+        <p className="text-sm font-medium text-red-700/90" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {result ? (
+        <div
+          className={`rounded-2xl border px-4 py-4 text-[14px] ${
+            result.ok
+              ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+              : "border-amber-300 bg-amber-50 text-amber-950"
+          }`}
+          role="status"
+        >
+          <p className="font-extrabold">{result.ok ? "OK" : "Ошибка"}</p>
+          <p className="mt-2">{result.message}</p>
+          {result.reply ? (
+            <p className="mt-3 rounded-xl bg-white/70 px-3 py-2 font-mono text-[15px]">
+              Ответ модели: {result.reply}
+            </p>
+          ) : null}
+          {result.error ? <p className="mt-2 break-words">{result.error}</p> : null}
+          <ul className="mt-3 space-y-1 font-mono text-[13px]">
+            <li>{`OPENAI_API_KEY: ${result.env.hasApiKey ? "задан" : "нет"}`}</li>
+            <li>{`OPENAI_BASE_URL: ${result.env.hasBaseUrl ? result.env.baseUrlHost ?? "задан" : "по умолчанию api.openai.com"}`}</li>
+            <li>{`OPENAI_RELAY_SECRET: ${result.env.hasRelaySecret ? "задан" : "нет"}`}</li>
+            <li>{`Модель: ${result.env.model}`}</li>
+            {result.httpStatus != null ? <li>{`HTTP: ${result.httpStatus}`}</li> : null}
+            {result.durationMs != null ? <li>{`Время: ${result.durationMs} мс`}</li> : null}
+            {result.hint ? <li>{`Подсказка: ${result.hint}`}</li> : null}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}

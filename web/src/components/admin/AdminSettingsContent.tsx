@@ -2,7 +2,12 @@
 
 import React, { useState } from "react";
 
-import { AdminCredentialsNotice, GoogleSheetsTestPanel, MyCredentialsForm } from "@/components/admin/AdminSettingsPanels";
+import {
+  AdminCredentialsNotice,
+  GoogleSheetsTestPanel,
+  MyCredentialsForm,
+  OpenAiTestPanel,
+} from "@/components/admin/AdminSettingsPanels";
 import { RegenerateManagerBriefPanel } from "@/components/admin/RegenerateManagerBriefPanel";
 import { RegenerateReportsPanel } from "@/components/admin/RegenerateReportsPanel";
 import { CommissionEvalLogsPanel } from "@/components/admin/CommissionEvalLogsPanel";
@@ -56,6 +61,7 @@ export function AdminSettingsContent(): React.ReactElement {
           )}
           {session.role === ADMIN_ROLE_ADMIN ? <HrdSettingsForm /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <NotificationSettingsForm /> : null}
+          {session.role === ADMIN_ROLE_ADMIN ? <OpenAiTestPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <GoogleSheetsTestPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <RegenerateManagerBriefPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <RegenerateReportsPanel /> : null}
