@@ -53,7 +53,8 @@
 - `OPENAI_API_KEY` — только на сервере, без `NEXT_PUBLIC_`.
 - `OPENAI_MODEL` (необязательно) — модель Chat Completions для HR/скрининга; по умолчанию `gpt-5.5` (см. `src/lib/ai/openaiHttp.ts`).
 - `OPENAI_MANAGER_BRIEF_MODEL` (необязательно) — отдельная модель для финального «Заключения» в отчёте для руководителя (ОД/ТУ); если не задана, используется `OPENAI_MODEL`.
-- `OPENAI_BASE_URL` (необязательно) — базовый URL API без пути `/v1/...` (по умолчанию `https://api.openai.com`).
+- `OPENAI_BASE_URL` (необязательно) — базовый URL API без пути `/v1/...` (по умолчанию `https://api.openai.com`). Для Timeweb/РФ: URL Railway relay, например `https://telegram-relay2-production.up.railway.app`.
+- `OPENAI_RELAY_SECRET` (нужен при relay) — `relay_secret` tenant'а в `RELAY_TENANTS` на relay; уходит как заголовок `X-Relay-Secret`.
 
 ### Брендинг PDF и Word-экспорта отчётов
 
@@ -83,4 +84,4 @@
 | `TIMEWEB_API_TOKEN` | Bearer-токен Timeweb Cloud API (панель Timeweb → API) |
 | `TIMEWEB_APP_ID` | ID приложения App Platform в Timeweb |
 
-Просмотр логов в админ-панели (`/admin/timeweb-logs`) доступен **только главному администратору** (`ADMIN_PANEL_EMAIL` / роль `admin`). Токен и ID приложения хранить только на сервере.
+Просмотр в админ-панели (`/admin/timeweb-logs`) — только главному администратору. Токен хранить только на сервере.
