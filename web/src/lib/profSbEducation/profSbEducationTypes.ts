@@ -39,6 +39,14 @@ export type ProfSbEducationReportJson = {
   interpretation: string | null;
 };
 
+/** Отчёт после сохранения анкеты (всегда computed). */
+export type ProfSbEducationComputedReport = {
+  status: "computed";
+  sections: ReadonlyArray<ProfSbEducationSectionId>;
+  computedAt: string;
+  interpretation: string | null;
+};
+
 /** Данные для просмотра результата в админке (API → клиент). */
 export type ProfSbEducationReportView = {
   sessionId: string;
@@ -69,7 +77,7 @@ export function isProfSbEducationComplete(answers: ProfSbEducationAnswers): bool
  */
 export function buildComputedProfSbEducationReport(
   interpretation: string | null
-): ProfSbEducationReportJson {
+): ProfSbEducationComputedReport {
   return {
     status: "computed",
     sections: ["profSb", "profEducation"],
@@ -81,6 +89,6 @@ export function buildComputedProfSbEducationReport(
 /**
  * @deprecated Используйте buildComputedProfSbEducationReport.
  */
-export function buildPendingProfSbEducationReport(): ProfSbEducationReportJson {
+export function buildPendingProfSbEducationReport(): ProfSbEducationComputedReport {
   return buildComputedProfSbEducationReport(null);
 }
