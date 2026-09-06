@@ -1,5 +1,6 @@
 import type { ProfSbEducationReportJson, ProfSbEducationReportView } from "@/lib/profSbEducation/profSbEducationTypes";
 import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
+import { reconcileProfSbEducationFolderLinks } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
 import { prisma } from "@/lib/prisma";
 
 export type { ProfSbEducationReportView };
@@ -41,9 +42,23 @@ export async function assertProfSbEducationSessionInFolder(
   folderKey: string,
   sessionId: string
 ): Promise<boolean> {
-  const row = await prisma.profSbEducationSubmission.findFirst({
+  const existing = await prisma.profSbEducationSubmission.findFirst({
     where: { sessionId, candidateFolderKey: folderKey },
     select: { id: true },
   });
-  return row !== null;
+  if (existing) {
+    return true;
+  }
+
+  try {
+    await reconcileProfSbEducationFolderLinks();
+  } catch {
+    return false;
+  }
+
+  const linked = await prisma.profSbEducationSubmission.findFirst({
+    where: { sessionId, candidateFolderKey: folderKey },
+    select: { id: true },
+  });
+  return linked !== null;
 }

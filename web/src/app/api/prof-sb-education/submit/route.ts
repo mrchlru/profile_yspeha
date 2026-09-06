@@ -11,6 +11,9 @@ import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServ
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
 import { finalizeProctorSessionIfNeeded } from "@/lib/proctor/buildProctorViolationsReport";
 import { buildPendingProfSbEducationReport } from "@/lib/profSbEducation/profSbEducationTypes";
+import { resolveProfSbEducationFolderKey } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
+import { buildStep4AiSummary } from "@/lib/step4/step4Labels";
+import type { Step4Data } from "@/lib/step4/step4Types";
 import { prisma } from "@/lib/prisma";
 import { profSbEducationSubmitBodySchema } from "@/lib/validation/profSbEducationSubmitSchema";
 
@@ -73,16 +76,13 @@ export async function POST(
     return NextResponse.json({ error: "Недействительный код доступа" }, { status: 403 });
   }
 
-  const inviteMeta = await prisma.accessInvite.findFirst({
-    where: { code: normalizeAccessCode(payload.accessCode) },
-    select: { candidateFolderKey: true },
+  const candidateFolderKey = await resolveProfSbEducationFolderKey({
+    accessInviteCode: payload.accessCode,
+    firstName: assessee.firstNameDisplay,
+    lastName: assessee.lastNameDisplay,
   });
-  const candidateFolderKey = inviteMeta?.candidateFolderKey ?? null;
 
-  const profReport = {
-    ...buildPendingProfSbEducationReport(),
-    computedAt: formatMoscowNow(),
-  };
+  const profReport = buildProfSbEducationReportFromAnswers(payload.answers);
 
   const consentAt = new Date(payload.consentRecordedAt);
   const dbStarted = Date.now();
@@ -151,4 +151,88 @@ export async function POST(
   }
 
   return NextResponse.json({ ok: true });
+}
+
+/**
+ * Строит отчёт: step-4 summary если есть, иначе фиксация прохождения заглушки.
+ */
+function buildProfSbEducationReportFromAnswers(answers: unknown): {
+  status: "pending_methodology" | "computed";
+  sections: ReadonlyArray<"profSb" | "profEducation">;
+  computedAt: string;
+  interpretation: string | null;
+} {
+  const step4 = extractStep4Data(answers);
+  if (step4) {
+    const summary = buildStep4AiSummary(step4);
+    return {
+      status: summary.trim().length > 0 ? "computed" : "pending_methodology",
+      sections: ["profSb", "profEducation"],
+      computedAt: formatMoscowNow(),
+      interpretation: summary.trim().length > 0 ? summary.slice(0, 12000) : null,
+    };
+  }
+
+  const hasFilledFields = countFilledAnswerFields(answers) > 0;
+  if (hasFilledFields) {
+    return {
+      ...buildPendingProfSbEducationReport(),
+      computedAt: formatMoscowNow(),
+      interpretation: "Ответы сохранены. Полная интерпретация появится после подключения ключей методики.",
+    };
+  }
+
+  return {
+    status: "computed",
+    sections: ["profSb", "profEducation"],
+    computedAt: formatMoscowNow(),
+    interpretation:
+      "Прохождение зафиксировано. Вопросы анкеты ещё не были подключены на момент сдачи — сохранён факт завершения.",
+  };
+}
+
+function extractStep4Data(answers: unknown): Step4Data | null {
+  if (!answers || typeof answers !== "object") {
+    return null;
+  }
+  const root = answers as { step4Data?: unknown; source?: unknown };
+  if (root.step4Data && typeof root.step4Data === "object") {
+    return root.step4Data as Step4Data;
+  }
+  return null;
+}
+
+function countFilledAnswerFields(answers: unknown): number {
+  if (!answers || typeof answers !== "object") {
+    return 0;
+  }
+  let count = 0;
+  const walk = (value: unknown): void => {
+    if (value === null || value === undefined) {
+      return;
+    }
+    if (typeof value === "string") {
+      if (value.trim().length > 0) {
+        count += 1;
+      }
+      return;
+    }
+    if (typeof value === "number" || typeof value === "boolean") {
+      count += 1;
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        walk(item);
+      }
+      return;
+    }
+    if (typeof value === "object") {
+      for (const item of Object.values(value as Record<string, unknown>)) {
+        walk(item);
+      }
+    }
+  };
+  walk(answers);
+  return count;
 }

@@ -6,7 +6,9 @@ import { checkAccessInvite } from "@/lib/access/findActiveInvite";
 import { isProfSbEducationTestKind } from "@/lib/access/testKinds";
 import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServerLog";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
+import { normalizeAccessCode } from "@/lib/access/accessCode";
 import { createEmptyProfSbEducationAnswers } from "@/lib/profSbEducation/profSbEducationTypes";
+import { resolveProfSbEducationFolderKey } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
 import { prisma } from "@/lib/prisma";
 import { profSbEducationSyncAnswersBodySchema } from "@/lib/validation/profSbEducationSyncAnswersSchema";
 
@@ -77,6 +79,11 @@ export async function POST(
   };
 
   const consentAt = payload.consentRecordedAt ? new Date(payload.consentRecordedAt) : undefined;
+  const candidateFolderKey = await resolveProfSbEducationFolderKey({
+    accessInviteCode: payload.accessCode,
+    firstName: assessee.firstNameDisplay,
+    lastName: assessee.lastNameDisplay,
+  });
 
   try {
     await prisma.profSbEducationSubmission.upsert({
@@ -90,6 +97,8 @@ export async function POST(
         personalDataConsent: payload.personalDataConsent ?? false,
         consentRecordedAt: consentAt ?? new Date(),
         answers: mergedAnswers as Prisma.InputJsonValue,
+        accessInviteCode: normalizeAccessCode(payload.accessCode),
+        candidateFolderKey,
       },
       update: {
         assesseeKey: assessee.key,
@@ -101,6 +110,8 @@ export async function POST(
           : {}),
         ...(consentAt !== undefined ? { consentRecordedAt: consentAt } : {}),
         answers: mergedAnswers as Prisma.InputJsonValue,
+        accessInviteCode: normalizeAccessCode(payload.accessCode),
+        ...(candidateFolderKey ? { candidateFolderKey } : {}),
       },
     });
     screeningServerLog("prof_sb_sync", "answers_saved", { sessionRef });

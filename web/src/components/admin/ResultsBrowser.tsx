@@ -480,7 +480,9 @@ export function ResultsBrowser(): React.ReactElement {
                   <p>
                     ПРОФ СБ + образование:{" "}
                     {item.hasProfSbEducation
-                      ? `${String(item.profSbEducationSessionCount)} сессий`
+                      ? item.profSbEducationSessionCount > 0
+                        ? `${String(item.profSbEducationSessionCount)} сессий`
+                        : "приглашение без сохранённой сессии"
                       : "нет"}
                   </p>
                   <p>
