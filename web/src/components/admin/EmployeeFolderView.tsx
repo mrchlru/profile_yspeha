@@ -274,15 +274,9 @@ export function EmployeeFolderView(): React.ReactElement {
               >
                 <div>
                   <p className="font-bold text-[#5F5E5E]">{session.label}</p>
-                  {session.pendingMethodology ? (
-                    <p className="mt-1 text-[13px] font-medium text-amber-800">
-                      Методика и интерпретация — в разработке
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[13px] font-medium text-emerald-800">
-                      Интерпретация доступна
-                    </p>
-                  )}
+                  <p className="mt-1 text-[13px] text-[#8C8C8C]">
+                    Анкета ПРОФ СБ и ПРОФ образование
+                  </p>
                 </div>
                 <Link
                   href={`/admin/results/${encodeURIComponent(folderKey)}/prof-sb-education/${encodeURIComponent(session.sessionId)}`}

@@ -94,7 +94,7 @@ export async function reconcileProfSbEducationFolderLinks(): Promise<number> {
 }
 
 /**
- * Для старых заглушечных прохождений без интерпретации — фиксируем факт сдачи.
+ * Для старых заглушечных прохождений без step4 — просто статус computed (без текста «методика»).
  */
 async function _backfillStubProfReports(): Promise<void> {
   const rows = await prisma.profSbEducationSubmission.findMany({
@@ -105,59 +105,20 @@ async function _backfillStubProfReports(): Promise<void> {
 
   for (const row of rows) {
     const report = row.profReport as ProfSbEducationReportJson | null;
-    if (report?.status === "computed" && (report.interpretation?.trim().length ?? 0) > 0) {
-      continue;
-    }
-    if (countFilledAnswerFields(row.answers) > 0) {
+    if (report?.status === "computed") {
       continue;
     }
     const nextReport: ProfSbEducationReportJson = {
       status: "computed",
       sections: ["profSb", "profEducation"],
       computedAt: formatMoscowNow(),
-      interpretation:
-        "Прохождение зафиксировано. Вопросы анкеты ещё не были подключены на момент сдачи — сохранён факт завершения.",
+      interpretation: report?.interpretation ?? null,
     };
     await prisma.profSbEducationSubmission.update({
       where: { id: row.id },
       data: { profReport: nextReport as unknown as Prisma.InputJsonValue },
     });
   }
-}
-
-function countFilledAnswerFields(answers: unknown): number {
-  if (!answers || typeof answers !== "object") {
-    return 0;
-  }
-  let count = 0;
-  const walk = (value: unknown): void => {
-    if (value === null || value === undefined) {
-      return;
-    }
-    if (typeof value === "string") {
-      if (value.trim().length > 0) {
-        count += 1;
-      }
-      return;
-    }
-    if (typeof value === "number" || typeof value === "boolean") {
-      count += 1;
-      return;
-    }
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        walk(item);
-      }
-      return;
-    }
-    if (typeof value === "object") {
-      for (const item of Object.values(value as Record<string, unknown>)) {
-        walk(item);
-      }
-    }
-  };
-  walk(answers);
-  return count;
 }
 
 /**
