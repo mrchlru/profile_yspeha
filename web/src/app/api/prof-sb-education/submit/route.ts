@@ -11,6 +11,7 @@ import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServ
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
 import { finalizeProctorSessionIfNeeded } from "@/lib/proctor/buildProctorViolationsReport";
 import { buildComputedProfSbEducationReport } from "@/lib/profSbEducation/profSbEducationTypes";
+import type { ProfSbEducationComputedReport } from "@/lib/profSbEducation/profSbEducationTypes";
 import { extractStep4DataFromProfAnswers } from "@/lib/profSbEducation/buildProfSbEducationQuestionnaireBlocks";
 import { resolveProfSbEducationFolderKey } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
 import { buildStep4AiSummary } from "@/lib/step4/step4Labels";
@@ -156,12 +157,7 @@ export async function POST(
 /**
  * Строит отчёт по анкете step-4 (как в скрининге): summary полей, без «ожидания методики».
  */
-function buildProfSbEducationReportFromAnswers(answers: unknown): {
-  status: "computed";
-  sections: ReadonlyArray<"profSb" | "profEducation">;
-  computedAt: string;
-  interpretation: string | null;
-} {
+function buildProfSbEducationReportFromAnswers(answers: unknown): ProfSbEducationComputedReport {
   const step4 = extractStep4DataFromProfAnswers(answers);
   if (step4) {
     const summary = buildStep4AiSummary(step4).trim();
