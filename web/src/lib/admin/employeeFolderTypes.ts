@@ -87,6 +87,7 @@ export type EmployeeFolderDetail = EmployeeFolderSummary & {
     label: string;
     createdAt: string;
     pendingMethodology: boolean;
+    hasQuestionnaireData: boolean;
   }>;
   /** Файлы, загруженные вручную в папку. */
   uploadedFiles: ReadonlyArray<EmployeeFolderFileSummary>;

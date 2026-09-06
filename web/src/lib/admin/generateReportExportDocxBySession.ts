@@ -201,17 +201,28 @@ export async function generateProfSbEducationReportDocxBySession(
     return null;
   }
 
-  const status =
-    view.report?.status === "computed"
-      ? "Интерпретация рассчитана"
-      : "Ожидает методики / ключей подсчёта";
-
   const title = `ПРОФ СБ + ПРОФ образование — ${view.personName}`;
-  const paragraphs: Paragraph[] = [
-    reportDocxParagraph(`${view.createdAt} · ${status}`),
-    reportDocxHeading("Ответы", HeadingLevel.HEADING_2),
-    reportDocxParagraph(JSON.stringify(view.answers, null, 2)),
-  ];
+  const paragraphs: Paragraph[] = [reportDocxParagraph(view.createdAt)];
+
+  for (const block of view.questionnaireBlocks) {
+    paragraphs.push(reportDocxHeading(block.title, HeadingLevel.HEADING_2));
+    if (block.sections.length === 0) {
+      paragraphs.push(reportDocxParagraph("Раздел не заполнен."));
+      continue;
+    }
+    for (const section of block.sections) {
+      paragraphs.push(reportDocxHeading(section.title, HeadingLevel.HEADING_3));
+      for (const row of section.rows) {
+        paragraphs.push(reportDocxParagraph(`${row.key}: ${row.value}`));
+      }
+      for (const group of section.groups ?? []) {
+        paragraphs.push(reportDocxParagraph(group.heading));
+        for (const row of group.rows) {
+          paragraphs.push(reportDocxParagraph(`${row.key}: ${row.value}`));
+        }
+      }
+    }
+  }
 
   return packReportExportDocx(title, paragraphs);
 }

@@ -126,9 +126,8 @@ export function ProfSbEducationIntroPageClient(): React.ReactElement {
       <div className="flex flex-1 items-center justify-center px-4 pb-10 pt-2">
         <div className={`w-full max-w-[860px] space-y-6 px-8 py-8 ${stepSurfaceCardClass}`}>
           <p className={stepSecondaryTextClass}>
-            Комплексная анкета из двух блоков:{" "}
-            {PROF_SB_EDUCATION_SECTIONS.map((section) => section.title).join(" и ")}. Содержание
-            вопросов будет добавлено после загрузки методики.
+            Две части одной анкеты — как в скрининге:{" "}
+            {PROF_SB_EDUCATION_SECTIONS.map((section) => section.title).join(" и ")}.
           </p>
 
           {!isReturning ? (

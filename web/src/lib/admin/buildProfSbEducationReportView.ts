@@ -1,4 +1,8 @@
 import type { ProfSbEducationReportJson, ProfSbEducationReportView } from "@/lib/profSbEducation/profSbEducationTypes";
+import {
+  buildProfSbEducationQuestionnaireBlocks,
+  extractStep4DataFromProfAnswers,
+} from "@/lib/profSbEducation/buildProfSbEducationQuestionnaireBlocks";
 import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
 import { reconcileProfSbEducationFolderLinks } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
 import { prisma } from "@/lib/prisma";
@@ -26,12 +30,16 @@ export async function buildProfSbEducationReportView(
     return null;
   }
 
+  const answers = row.answers as Record<string, unknown>;
+  const step4 = extractStep4DataFromProfAnswers(answers);
+
   return {
     sessionId: row.sessionId,
     personName: `${row.lastName} ${row.firstName}`,
     createdAt: formatMoscowDateTime(row.createdAt),
     report: (row.profReport as ProfSbEducationReportJson | null) ?? null,
-    answers: row.answers as Record<string, unknown>,
+    answers,
+    questionnaireBlocks: buildProfSbEducationQuestionnaireBlocks(step4),
   };
 }
 

@@ -76,8 +76,9 @@ import {
   STEP4_WORK_COMMUTE_OPTIONS,
   type Step4Option,
 } from "@/lib/step4/step4Labels";
-import { TEST_KIND_SCREENING } from "@/lib/access/testKinds";
+import { TEST_KIND_SCREENING, isProfSbEducationTestKind } from "@/lib/access/testKinds";
 import { Step4Data, useFormStore } from "@/store/useFormStore";
+import { useProfSbEducationFormStore } from "@/store/useProfSbEducationFormStore";
 
 type SelectOption = Step4Option;
 
@@ -282,11 +283,17 @@ export default function Step4Page(): React.ReactElement {
   const accessReady = useStep4PageAccessReady();
   const tuStepReady = useTuBatteryProfSbStepReady();
   const testKind = useFormStore((s) => s.activeTestKind);
+  const standaloneProfMode = isProfSbEducationTestKind(testKind);
   const profileName = useFormStore((s) => s.profileName);
   const sessionId = useFormStore((s) => s.sessionId);
   const batteryStepSequence = useAuditFormStore((s) => s.batteryStepSequence);
   const auditFirstName = useAuditFormStore((s) => s.firstName);
   const auditLastName = useAuditFormStore((s) => s.lastName);
+  const profFirstName = useProfSbEducationFormStore((s) => s.firstName);
+  const profLastName = useProfSbEducationFormStore((s) => s.lastName);
+  const beginProfSbEducationSession = useProfSbEducationFormStore(
+    (s) => s.beginProfSbEducationSession
+  );
   const markStepReached = useAuditFormStore((s) => s.markStepReached);
   const markStepCompleted = useAuditFormStore((s) => s.markStepCompleted);
   useScreeningStepLog("step-4", sessionId);
@@ -323,7 +330,7 @@ export default function Step4Page(): React.ReactElement {
   }, []);
 
   useEffect(() => {
-    if (!accessReady || tuBatteryMode) {
+    if (!accessReady || tuBatteryMode || standaloneProfMode) {
       return;
     }
     if (testKind === TEST_KIND_SCREENING) {
@@ -331,7 +338,7 @@ export default function Step4Page(): React.ReactElement {
       return;
     }
     router.replace("/");
-  }, [accessReady, router, testKind, tuBatteryMode]);
+  }, [accessReady, router, standaloneProfMode, testKind, tuBatteryMode]);
 
   useEffect(() => {
     if (!accessReady || !tuBatteryMode) {
@@ -361,21 +368,45 @@ export default function Step4Page(): React.ReactElement {
   ]);
 
   useEffect(() => {
-    if (tuBatteryMode) {
+    if (!accessReady || !standaloneProfMode) {
+      return;
+    }
+    beginProfSbEducationSession();
+    const prefilled = prefillStep4PersonalFromAuditNames(
+      step4Data,
+      profFirstName,
+      profLastName
+    );
+    if (prefilled !== step4Data) {
+      setStep4Data(prefilled);
+    }
+  }, [
+    accessReady,
+    beginProfSbEducationSession,
+    profFirstName,
+    profLastName,
+    setStep4Data,
+    standaloneProfMode,
+    step4Data,
+  ]);
+
+  useEffect(() => {
+    if (tuBatteryMode || standaloneProfMode) {
       setScreeningMaxStepCookie(4);
     }
-  }, [tuBatteryMode]);
+  }, [standaloneProfMode, tuBatteryMode]);
 
   const complete = isStep4Complete(step4Data);
   const answeredCount = getAllAnsweredCount(step1Data, step2Data, step3Data, step4Data);
   const continueLabel = getContinueButtonLabel(answeredCount);
-  const primaryLabel = tuBatteryMode
-    ? complete
-      ? "Далее"
-      : "Заполните обязательные поля"
-    : complete
-      ? "Завершить"
-      : continueLabel;
+  const primaryLabel =
+    tuBatteryMode || standaloneProfMode
+      ? complete
+        ? "Далее"
+        : "Заполните обязательные поля"
+      : complete
+        ? "Завершить"
+        : continueLabel;
 
   const sequenceProgress =
     batteryStepSequence !== null
@@ -1346,6 +1377,10 @@ export default function Step4Page(): React.ReactElement {
                     return;
                   }
                   navigateAfterFormPersist(router, "/audit/finish");
+                  return;
+                }
+                if (standaloneProfMode) {
+                  navigateAfterFormPersist(router, "/prof-sb-education/finish");
                   return;
                 }
                 router.push("/finish");

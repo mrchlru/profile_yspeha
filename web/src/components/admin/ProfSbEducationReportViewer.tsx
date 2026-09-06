@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -10,10 +10,11 @@ import {
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
 import type { ProfSbEducationReportView } from "@/lib/profSbEducation/profSbEducationTypes";
-import { PROF_SB_EDUCATION_SECTIONS } from "@/lib/profSbEducation/profSbEducationTypes";
+import type { Step4ReportSection } from "@/lib/step4/step4Labels";
 
 /**
  * Просмотр результата анкеты «ПРОФ СБ + ПРОФ образование» в админке.
+ * Формат как у анкетных данных в отчёте скрининга: блоки с парами ключ–значение.
  */
 export function ProfSbEducationReportViewer(): React.ReactElement {
   const params = useParams();
@@ -22,11 +23,6 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
   const [view, setView] = useState<ProfSbEducationReportView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const sectionLabels = useMemo(
-    () => PROF_SB_EDUCATION_SECTIONS.map((section) => section.title),
-    []
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -83,8 +79,6 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
     );
   }
 
-  const pending = view.report?.status !== "computed";
-
   return (
     <div className="space-y-6">
       <div className={`space-y-3 px-6 py-6 ${adminPanelCardClass}`}>
@@ -98,39 +92,65 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
         <p className={adminPanelMutedTextClass}>
           {view.personName} · {view.createdAt}
         </p>
-        {pending ? (
-          <p className="text-[14px] font-medium text-amber-800">
-            {view.report?.interpretation?.trim()
-              ? view.report.interpretation
-              : "Интерпретация будет доступна после загрузки методики и ключей подсчёта."}
+      </div>
+
+      {view.questionnaireBlocks.map((block) => (
+        <div key={block.title} className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
+          <h2 className={adminPanelSectionTitleClass}>{block.title}</h2>
+          {block.sections.length === 0 ? (
+            <p className={adminPanelMutedTextClass}>Раздел не заполнен.</p>
+          ) : (
+            <div className="space-y-5">
+              {block.sections.map((section) => (
+                <QuestionnaireSection key={section.title} section={section} />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function QuestionnaireSection({
+  section,
+}: {
+  section: Step4ReportSection;
+}): React.ReactElement {
+  const isEducationConclusion = section.title === "Заключение по образованию и обучению";
+
+  return (
+    <div className="space-y-2">
+      <h3
+        className={`text-[15px] font-bold ${
+          isEducationConclusion ? "text-[#007A68]" : "text-[#5F5E5E]"
+        }`}
+      >
+        {section.title}
+      </h3>
+      {section.rows.map((row) =>
+        isEducationConclusion ? (
+          <p key={row.key} className="whitespace-pre-wrap text-[14px] leading-relaxed text-[#5F5E5E]">
+            {row.value}
           </p>
         ) : (
-          <div className="space-y-2">
-            <p className="text-[14px] font-medium text-emerald-800">Интерпретация рассчитана.</p>
-            {view.report?.interpretation ? (
-              <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[#5F5E5E]">
-                {view.report.interpretation}
-              </p>
-            ) : null}
-          </div>
-        )}
-      </div>
-
-      <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-        <h2 className={adminPanelSectionTitleClass}>Блоки анкеты</h2>
-        <ul className="list-disc space-y-2 pl-5 text-[14px] text-[#5F5E5E]">
-          {sectionLabels.map((label) => (
-            <li key={label}>{label}</li>
+          <p key={`${row.key}:${row.value}`} className="text-[14px] leading-relaxed text-[#5F5E5E]">
+            <span className="font-semibold text-[#4A4A4A]">{row.key}: </span>
+            {row.value}
+          </p>
+        )
+      )}
+      {section.groups?.map((group) => (
+        <div key={group.heading} className="space-y-1 pl-1">
+          <p className="text-[13px] font-semibold text-[#8C8C8C]">{group.heading}</p>
+          {group.rows.map((row) => (
+            <p key={`${group.heading}:${row.key}`} className="text-[14px] leading-relaxed text-[#5F5E5E]">
+              <span className="font-semibold text-[#4A4A4A]">{row.key}: </span>
+              {row.value}
+            </p>
           ))}
-        </ul>
-      </div>
-
-      <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-        <h2 className={adminPanelSectionTitleClass}>Сырые ответы (JSON)</h2>
-        <pre className="max-h-[420px] overflow-auto rounded-2xl bg-white/70 p-4 text-[12px] leading-relaxed text-[#4F4F4F]">
-          {JSON.stringify(view.answers, null, 2)}
-        </pre>
-      </div>
+        </div>
+      ))}
     </div>
   );
 }

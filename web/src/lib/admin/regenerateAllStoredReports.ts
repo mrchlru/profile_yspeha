@@ -23,7 +23,7 @@ import type { KotReportJson } from "@/lib/kot/kotReportTypes";
 import { buildStep4AiSummary } from "@/lib/step4/step4Labels";
 import type { Step4Data } from "@/lib/step4/step4Types";
 import {
-  buildPendingProfSbEducationReport,
+  buildComputedProfSbEducationReport,
   type ProfSbEducationReportJson,
 } from "@/lib/profSbEducation/profSbEducationTypes";
 
@@ -334,7 +334,7 @@ export async function regenerateAllStoredReports(): Promise<RegenerateStoredRepo
 }
 
 function _rebuildProfSbEducationReport(answers: unknown): ProfSbEducationReportJson {
-  const base = buildPendingProfSbEducationReport();
+  const base = buildComputedProfSbEducationReport(null);
   if (answers === null || typeof answers !== "object") {
     return { ...base, computedAt: formatMoscowNow() };
   }
@@ -342,8 +342,8 @@ function _rebuildProfSbEducationReport(answers: unknown): ProfSbEducationReportJ
   if (record.step4Data !== undefined) {
     const summary = buildStep4AiSummary(record.step4Data);
     return {
-      status: summary.trim().length > 0 ? "computed" : "pending_methodology",
-      sections: ["profSb"],
+      status: "computed",
+      sections: ["profSb", "profEducation"],
       computedAt: formatMoscowNow(),
       interpretation: summary.trim().length > 0 ? summary.slice(0, 12000) : null,
     };

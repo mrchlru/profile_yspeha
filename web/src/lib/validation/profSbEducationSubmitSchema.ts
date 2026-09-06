@@ -15,9 +15,11 @@ export const profSbEducationSubmitBodySchema = z
     consentRecordedAt: z.string().datetime(),
     answers: z
       .object({
-        profSb: sectionAnswersSchema,
-        profEducation: sectionAnswersSchema,
+        profSb: sectionAnswersSchema.default({}),
+        profEducation: sectionAnswersSchema.default({}),
+        source: z.string().trim().max(80).optional(),
+        step4Data: z.unknown().optional(),
       })
-      .strict(),
+      .passthrough(),
   })
   .strict();

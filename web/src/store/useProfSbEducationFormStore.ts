@@ -13,6 +13,8 @@ import { clientSessionRef, screeningClientLog } from "@/lib/logging/screeningCli
 import { generateSessionId } from "@/lib/sessionId";
 import { getFormPersistStateStorage } from "@/store/formPersistStorage";
 import { queueProfSbEducationAnswersSync } from "@/lib/profSbEducation/syncProfSbEducationAnswersClient";
+import { useFormStore } from "@/store/useFormStore";
+import { isStep4Complete } from "@/lib/validation/stepCompletion";
 
 export type ProfSbEducationSubmissionStatus = "idle" | "submitting" | "submitted" | "error";
 
@@ -108,7 +110,22 @@ export const useProfSbEducationFormStore = create<ProfSbEducationFormStore>()(
           return;
         }
 
-        set({ submissionStatus: "submitting", submitError: null });
+        const step4Data = useFormStore.getState().step4Data;
+        if (!isStep4Complete(step4Data)) {
+          set({
+            submissionStatus: "error",
+            submitError: "Заполните все обязательные поля анкеты.",
+          });
+          return;
+        }
+
+        const answers: ProfSbEducationAnswers = {
+          ...state.answers,
+          source: "standalone_step4",
+          step4Data,
+        };
+
+        set({ submissionStatus: "submitting", submitError: null, answers });
         const sessionRef = clientSessionRef(state.sessionId);
 
         try {
@@ -122,7 +139,7 @@ export const useProfSbEducationFormStore = create<ProfSbEducationFormStore>()(
               lastName: assessee.lastNameDisplay,
               personalDataConsent: true,
               consentRecordedAt: state.consentRecordedAt,
-              answers: state.answers,
+              answers,
             }),
           });
           const body = (await res.json()) as { ok?: boolean; error?: string };

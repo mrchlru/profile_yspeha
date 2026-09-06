@@ -1,3 +1,6 @@
+import type { Step4Data } from "@/lib/step4/step4Types";
+import type { ProfSbEducationQuestionnaireBlock } from "@/lib/profSbEducation/buildProfSbEducationQuestionnaireBlocks";
+
 /** Идентификаторы блоков анкеты «ПРОФ СБ + ПРОФ образование». */
 export type ProfSbEducationSectionId = "profSb" | "profEducation";
 
@@ -7,24 +10,26 @@ export type ProfSbEducationSectionMeta = {
   description: string;
 };
 
-/** Метаданные двух частей анкеты (вопросы добавятся отдельным PR). */
+/** Метаданные двух частей анкеты (та же форма, что step-4 в скрининге). */
 export const PROF_SB_EDUCATION_SECTIONS: ReadonlyArray<ProfSbEducationSectionMeta> = [
   {
     id: "profSb",
     title: "Анкета ПРОФ СБ",
-    description: "Расширенная анкета кандидата из скрининга (step-4): те же поля и валидация.",
+    description: "Личные данные, опыт работы и смежные разделы — как в скрининге.",
   },
   {
     id: "profEducation",
     title: "ПРОФ образование",
-    description: "Блок профессионального образования и развития (содержание уточняется).",
+    description: "Образование, курсы и заключение по обучению — как в скрининге.",
   },
 ];
 
-/** Ответы по блокам; ключи вопросов появятся вместе с методикой. */
+/** Ответы: step4Data — основной источник для отчёта. */
 export type ProfSbEducationAnswers = {
   profSb: Record<string, string | number | boolean | null>;
   profEducation: Record<string, string | number | boolean | null>;
+  source?: string;
+  step4Data?: Step4Data;
 };
 
 export type ProfSbEducationReportJson = {
@@ -41,6 +46,7 @@ export type ProfSbEducationReportView = {
   createdAt: string;
   report: ProfSbEducationReportJson | null;
   answers: Record<string, unknown>;
+  questionnaireBlocks: ReadonlyArray<ProfSbEducationQuestionnaireBlock>;
 };
 
 /**
@@ -51,7 +57,7 @@ export function createEmptyProfSbEducationAnswers(): ProfSbEducationAnswers {
 }
 
 /**
- * Проверяет готовность к отправке. Пока методика не загружена — достаточно пустых блоков.
+ * Готовность к отправке: при наличии step4 — полная анкета, иначе (legacy) пропускаем.
  */
 export function isProfSbEducationComplete(answers: ProfSbEducationAnswers): boolean {
   void answers;
@@ -59,13 +65,22 @@ export function isProfSbEducationComplete(answers: ProfSbEducationAnswers): bool
 }
 
 /**
- * Формирует заглушку отчёта до внедрения ключей и интерпретации.
+ * Базовый отчёт после сохранения анкеты.
  */
-export function buildPendingProfSbEducationReport(): ProfSbEducationReportJson {
+export function buildComputedProfSbEducationReport(
+  interpretation: string | null
+): ProfSbEducationReportJson {
   return {
-    status: "pending_methodology",
+    status: "computed",
     sections: ["profSb", "profEducation"],
     computedAt: new Date().toISOString(),
-    interpretation: null,
+    interpretation,
   };
+}
+
+/**
+ * @deprecated Используйте buildComputedProfSbEducationReport.
+ */
+export function buildPendingProfSbEducationReport(): ProfSbEducationReportJson {
+  return buildComputedProfSbEducationReport(null);
 }
