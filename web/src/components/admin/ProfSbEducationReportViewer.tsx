@@ -100,10 +100,19 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
         </p>
         {pending ? (
           <p className="text-[14px] font-medium text-amber-800">
-            Интерпретация будет доступна после загрузки методики и ключей подсчёта.
+            {view.report?.interpretation?.trim()
+              ? view.report.interpretation
+              : "Интерпретация будет доступна после загрузки методики и ключей подсчёта."}
           </p>
         ) : (
-          <p className="text-[14px] font-medium text-emerald-800">Интерпретация рассчитана.</p>
+          <div className="space-y-2">
+            <p className="text-[14px] font-medium text-emerald-800">Интерпретация рассчитана.</p>
+            {view.report?.interpretation ? (
+              <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-[#5F5E5E]">
+                {view.report.interpretation}
+              </p>
+            ) : null}
+          </div>
         )}
       </div>
 

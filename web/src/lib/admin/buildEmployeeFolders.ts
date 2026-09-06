@@ -38,6 +38,7 @@ import { buildEmployeeDashboardVisual } from "@/lib/admin/buildEmployeeDashboard
 import { parseEmployeeFolderKey } from "@/lib/admin/employeeFolderKey";
 import { TEST_KIND_PROF_SB_EDUCATION, TEST_KIND_SCREENING } from "@/lib/access/testKinds";
 import { folderHasProctorReport } from "@/lib/proctor/buildProctorViolationsReport";
+import { reconcileProfSbEducationFolderLinks } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
 import { prisma } from "@/lib/prisma";
 
 export type EmployeeFolderTypeFilter = "all" | "screening" | "audit";
@@ -240,6 +241,12 @@ export async function listEmployeeFolders(
   archiveView = false,
   includeAllStatuses = false
 ): Promise<EmployeeFolderSummary[]> {
+  try {
+    await reconcileProfSbEducationFolderLinks();
+  } catch {
+    /* не блокируем список результатов */
+  }
+
   const [inviteRows, screeningRows, auditRows, profInviteRows, profSubmissionRows] =
     await Promise.all([
       prisma.accessInvite.findMany({
@@ -450,6 +457,12 @@ function _documentViewKind(
 export async function getEmployeeFolderSummaryByKey(
   folderKey: string
 ): Promise<EmployeeFolderSummary | null> {
+  try {
+    await reconcileProfSbEducationFolderLinks();
+  } catch {
+    /* не блокируем карточку */
+  }
+
   const parsed = parseEmployeeFolderKey(folderKey);
   if (parsed === null) {
     return null;
