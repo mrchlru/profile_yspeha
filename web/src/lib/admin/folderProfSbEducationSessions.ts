@@ -1,12 +1,14 @@
 import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
-import type { ProfSbEducationReportJson } from "@/lib/profSbEducation/profSbEducationTypes";
+import { extractStep4DataFromProfAnswers } from "@/lib/profSbEducation/buildProfSbEducationQuestionnaireBlocks";
 import { prisma } from "@/lib/prisma";
 
 export type FolderProfSbEducationSessionRef = {
   sessionId: string;
   label: string;
   createdAt: string;
+  /** @deprecated Больше не используется в UI. */
   pendingMethodology: boolean;
+  hasQuestionnaireData: boolean;
 };
 
 /**
@@ -23,17 +25,18 @@ export async function listFolderProfSbEducationSessions(
       createdAt: true,
       lastName: true,
       firstName: true,
-      profReport: true,
+      answers: true,
     },
   });
 
   return rows.map((row) => {
-    const report = row.profReport as ProfSbEducationReportJson | null;
+    const hasQuestionnaireData = extractStep4DataFromProfAnswers(row.answers) !== null;
     return {
       sessionId: row.sessionId,
       label: `${row.lastName} ${row.firstName} — ${formatMoscowDateTime(row.createdAt)}`,
       createdAt: row.createdAt.toISOString(),
-      pendingMethodology: report?.status !== "computed",
+      pendingMethodology: false,
+      hasQuestionnaireData,
     };
   });
 }

@@ -625,37 +625,41 @@ function _buildBurnoutExportHtml(view: NonNullable<Awaited<ReturnType<typeof bui
 
 
 function _buildProfSbExportHtml(
-
   view: NonNullable<Awaited<ReturnType<typeof buildProfSbEducationReportView>>>
-
 ): string {
-
-  const status =
-
-    view.report?.status === "computed"
-
-      ? "Интерпретация рассчитана"
-
-      : "Ожидает методики / ключей подсчёта";
-
-  const answersJson = _escapeHtml(JSON.stringify(view.answers, null, 2));
-
-
+  const blocksHtml = view.questionnaireBlocks
+    .map((block) => {
+      const sectionsHtml =
+        block.sections.length === 0
+          ? "<p>Раздел не заполнен.</p>"
+          : block.sections
+              .map((section) => {
+                const rows = section.rows
+                  .map((row) => `<p><strong>${_escapeHtml(row.key)}:</strong> ${_escapeHtml(row.value)}</p>`)
+                  .join("");
+                const groups = (section.groups ?? [])
+                  .map((group) => {
+                    const groupRows = group.rows
+                      .map(
+                        (row) =>
+                          `<p><strong>${_escapeHtml(row.key)}:</strong> ${_escapeHtml(row.value)}</p>`
+                      )
+                      .join("");
+                    return `<h4>${_escapeHtml(group.heading)}</h4>${groupRows}`;
+                  })
+                  .join("");
+                return `<h3>${_escapeHtml(section.title)}</h3>${rows}${groups}`;
+              })
+              .join("");
+      return `<h2>${_escapeHtml(block.title)}</h2>${sectionsHtml}`;
+    })
+    .join("");
 
   return `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8" /><title>ПРОФ СБ — ${_escapeHtml(view.personName)}</title></head><body>
-
 <h1>ПРОФ СБ + ПРОФ образование</h1>
-
 <p><strong>${_escapeHtml(view.personName)}</strong> · ${_escapeHtml(view.createdAt)}</p>
-
-<p>${_escapeHtml(status)}</p>
-
-<h2>Ответы</h2>
-
-<pre>${answersJson}</pre>
-
+${blocksHtml}
 </body></html>`;
-
 }
 
 
