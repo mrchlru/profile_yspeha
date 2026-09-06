@@ -478,6 +478,12 @@ export function ResultsBrowser(): React.ReactElement {
                     {item.hasAudit ? `${String(item.auditSessions)} сессий` : "нет"}
                   </p>
                   <p>
+                    ПРОФ СБ + образование:{" "}
+                    {item.hasProfSbEducation
+                      ? `${String(item.profSbEducationSessionCount)} сессий`
+                      : "нет"}
+                  </p>
+                  <p>
                     Последняя активность:{" "}
                     {item.lastActivityAt ? formatMoscowDateTime(item.lastActivityAt) : "—"}
                   </p>
