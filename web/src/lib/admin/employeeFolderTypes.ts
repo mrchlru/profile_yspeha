@@ -38,9 +38,13 @@ export type EmployeeFolderSummary = {
   hasScreening: boolean;
   hasAudit: boolean;
   hasInterview: boolean;
+  /** Есть прохождения / приглашения ПРОФ СБ + ПРОФ образование. */
+  hasProfSbEducation: boolean;
   lastActivityAt: string | null;
   screeningSessions: number;
   auditSessions: number;
+  /** Число сохранённых прохождений ПРОФ СБ + образование. */
+  profSbEducationSessionCount: number;
   positionLevel: string | null;
   positionLevelLabel: string | null;
   birthDate: string | null;

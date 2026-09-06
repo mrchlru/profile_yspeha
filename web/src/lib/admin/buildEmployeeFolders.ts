@@ -36,7 +36,7 @@ import {
 } from "@/lib/admin/buildEmployeeDashboardPreview";
 import { buildEmployeeDashboardVisual } from "@/lib/admin/buildEmployeeDashboardVisual";
 import { parseEmployeeFolderKey } from "@/lib/admin/employeeFolderKey";
-import { TEST_KIND_SCREENING } from "@/lib/access/testKinds";
+import { TEST_KIND_PROF_SB_EDUCATION, TEST_KIND_SCREENING } from "@/lib/access/testKinds";
 import { folderHasProctorReport } from "@/lib/proctor/buildProctorViolationsReport";
 import { prisma } from "@/lib/prisma";
 
@@ -48,9 +48,11 @@ type FolderAccumulator = {
   hasScreening: boolean;
   hasAudit: boolean;
   hasInterview: boolean;
+  hasProfSbEducation: boolean;
   lastActivityAt: Date | null;
   screeningSessions: number;
   auditSessions: number;
+  profSbEducationSessionCount: number;
   hasShortReport: boolean;
   hasFullReport: boolean;
   positionLevel: string | null;
@@ -77,9 +79,11 @@ function _upsertFolder(
       hasScreening: false,
       hasAudit: false,
       hasInterview: false,
+      hasProfSbEducation: false,
       lastActivityAt: null,
       screeningSessions: 0,
       auditSessions: 0,
+      profSbEducationSessionCount: 0,
       hasShortReport: false,
       hasFullReport: false,
       positionLevel: null,
@@ -101,8 +105,11 @@ function _upsertFolder(
     hasScreening: existing.hasScreening || Boolean(patch.hasScreening),
     hasAudit: existing.hasAudit || Boolean(patch.hasAudit),
     hasInterview: existing.hasInterview || Boolean(patch.hasInterview),
+    hasProfSbEducation: existing.hasProfSbEducation || Boolean(patch.hasProfSbEducation),
     screeningSessions: existing.screeningSessions + (patch.screeningSessions ?? 0),
     auditSessions: existing.auditSessions + (patch.auditSessions ?? 0),
+    profSbEducationSessionCount:
+      existing.profSbEducationSessionCount + (patch.profSbEducationSessionCount ?? 0),
     hasShortReport: existing.hasShortReport || Boolean(patch.hasShortReport),
     hasFullReport: existing.hasFullReport || Boolean(patch.hasFullReport),
     positionLevel: patch.positionLevel ?? existing.positionLevel,
@@ -136,9 +143,11 @@ function _toSummary(
     hasScreening: row.hasScreening,
     hasAudit: row.hasAudit,
     hasInterview: row.hasInterview,
+    hasProfSbEducation: row.hasProfSbEducation,
     lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
     screeningSessions: row.screeningSessions,
     auditSessions: row.auditSessions,
+    profSbEducationSessionCount: row.profSbEducationSessionCount,
     positionLevel: row.positionLevel,
     positionLevelLabel: row.positionLevel
       ? candidatePositionLevelLabel(row.positionLevel)
@@ -231,49 +240,81 @@ export async function listEmployeeFolders(
   archiveView = false,
   includeAllStatuses = false
 ): Promise<EmployeeFolderSummary[]> {
-  const [inviteRows, screeningRows, auditRows] = await Promise.all([
-    prisma.accessInvite.findMany({
-      where: {
-        testKind: TEST_KIND_SCREENING,
-        candidateFolderKey: { not: null },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 500,
-      select: {
-        code: true,
-        candidateFolderKey: true,
-        candidateLastName: true,
-        candidateFirstName: true,
-        candidateMiddleName: true,
-        candidateBirthDate: true,
-        candidatePositionLevel: true,
-        createdAt: true,
-        usedAt: true,
-      },
-    }),
-    prisma.screeningSubmission.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 500,
-      select: {
-        createdAt: true,
-        kotReport: true,
-        candidateFolderKey: true,
-        accessInviteCode: true,
-      },
-    }),
-    prisma.auditSubmission.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 500,
-      select: {
-        assesseeKey: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-        auditReport: true,
-        candidateFolderKey: true,
-      },
-    }),
-  ]);
+  const [inviteRows, screeningRows, auditRows, profInviteRows, profSubmissionRows] =
+    await Promise.all([
+      prisma.accessInvite.findMany({
+        where: {
+          testKind: TEST_KIND_SCREENING,
+          candidateFolderKey: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          code: true,
+          candidateFolderKey: true,
+          candidateLastName: true,
+          candidateFirstName: true,
+          candidateMiddleName: true,
+          candidateBirthDate: true,
+          candidatePositionLevel: true,
+          createdAt: true,
+          usedAt: true,
+        },
+      }),
+      prisma.screeningSubmission.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          createdAt: true,
+          kotReport: true,
+          candidateFolderKey: true,
+          accessInviteCode: true,
+        },
+      }),
+      prisma.auditSubmission.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          assesseeKey: true,
+          firstName: true,
+          lastName: true,
+          createdAt: true,
+          auditReport: true,
+          candidateFolderKey: true,
+        },
+      }),
+      prisma.accessInvite.findMany({
+        where: {
+          testKind: TEST_KIND_PROF_SB_EDUCATION,
+          candidateFolderKey: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          code: true,
+          candidateFolderKey: true,
+          candidateLastName: true,
+          candidateFirstName: true,
+          candidateMiddleName: true,
+          candidateBirthDate: true,
+          candidatePositionLevel: true,
+          createdAt: true,
+          usedAt: true,
+        },
+      }),
+      prisma.profSbEducationSubmission.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          createdAt: true,
+          firstName: true,
+          lastName: true,
+          candidateFolderKey: true,
+          accessInviteCode: true,
+          profReport: true,
+        },
+      }),
+    ]);
 
   const map = new Map<string, FolderAccumulator>();
 
@@ -345,6 +386,8 @@ export async function listEmployeeFolders(
     });
   }
 
+  _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
+
   const searchQuery = query?.trim() ?? "";
   const folderKeys = [...map.keys()];
   const [statusMap, archiveMarkSet] = await Promise.all([
@@ -364,7 +407,11 @@ export async function listEmployeeFolders(
         statusMap.get(row.key)?.lifecycleStatus ??
         (row.key.startsWith("candidate:") ? CANDIDATE_LIFECYCLE_INTERVIEW : null);
       const isArchiveMarked = archiveMarkSet.has(row.key);
-      return folderVisibleInResults(row.key, status, isArchiveMarked, archiveView);
+      if (folderVisibleInResults(row.key, status, isArchiveMarked, archiveView)) {
+        return true;
+      }
+      // ПРОФ-only папки без ACTIVE всё равно показываем в результатах (не в архиве).
+      return _profSbEducationVisibleInResults(row, status, archiveView);
     })
     .map((row) => {
       const status =
@@ -411,47 +458,78 @@ export async function getEmployeeFolderSummaryByKey(
   const map = new Map<string, FolderAccumulator>();
 
   if (parsed.kind === "candidate") {
-    const [inviteRows, screeningRows, auditRows] = await Promise.all([
-      prisma.accessInvite.findMany({
-        where: {
-          testKind: TEST_KIND_SCREENING,
-          candidateFolderKey: folderKey,
-        },
-        orderBy: { createdAt: "desc" },
-        select: {
-          code: true,
-          candidateFolderKey: true,
-          candidateLastName: true,
-          candidateFirstName: true,
-          candidateMiddleName: true,
-          candidateBirthDate: true,
-          candidatePositionLevel: true,
-          createdAt: true,
-          usedAt: true,
-        },
-      }),
-      prisma.screeningSubmission.findMany({
-        where: { candidateFolderKey: folderKey },
-        orderBy: { createdAt: "desc" },
-        select: {
-          createdAt: true,
-          kotReport: true,
-          candidateFolderKey: true,
-          accessInviteCode: true,
-        },
-      }),
-      prisma.auditSubmission.findMany({
-        where: { candidateFolderKey: folderKey },
-        orderBy: { createdAt: "desc" },
-        select: {
-          firstName: true,
-          lastName: true,
-          createdAt: true,
-          auditReport: true,
-          candidateFolderKey: true,
-        },
-      }),
-    ]);
+    const [inviteRows, screeningRows, auditRows, profInviteRows, profSubmissionRows] =
+      await Promise.all([
+        prisma.accessInvite.findMany({
+          where: {
+            testKind: TEST_KIND_SCREENING,
+            candidateFolderKey: folderKey,
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            code: true,
+            candidateFolderKey: true,
+            candidateLastName: true,
+            candidateFirstName: true,
+            candidateMiddleName: true,
+            candidateBirthDate: true,
+            candidatePositionLevel: true,
+            createdAt: true,
+            usedAt: true,
+          },
+        }),
+        prisma.screeningSubmission.findMany({
+          where: { candidateFolderKey: folderKey },
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+            kotReport: true,
+            candidateFolderKey: true,
+            accessInviteCode: true,
+          },
+        }),
+        prisma.auditSubmission.findMany({
+          where: { candidateFolderKey: folderKey },
+          orderBy: { createdAt: "desc" },
+          select: {
+            firstName: true,
+            lastName: true,
+            createdAt: true,
+            auditReport: true,
+            candidateFolderKey: true,
+          },
+        }),
+        prisma.accessInvite.findMany({
+          where: {
+            testKind: TEST_KIND_PROF_SB_EDUCATION,
+            candidateFolderKey: folderKey,
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            code: true,
+            candidateFolderKey: true,
+            candidateLastName: true,
+            candidateFirstName: true,
+            candidateMiddleName: true,
+            candidateBirthDate: true,
+            candidatePositionLevel: true,
+            createdAt: true,
+            usedAt: true,
+          },
+        }),
+        prisma.profSbEducationSubmission.findMany({
+          where: { candidateFolderKey: folderKey },
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+            firstName: true,
+            lastName: true,
+            candidateFolderKey: true,
+            accessInviteCode: true,
+            profReport: true,
+          },
+        }),
+      ]);
 
     for (const row of inviteRows) {
       if (!row.candidateLastName || !row.candidateFirstName) {
@@ -501,6 +579,8 @@ export async function getEmployeeFolderSummaryByKey(
         firstName: row.firstName,
       });
     }
+
+    _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
   } else {
     const auditRows = await prisma.auditSubmission.findMany({
       where: { assesseeKey: parsed.assesseeKey },
@@ -626,4 +706,93 @@ export async function getEmployeeFolderDetail(
     dashboardPreview,
     dashboardVisual,
   };
+}
+
+type ProfSbEducationInviteRow = {
+  code: string;
+  candidateFolderKey: string | null;
+  candidateLastName: string | null;
+  candidateFirstName: string | null;
+  candidateMiddleName: string | null;
+  candidateBirthDate: Date | null;
+  candidatePositionLevel: string | null;
+  createdAt: Date;
+  usedAt: Date | null;
+};
+
+type ProfSbEducationSubmissionRow = {
+  createdAt: Date;
+  firstName: string;
+  lastName: string;
+  candidateFolderKey: string | null;
+  accessInviteCode: string | null;
+  profReport: unknown;
+};
+
+/**
+ * Добавляет в индекс папок приглашения и прохождения ПРОФ СБ + ПРОФ образование.
+ */
+function _mergeProfSbEducationIntoFolders(
+  map: Map<string, FolderAccumulator>,
+  inviteRows: ReadonlyArray<ProfSbEducationInviteRow>,
+  submissionRows: ReadonlyArray<ProfSbEducationSubmissionRow>
+): void {
+  for (const row of inviteRows) {
+    const key = row.candidateFolderKey;
+    if (!key || !row.candidateLastName || !row.candidateFirstName) {
+      continue;
+    }
+    const displayName = buildCandidateDisplayName({
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      birthDate: row.candidateBirthDate,
+    });
+    _upsertFolder(map, key, displayName, {
+      hasProfSbEducation: true,
+      pendingInvite: row.usedAt === null,
+      lastActivityAt: row.usedAt ?? row.createdAt,
+      positionLevel: row.candidatePositionLevel,
+      birthDate: row.candidateBirthDate,
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      inviteCode: row.code,
+    });
+  }
+
+  for (const row of submissionRows) {
+    if (!row.candidateFolderKey) {
+      continue;
+    }
+    const displayName = `${row.lastName} ${row.firstName}`.trim();
+    _upsertFolder(map, row.candidateFolderKey, displayName || row.candidateFolderKey, {
+      hasProfSbEducation: true,
+      profSbEducationSessionCount: 1,
+      lastActivityAt: row.createdAt,
+      pendingInvite: false,
+      lastName: row.lastName,
+      firstName: row.firstName,
+      inviteCode: row.accessInviteCode,
+      hasShortReport: row.profReport !== null,
+      hasFullReport: row.profReport !== null,
+    });
+  }
+}
+
+/**
+ * ПРОФ-only папки показываем в «Результатах», даже если lifecycle ещё не ACTIVE.
+ */
+function _profSbEducationVisibleInResults(
+  row: FolderAccumulator,
+  lifecycleStatus: CandidateLifecycleStatus | null,
+  archiveView: boolean
+): boolean {
+  if (!row.hasProfSbEducation || !row.key.startsWith("candidate:")) {
+    return false;
+  }
+  if (archiveView) {
+    return lifecycleStatus === CANDIDATE_LIFECYCLE_ARCHIVED;
+  }
+  return lifecycleStatus !== CANDIDATE_LIFECYCLE_ARCHIVED;
 }

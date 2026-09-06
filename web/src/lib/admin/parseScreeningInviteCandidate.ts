@@ -10,7 +10,10 @@ import {
   createInterviewFolderForPosition,
   getInterviewFolderByKey,
 } from "@/lib/admin/interviewFolders";
-import { ensureCandidateFolderRecord } from "@/lib/admin/candidateFolderLifecycle";
+import {
+  applyCandidateFolderLifecycle,
+  ensureCandidateFolderRecord,
+} from "@/lib/admin/candidateFolderLifecycle";
 import {
   TEST_KIND_AUDIT_MIDDLE,
   TEST_KIND_AUDIT_SENIOR,
@@ -98,7 +101,12 @@ export async function parseInviteCandidate(
   }
 
   if (body.candidate) {
-    return _parseCandidateForm(body.candidate);
+    const parsed = _parseCandidateForm(body.candidate);
+    if ("error" in parsed) {
+      return parsed;
+    }
+    await _ensureActiveEmployeeFolderForAssessment(parsed);
+    return parsed;
   }
 
   return { error: "Выберите сотрудника из списка или заполните данные нового" };
@@ -210,6 +218,23 @@ function _parseCandidateForm(
     interviewFolderKey: null,
     interviewFolderDisplayName: null,
   };
+}
+
+/**
+ * Для оценок сотрудников (ПРОФ / аудит / выгорание) создаёт папку и делает её ACTIVE,
+ * чтобы она сразу попадала в «Результаты тестирования».
+ */
+async function _ensureActiveEmployeeFolderForAssessment(
+  candidate: InviteCandidateData
+): Promise<void> {
+  await ensureCandidateFolderRecord({
+    folderKey: candidate.folderKey,
+    lastName: candidate.lastName,
+    firstName: candidate.firstName,
+    middleName: candidate.middleName,
+    birthDate: candidate.birthDate,
+  });
+  await applyCandidateFolderLifecycle(candidate.folderKey, "hire");
 }
 
 /**
