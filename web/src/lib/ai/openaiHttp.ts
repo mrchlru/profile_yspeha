@@ -7,6 +7,22 @@
  * модель всегда можно задать через `OPENAI_MODEL` в окружении.
  */
 
+import dns from "node:dns";
+import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from "undici";
+
+/** На Timeweb IPv6 до Railway часто «висит» ~10с; предпочитаем A-записи. */
+dns.setDefaultResultOrder("ipv4first");
+
+const openAiDispatcher = new Agent({
+  connect: {
+    // Только IPv4 — обход IPv6 blackhole с Timeweb → Railway.
+    family: 4,
+    timeout: 20_000,
+  },
+  headersTimeout: 120_000,
+  bodyTimeout: 180_000,
+});
+
 export const OPENAI_DEFAULT_CHAT_MODEL = "gpt-5.5";
 
 /** Модель для заключения «Отчёт для руководителя» (ОД/ТУ); можно задать новее через env. */
@@ -83,9 +99,54 @@ export function resolveOpenAiManagerBriefChatModel(): string {
  * и `OPENAI_RELAY_SECRET` (см. `openAiRequestHeaders`).
  */
 export function openAiChatCompletionsUrl(): string {
+  return `${normalizeOpenAiBaseUrl()}/v1/chat/completions`;
+}
+
+/**
+ * Нормализует OPENAI_BASE_URL: https:// при отсутствии схемы, без хвостового `/`.
+ */
+export function normalizeOpenAiBaseUrl(): string {
   const raw = process.env.OPENAI_BASE_URL?.trim() || "https://api.openai.com";
-  const base = raw.replace(/\/$/, "");
-  return `${base}/v1/chat/completions`;
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return withScheme.replace(/\/$/, "");
+}
+
+/**
+ * fetch к OpenAI / relay с IPv4 и увеличенными таймаутами (server-side).
+ */
+export function openAiFetch(
+  url: string,
+  init: UndiciRequestInit
+): Promise<Response> {
+  return undiciFetch(url, {
+    ...init,
+    dispatcher: openAiDispatcher,
+  }) as unknown as Promise<Response>;
+}
+
+/** Прямой URL Chat Completions без relay. */
+export function openAiDirectChatCompletionsUrl(): string {
+  return "https://api.openai.com/v1/chat/completions";
+}
+
+/**
+ * Chat Completions: сначала OPENAI_BASE_URL (relay), при сетевой ошибке — api.openai.com.
+ */
+export async function openAiFetchChatCompletions(
+  init: UndiciRequestInit
+): Promise<Response> {
+  const primaryUrl = openAiChatCompletionsUrl();
+  const directUrl = openAiDirectChatCompletionsUrl();
+  const usingCustomBase = Boolean(process.env.OPENAI_BASE_URL?.trim());
+
+  try {
+    return await openAiFetch(primaryUrl, init);
+  } catch (primaryErr) {
+    if (!usingCustomBase || primaryUrl === directUrl) {
+      throw primaryErr;
+    }
+    return openAiFetch(directUrl, init);
+  }
 }
 
 /**

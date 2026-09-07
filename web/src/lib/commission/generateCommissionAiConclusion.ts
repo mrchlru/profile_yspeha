@@ -4,7 +4,7 @@ import {
 import {
   buildOpenAiChatRequestBody,
   openAiRequestHeaders,
-  openAiChatCompletionsUrl,
+  openAiFetchChatCompletions,
   readResponseBodySnippet,
   resolveOpenAiChatModel,
 } from "@/lib/ai/openaiHttp";
@@ -39,7 +39,7 @@ export async function generateCommissionAiConclusion(
 
   let res: Response;
   try {
-    res = await fetch(openAiChatCompletionsUrl(), {
+    res = await openAiFetchChatCompletions({
       method: "POST",
       headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(

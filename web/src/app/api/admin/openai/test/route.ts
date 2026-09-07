@@ -29,6 +29,7 @@ export async function POST(
     httpStatus: result.httpStatus,
     durationMs: result.durationMs,
     hint: result.hint,
+    endpoint: result.endpoint,
   });
 
   return NextResponse.json(result, { status: result.ok ? 200 : 503 });
