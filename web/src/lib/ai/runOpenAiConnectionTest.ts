@@ -2,6 +2,8 @@ import {
   buildOpenAiChatRequestBody,
   classifyOpenAiHttpError,
   openAiChatCompletionsUrl,
+  openAiDirectChatCompletionsUrl,
+  openAiFetch,
   openAiRequestHeaders,
   readResponseBodySnippet,
   resolveOpenAiChatModel,
@@ -24,6 +26,8 @@ export type OpenAiConnectionTestResult = {
   message: string;
   error: string | null;
   hint: string | null;
+  /** Какой endpoint ответил: relay или прямой api.openai.com. */
+  endpoint: "relay" | "direct" | null;
 };
 
 const TEST_USER_PROMPT = "Ответь одним словом: OK";
@@ -60,67 +64,103 @@ export async function runOpenAiConnectionTest(): Promise<OpenAiConnectionTestRes
       message: "OpenAI не настроен на сервере",
       error: "Задайте OPENAI_API_KEY в переменных окружения.",
       hint: "missing_api_key",
+      endpoint: null,
     };
   }
 
   const started = Date.now();
-  let res: Response;
+  const init = {
+    method: "POST",
+    headers: openAiRequestHeaders(apiKey),
+    body: JSON.stringify(
+      buildOpenAiChatRequestBody({
+        model: env.model,
+        maxCompletionTokens: TEST_MAX_COMPLETION_TOKENS,
+        reasoningEffort: "low" as const,
+        temperature: 0,
+        responseFormat: { type: "text" },
+        messages: [{ role: "user" as const, content: TEST_USER_PROMPT }],
+      })
+    ),
+  };
+
+  const primaryUrl = openAiChatCompletionsUrl();
+  const directUrl = openAiDirectChatCompletionsUrl();
+  const tryDirectFallback = env.hasBaseUrl && primaryUrl !== directUrl;
+
+  let response: Response;
+  let endpoint: "relay" | "direct" = tryDirectFallback ? "relay" : "direct";
+  let relayError: string | null = null;
+
   try {
-    res = await fetch(openAiChatCompletionsUrl(), {
-      method: "POST",
-      headers: openAiRequestHeaders(apiKey),
-      body: JSON.stringify(
-        buildOpenAiChatRequestBody({
-          model: env.model,
-          maxCompletionTokens: TEST_MAX_COMPLETION_TOKENS,
-          reasoningEffort: "low",
-          temperature: 0,
-          responseFormat: { type: "text" },
-          messages: [{ role: "user", content: TEST_USER_PROMPT }],
-        })
-      ),
-    });
+    response = await openAiFetch(primaryUrl, init);
   } catch (err) {
-    return {
-      env,
-      ok: false,
-      reply: null,
-      durationMs: Date.now() - started,
-      httpStatus: null,
-      message: "Не удалось достучаться до OpenAI",
-      error: err instanceof Error ? err.message : "Сетевая ошибка",
-      hint: "network_error",
-    };
+    relayError = err instanceof Error ? err.message : "Сетевая ошибка";
+    if (!tryDirectFallback) {
+      return {
+        env,
+        ok: false,
+        reply: null,
+        durationMs: Date.now() - started,
+        httpStatus: null,
+        message: "Не удалось достучаться до OpenAI",
+        error: relayError,
+        hint: "network_error",
+        endpoint: null,
+      };
+    }
+    try {
+      response = await openAiFetch(directUrl, init);
+      endpoint = "direct";
+    } catch (directErr) {
+      const directMsg =
+        directErr instanceof Error ? directErr.message : "Сетевая ошибка";
+      return {
+        env,
+        ok: false,
+        reply: null,
+        durationMs: Date.now() - started,
+        httpStatus: null,
+        message: "Не удалось достучаться до OpenAI (relay и api.openai.com)",
+        error: `relay: ${relayError}; direct: ${directMsg}`,
+        hint: "network_error",
+        endpoint: null,
+      };
+    }
   }
 
   const durationMs = Date.now() - started;
+  const viaLabel =
+    endpoint === "direct" ? "напрямую api.openai.com" : "через relay";
 
-  if (!res.ok) {
-    const bodySnippet = await readResponseBodySnippet(res);
-    const hint = classifyOpenAiHttpError(res.status, bodySnippet);
+  if (!response.ok) {
+    const bodySnippet = await readResponseBodySnippet(response);
+    const hint = classifyOpenAiHttpError(response.status, bodySnippet);
     return {
       env,
       ok: false,
       reply: null,
       durationMs,
-      httpStatus: res.status,
-      message: "OpenAI вернул ошибку",
-      error: bodySnippet || `HTTP ${res.status}`,
+      httpStatus: response.status,
+      message: `OpenAI вернул ошибку (${viaLabel})`,
+      error: bodySnippet || `HTTP ${response.status}`,
       hint,
+      endpoint,
     };
   }
 
-  const reply = await extractAssistantReply(res);
+  const reply = await extractAssistantReply(response);
   if (!reply) {
     return {
       env,
       ok: false,
       reply: null,
       durationMs,
-      httpStatus: res.status,
-      message: "Ответ получен, но текст пустой",
+      httpStatus: response.status,
+      message: `Ответ получен ${viaLabel}, но текст пустой`,
       error: "В choices[0].message.content нет текста.",
       hint: "empty_reply",
+      endpoint,
     };
   }
 
@@ -129,10 +169,14 @@ export async function runOpenAiConnectionTest(): Promise<OpenAiConnectionTestRes
     ok: true,
     reply,
     durationMs,
-    httpStatus: res.status,
-    message: "Связь с OpenAI работает",
+    httpStatus: response.status,
+    message:
+      endpoint === "direct" && env.hasBaseUrl
+        ? "Связь с OpenAI работает (relay недоступен, сработал fallback на api.openai.com)"
+        : "Связь с OpenAI работает",
     error: null,
     hint: null,
+    endpoint,
   };
 }
 
@@ -160,7 +204,8 @@ async function extractAssistantReply(res: Response): Promise<string | null> {
  */
 function extractUrlHost(raw: string): string | null {
   try {
-    return new URL(raw).host;
+    const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    return new URL(withScheme).host;
   } catch {
     return raw.replace(/^https?:\/\//, "").split("/")[0] || null;
   }

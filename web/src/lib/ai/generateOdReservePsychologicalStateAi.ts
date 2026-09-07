@@ -8,7 +8,7 @@ import {
   buildOpenAiChatRequestBody,
   classifyOpenAiHttpError,
   openAiRequestHeaders,
-  openAiChatCompletionsUrl,
+  openAiFetchChatCompletions,
   readResponseBodySnippet,
   resolveOpenAiManagerBriefChatModel,
 } from "@/lib/ai/openaiHttp";
@@ -50,7 +50,7 @@ export async function generateOdReservePsychologicalStateAi(input: {
   const fetchStarted = Date.now();
   let res: Response;
   try {
-    res = await fetch(openAiChatCompletionsUrl(), {
+    res = await openAiFetchChatCompletions({
       method: "POST",
       headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(

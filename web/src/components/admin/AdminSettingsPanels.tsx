@@ -297,6 +297,7 @@ type OpenAiTestResponse = {
   message: string;
   error: string | null;
   hint: string | null;
+  endpoint: "relay" | "direct" | null;
 };
 
 /**
@@ -379,6 +380,7 @@ export function OpenAiTestPanel(): React.ReactElement {
             <li>{`Модель: ${result.env.model}`}</li>
             {result.httpStatus != null ? <li>{`HTTP: ${result.httpStatus}`}</li> : null}
             {result.durationMs != null ? <li>{`Время: ${result.durationMs} мс`}</li> : null}
+            {result.endpoint ? <li>{`Endpoint: ${result.endpoint}`}</li> : null}
             {result.hint ? <li>{`Подсказка: ${result.hint}`}</li> : null}
           </ul>
         </div>

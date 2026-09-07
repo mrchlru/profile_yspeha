@@ -5,7 +5,7 @@ import { OPENAI_SYSTEM_PROMPT_AUDIT_HR_SYNTHESIS } from "@/lib/ai/openaiPromptPo
 import {
   buildOpenAiChatRequestBody,
   openAiRequestHeaders,
-  openAiChatCompletionsUrl,
+  openAiFetchChatCompletions,
   readResponseBodySnippet,
   resolveOpenAiChatModel,
 } from "@/lib/ai/openaiHttp";
@@ -39,7 +39,7 @@ export async function generateAuditConclusion(input: {
   const fetchStarted = Date.now();
   let res: Response;
   try {
-    res = await fetch(openAiChatCompletionsUrl(), {
+    res = await openAiFetchChatCompletions({
       method: "POST",
       headers: openAiRequestHeaders(apiKey),
       body: JSON.stringify(
