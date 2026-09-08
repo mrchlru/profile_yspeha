@@ -11,12 +11,12 @@ import { EmployeeFolderAdminActions } from "@/components/admin/EmployeeFolderAdm
 import { EmployeeFolderFilesPanel } from "@/components/admin/EmployeeFolderFilesPanel";
 import { SubtestSimilarityAlertsPanel } from "@/components/admin/SubtestSimilarityAlertsPanel";
 import type { EmployeeFolderDetail, EmployeeDocumentSlot } from "@/lib/admin/employeeFolderTypes";
+import { documentReportSourceCandidates } from "@/lib/admin/documentReportSource";
 import type {
   SubtestSimilarityAlert,
   SubtestSimilarityFolderSummary,
 } from "@/lib/admin/similarityClusterTypes";
 import type { EmployeeDashboardVisual } from "@/lib/admin/employeeDashboardTypes";
-import { documentReportSource } from "@/lib/admin/employeeFolderKey";
 import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import {
   adminPanelCardClass,
@@ -358,12 +358,10 @@ function _buildDocumentReportHref(
     return null;
   }
 
-  const source = documentReportSource(doc.id, folderKey);
-  if (!source) {
-    return null;
-  }
-
-  const session = reportSessions.find((item) => item.source === source);
+  const sources = documentReportSourceCandidates(doc.id, folderKey);
+  const session = sources
+    .map((source) => reportSessions.find((item) => item.source === source))
+    .find((item): item is NonNullable<typeof item> => Boolean(item));
   if (!session) {
     return null;
   }

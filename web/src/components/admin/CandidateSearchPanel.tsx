@@ -5,6 +5,7 @@ import React from "react";
 import {
   INVITE_STATUS_ACTIVE,
   INVITE_STATUS_EXPIRED,
+  INVITE_STATUS_IN_PROGRESS,
   INVITE_STATUS_REVOKED,
   INVITE_STATUS_USED,
   type InviteStatus,
@@ -47,6 +48,7 @@ export type CandidateSearchPanelProps = {
 const STATUS_OPTIONS: ReadonlyArray<{ value: CandidateSearchStatusFilter; label: string }> = [
   { value: "all", label: "Все статусы" },
   { value: INVITE_STATUS_ACTIVE, label: "Активен" },
+  { value: INVITE_STATUS_IN_PROGRESS, label: "Начал проходить" },
   { value: INVITE_STATUS_USED, label: "Пройден" },
   { value: INVITE_STATUS_EXPIRED, label: "Истёк" },
   { value: INVITE_STATUS_REVOKED, label: "Отозван" },

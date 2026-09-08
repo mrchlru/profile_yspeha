@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkAccessInvite } from "@/lib/access/findActiveInvite";
+import { markAccessCodeStarted } from "@/lib/access/markAccessCodeStarted";
 import { parseAuditBatteryStepOrder, testKindUsesAuditBatteryStepOrder } from "@/lib/access/auditBatteryStepOrder";
 import { isTestKind } from "@/lib/access/testKinds";
 import { prisma } from "@/lib/prisma";
@@ -71,6 +72,7 @@ export async function POST(
   }
 
   screeningServerLog("access_validate", "ok", { testKind: invite.testKind });
+  await markAccessCodeStarted(parsed.data.code, invite.testKind);
 
   if (isTestKind(invite.testKind) && testKindUsesAuditBatteryStepOrder(invite.testKind)) {
     const row = await prisma.accessInvite.findFirst({

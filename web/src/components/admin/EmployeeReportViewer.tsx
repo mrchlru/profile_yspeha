@@ -11,7 +11,7 @@ import type { EmployeeDocumentSlotId } from "@/lib/admin/employeeFolderTypes";
 import type { ReportHtmlView } from "@/lib/admin/buildReportHtmlView";
 import type { AuditReportManagerMaslachBrief } from "@/lib/audit/report/auditReportTypes";
 import type { EmployeeDashboardVisual } from "@/lib/admin/employeeDashboardTypes";
-import { documentReportSource } from "@/lib/admin/employeeFolderKey";
+import { documentReportSourceCandidates } from "@/lib/admin/documentReportSource";
 import {
   downloadFileFromUrl,
   downloadHtmlFile,
@@ -159,11 +159,11 @@ export function EmployeeReportViewer(): React.ReactElement {
           return;
         }
 
-        const source = documentReportSource(documentId, folderKey);
+        const sources = new Set<string>(documentReportSourceCandidates(documentId, folderKey));
         const compatibleSessions =
           documentId === "violations_report"
             ? [{ sessionId: "folder", source: "proctor", label: "Все прохождения", createdAt: "" }]
-            : folderBody.folder.reportSessions.filter((item) => item.source === source);
+            : folderBody.folder.reportSessions.filter((item) => sources.has(item.source));
         setSessions(compatibleSessions);
 
         const activeSessionId =

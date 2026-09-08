@@ -223,6 +223,11 @@ model AccessInvite {
    * NULL — код ещё не использован.
    */
   usedAt    DateTime? @map("used_at")
+  /**
+   * Момент первого успешного входа по коду (кандидат начал прохождение).
+   * NULL — код ещё не открывали.
+   */
+  startedAt DateTime? @map("started_at")
 
   /** Данные соискателя при создании приглашения на скрининг. */
   candidateLastName      String?   @map("candidate_last_name")

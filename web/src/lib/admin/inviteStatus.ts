@@ -2,18 +2,21 @@ import { isTestKind, TEST_KIND_LABELS, type TestKind } from "@/lib/access/testKi
 import { ADMIN_TEST_CATALOG } from "@/lib/admin/adminTestCatalog";
 
 export const INVITE_STATUS_ACTIVE = "active" as const;
+export const INVITE_STATUS_IN_PROGRESS = "in_progress" as const;
 export const INVITE_STATUS_USED = "used" as const;
 export const INVITE_STATUS_EXPIRED = "expired" as const;
 export const INVITE_STATUS_REVOKED = "revoked" as const;
 
 export type InviteStatus =
   | typeof INVITE_STATUS_ACTIVE
+  | typeof INVITE_STATUS_IN_PROGRESS
   | typeof INVITE_STATUS_USED
   | typeof INVITE_STATUS_EXPIRED
   | typeof INVITE_STATUS_REVOKED;
 
 export const INVITE_STATUS_LABELS: Record<InviteStatus, string> = {
   active: "Активен",
+  in_progress: "Начал проходить",
   used: "Пройден",
   expired: "Истёк",
   revoked: "Отозван",
@@ -22,6 +25,7 @@ export const INVITE_STATUS_LABELS: Record<InviteStatus, string> = {
 type InviteRow = {
   revokedAt: Date | null;
   usedAt: Date | null;
+  startedAt?: Date | null;
   expiresAt: Date;
 };
 
@@ -37,6 +41,9 @@ export function computeInviteStatus(row: InviteRow, now: Date = new Date()): Inv
   }
   if (row.expiresAt.getTime() < now.getTime()) {
     return INVITE_STATUS_EXPIRED;
+  }
+  if (row.startedAt) {
+    return INVITE_STATUS_IN_PROGRESS;
   }
   return INVITE_STATUS_ACTIVE;
 }
@@ -75,6 +82,7 @@ export function parseInviteStatusFilter(
 ): InviteStatus | "all" {
   if (
     value === INVITE_STATUS_ACTIVE ||
+    value === INVITE_STATUS_IN_PROGRESS ||
     value === INVITE_STATUS_USED ||
     value === INVITE_STATUS_EXPIRED ||
     value === INVITE_STATUS_REVOKED
