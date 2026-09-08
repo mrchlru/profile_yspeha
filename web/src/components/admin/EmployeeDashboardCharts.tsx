@@ -20,7 +20,7 @@ import {
 } from "recharts";
 
 import { adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
-import { formatDashboardSectarianPercent } from "@/lib/admin/buildEmployeeDashboardVisual";
+import { formatDashboardSectarianPercent } from "@/lib/admin/formatDashboardSectarianPercent";
 import {
   DASHBOARD_CHART_COLORS,
   dashboardLevelColor,

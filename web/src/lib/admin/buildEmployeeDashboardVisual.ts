@@ -61,7 +61,7 @@ import {
   computeBurnoutScores,
   type BurnoutScores,
 } from "@/lib/audit/report/computeMbiStep19";
-import { extractMetricsFromStoredAuditReport } from "@/lib/audit/report/buildAuditReportData";
+import { extractMetricsFromStoredAuditReport } from "@/lib/audit/report/extractAuditReportMetrics";
 import {
   computeRukavishnikovWorkerLoadFromSums,
   RUKAVISHNIKOV_IPV_SUM_MAX,
@@ -1567,7 +1567,4 @@ function _buildYoYChart(report: AuditReportJson | null): EmployeeDashboardVisual
   };
 }
 
-/** Краткая подпись значения для тултипа сектантства. */
-export function formatDashboardSectarianPercent(value: number): string {
-  return `${formatSectarianismPercent(value)}%`;
-}
+export { formatDashboardSectarianPercent } from "@/lib/admin/formatDashboardSectarianPercent";
