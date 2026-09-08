@@ -5,23 +5,11 @@
  * у большинства аккаунтов / ключей — запросы возвращали 400/404 и заключение
  * молча обнулялось. Дефолт — `gpt-5.5` для HR synthesis; точную модель
  * модель всегда можно задать через `OPENAI_MODEL` в окружении.
+ *
+ * Не импортируем `undici` / `node:dns` здесь: файл попадает в клиентский бандл
+ * через цепочку отчёта (EmployeeFolderView → buildAuditReportData → AI), и webpack
+ * падает на схеме `node:*`. IPv4 на runtime задаём через NODE_OPTIONS в Dockerfile.
  */
-
-import dns from "node:dns";
-import { Agent, fetch as undiciFetch, type RequestInit as UndiciRequestInit } from "undici";
-
-/** На Timeweb IPv6 до Railway часто «висит» ~10с; предпочитаем A-записи. */
-dns.setDefaultResultOrder("ipv4first");
-
-const openAiDispatcher = new Agent({
-  connect: {
-    // Только IPv4 — обход IPv6 blackhole с Timeweb → Railway.
-    family: 4,
-    timeout: 20_000,
-  },
-  headersTimeout: 120_000,
-  bodyTimeout: 180_000,
-});
 
 export const OPENAI_DEFAULT_CHAT_MODEL = "gpt-5.5";
 
@@ -112,16 +100,13 @@ export function normalizeOpenAiBaseUrl(): string {
 }
 
 /**
- * fetch к OpenAI / relay с IPv4 и увеличенными таймаутами (server-side).
+ * fetch к OpenAI / relay (native fetch — без undici, чтобы не ломать клиентский бандл).
  */
 export function openAiFetch(
   url: string,
-  init: UndiciRequestInit
+  init: RequestInit
 ): Promise<Response> {
-  return undiciFetch(url, {
-    ...init,
-    dispatcher: openAiDispatcher,
-  }) as unknown as Promise<Response>;
+  return fetch(url, init);
 }
 
 /** Прямой URL Chat Completions без relay. */
@@ -133,7 +118,7 @@ export function openAiDirectChatCompletionsUrl(): string {
  * Chat Completions: сначала OPENAI_BASE_URL (relay), при сетевой ошибке — api.openai.com.
  */
 export async function openAiFetchChatCompletions(
-  init: UndiciRequestInit
+  init: RequestInit
 ): Promise<Response> {
   const primaryUrl = openAiChatCompletionsUrl();
   const directUrl = openAiDirectChatCompletionsUrl();
