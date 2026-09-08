@@ -29,6 +29,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PRISMA_HIDE_UPDATE_MESSAGE=1
 ENV NPM_CONFIG_UPDATE_NOTIFIER=false
+# Timeweb→Railway: предпочитать A (IPv4), иначе IPv6 часто «висит» ~10с.
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
 
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
