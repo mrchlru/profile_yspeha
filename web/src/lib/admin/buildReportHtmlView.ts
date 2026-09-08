@@ -1,5 +1,8 @@
 import type { EmployeeDocumentSlotId } from "@/lib/admin/employeeFolderTypes";
-import { documentReportSource, parseEmployeeFolderKey } from "@/lib/admin/employeeFolderKey";
+import {
+  documentReportSourceCandidates,
+  parseEmployeeFolderKey,
+} from "@/lib/admin/employeeFolderKey";
 import {
   assertFolderReportSession,
   type FolderReportSource,
@@ -89,6 +92,22 @@ function _parseAuditReport(value: unknown): AuditReportJson | null {
 }
 
 /**
+ * Определяет фактический источник сессии отчёта для папки.
+ */
+export async function resolveFolderReportSessionSource(
+  folderKey: string,
+  documentId: EmployeeDocumentSlotId,
+  sessionId: string
+): Promise<FolderReportSource | null> {
+  for (const source of documentReportSourceCandidates(documentId, folderKey)) {
+    if (await assertFolderReportSession(folderKey, source, sessionId)) {
+      return source;
+    }
+  }
+  return null;
+}
+
+/**
  * Строит HTML-представление отчёта для просмотра в админке.
  */
 export async function buildReportHtmlView(
@@ -100,13 +119,8 @@ export async function buildReportHtmlView(
     return _buildViolationsReport(folderKey);
   }
 
-  const source = documentReportSource(documentId, folderKey);
+  const source = await resolveFolderReportSessionSource(folderKey, documentId, sessionId);
   if (!source) {
-    return null;
-  }
-
-  const allowed = await assertFolderReportSession(folderKey, source, sessionId);
-  if (!allowed) {
     return null;
   }
 
@@ -126,19 +140,23 @@ export async function buildReportHtmlView(
 }
 
 /**
- * Возвращает тип PDF-отчёта для документа.
+ * Возвращает тип PDF-отчёта для документа и конкретной сессии.
  */
-export function resolveReportPdfKind(
+export async function resolveReportPdfKind(
   folderKey: string,
-  documentId: EmployeeDocumentSlotId
-): ReportPdfKind | null {
+  documentId: EmployeeDocumentSlotId,
+  sessionId: string
+): Promise<ReportPdfKind | null> {
+  const source = await resolveFolderReportSessionSource(folderKey, documentId, sessionId);
+  if (!source) {
+    return null;
+  }
   if (documentId === "manager_report") {
-    return documentReportSource(documentId, folderKey) === "audit" ? "audit_manager" : null;
+    return source === "audit" ? "audit_manager" : null;
   }
   if (documentId !== "full_report") {
     return null;
   }
-  const source = documentReportSource(documentId, folderKey);
   if (source === "screening") {
     return "screening";
   }

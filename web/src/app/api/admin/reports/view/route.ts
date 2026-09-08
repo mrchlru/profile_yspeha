@@ -5,7 +5,7 @@ import {
   buildReportHtmlView,
   resolveReportPdfKind,
 } from "@/lib/admin/buildReportHtmlView";
-import { documentReportSource } from "@/lib/admin/employeeFolderKey";
+import { documentReportSourceCandidates } from "@/lib/admin/documentReportSource";
 import type { EmployeeDocumentSlotId } from "@/lib/admin/employeeFolderTypes";
 import { requireAdminPanelSession } from "@/lib/admin/requireAdminApi";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
@@ -46,16 +46,20 @@ export async function GET(
   }
 
   const { folderKey, documentId, sessionId } = parsed.data;
-  const pdfKind = resolveReportPdfKind(folderKey, documentId as EmployeeDocumentSlotId);
+  const pdfKind = await resolveReportPdfKind(
+    folderKey,
+    documentId as EmployeeDocumentSlotId,
+    sessionId
+  );
   if (pdfKind) {
     return NextResponse.json({ error: "Для этого документа используйте PDF-просмотр" }, { status: 400 });
   }
 
-  if (documentId !== "violations_report") {
-    const source = documentReportSource(documentId, folderKey);
-    if (!source) {
-      return NextResponse.json({ error: "Просмотр этого документа пока недоступен" }, { status: 404 });
-    }
+  if (
+    documentId !== "violations_report" &&
+    documentReportSourceCandidates(documentId, folderKey).length === 0
+  ) {
+    return NextResponse.json({ error: "Просмотр этого документа пока недоступен" }, { status: 404 });
   }
 
   const view = await buildReportHtmlView(folderKey, documentId, sessionId);

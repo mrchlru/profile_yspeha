@@ -1,5 +1,3 @@
-import type { EmployeeDocumentSlotId } from "@/lib/admin/employeeFolderTypes";
-
 export type EmployeeFolderKind = "candidate" | "audit";
 
 export type ParsedEmployeeFolderKey =
@@ -33,29 +31,7 @@ export function parseEmployeeFolderKey(folderKey: string): ParsedEmployeeFolderK
   return null;
 }
 
-/**
- * Определяет источник данных для типа документа в папке.
- */
-export function documentReportSource(
-  documentId: EmployeeDocumentSlotId,
-  folderKey: string
-): "screening" | "audit" | null {
-  const parsed = parseEmployeeFolderKey(folderKey);
-  if (!parsed) {
-    return null;
-  }
-
-  switch (documentId) {
-    case "short_report":
-    case "full_report":
-      return parsed.kind === "candidate" ? "screening" : "audit";
-    case "manager_report":
-      return parsed.kind === "audit" ? "audit" : null;
-    case "violations_report":
-      return parsed.kind === "candidate" || parsed.kind === "audit" ? "audit" : null;
-    case "dashboard":
-      return "audit";
-    default:
-      return null;
-  }
-}
+export {
+  documentReportSource,
+  documentReportSourceCandidates,
+} from "@/lib/admin/documentReportSource";

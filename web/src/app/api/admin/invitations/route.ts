@@ -73,6 +73,7 @@ export async function GET(
       expiresAt: true,
       usedAt: true,
       revokedAt: true,
+      startedAt: true,
       candidateLastName: true,
       candidateFirstName: true,
       candidateMiddleName: true,

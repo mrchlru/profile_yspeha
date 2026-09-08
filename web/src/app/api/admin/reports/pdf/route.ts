@@ -37,7 +37,11 @@ export async function GET(req: NextRequest): Promise<NextResponse<Buffer | { err
   }
 
   const { folderKey, documentId, sessionId } = parsed.data;
-  const pdfKind = resolveReportPdfKind(folderKey, documentId as EmployeeDocumentSlotId);
+  const pdfKind = await resolveReportPdfKind(
+    folderKey,
+    documentId as EmployeeDocumentSlotId,
+    sessionId
+  );
   if (!pdfKind) {
     return NextResponse.json({ error: "PDF для этого документа недоступен" }, { status: 404 });
   }

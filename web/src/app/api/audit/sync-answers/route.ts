@@ -3,6 +3,7 @@ import { Prisma } from "@/generated/prisma/client";
 
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { checkAccessInvite } from "@/lib/access/findActiveInvite";
+import { markAccessCodeStarted } from "@/lib/access/markAccessCodeStarted";
 import { isAuditAccessTestKind } from "@/lib/access/testKinds";
 import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServerLog";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
@@ -41,6 +42,9 @@ export async function POST(
   }
   if (invite.status === "ok" && !isAuditAccessTestKind(invite.testKind)) {
     return NextResponse.json({ error: "Недействительный код доступа" }, { status: 403 });
+  }
+  if (invite.status === "ok") {
+    await markAccessCodeStarted(payload.accessCode, invite.testKind);
   }
 
   const assessee = buildAuditAssesseeKey({

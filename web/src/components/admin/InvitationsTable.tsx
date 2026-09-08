@@ -12,6 +12,7 @@ import { CandidateSearchPanel } from "@/components/admin/CandidateSearchPanel";
 import {
   INVITE_STATUS_ACTIVE,
   INVITE_STATUS_EXPIRED,
+  INVITE_STATUS_IN_PROGRESS,
   INVITE_STATUS_REVOKED,
   INVITE_STATUS_USED,
 } from "@/lib/admin/inviteStatus";
@@ -46,6 +47,8 @@ function statusBadgeClass(status: string): string {
   switch (status) {
     case INVITE_STATUS_ACTIVE:
       return "bg-emerald-100 text-emerald-800";
+    case INVITE_STATUS_IN_PROGRESS:
+      return "bg-indigo-100 text-indigo-800";
     case INVITE_STATUS_USED:
       return "bg-sky-100 text-sky-800";
     case INVITE_STATUS_EXPIRED:

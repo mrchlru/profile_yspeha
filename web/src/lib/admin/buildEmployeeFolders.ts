@@ -336,9 +336,25 @@ export async function listEmployeeFolders(
       middleName: row.candidateMiddleName,
       birthDate: row.candidateBirthDate,
     });
+    // Несоздаём папку только из неиспользованного приглашения — в результатах
+    // папка появляется после первого завершённого тестирования.
+    if (row.usedAt === null) {
+      if (map.has(key)) {
+        _upsertFolder(map, key, displayName, {
+          pendingInvite: true,
+          positionLevel: row.candidatePositionLevel,
+          birthDate: row.candidateBirthDate,
+          lastName: row.candidateLastName,
+          firstName: row.candidateFirstName,
+          middleName: row.candidateMiddleName,
+          inviteCode: row.code,
+        });
+      }
+      continue;
+    }
     _upsertFolder(map, key, displayName, {
-      pendingInvite: row.usedAt === null,
-      lastActivityAt: row.createdAt,
+      pendingInvite: false,
+      lastActivityAt: row.usedAt,
       positionLevel: row.candidatePositionLevel,
       birthDate: row.candidateBirthDate,
       lastName: row.candidateLastName,
@@ -406,6 +422,7 @@ export async function listEmployeeFolders(
     .map((row) => _enrichFolderFromCandidateRecord(row, statusMap.get(row.key)))
     .filter((row) => _matchesTypeFilter(row, typeFilter))
     .filter((row) => matchesCandidateSearch(searchQuery, _folderSearchRecord(row)))
+    .filter((row) => _folderHasCompletedTestData(row))
     .filter((row) => {
       if (includeAllStatuses) {
         return true;
@@ -554,9 +571,23 @@ export async function getEmployeeFolderSummaryByKey(
         middleName: row.candidateMiddleName,
         birthDate: row.candidateBirthDate,
       });
+      if (row.usedAt === null) {
+        if (map.has(folderKey)) {
+          _upsertFolder(map, folderKey, displayName, {
+            pendingInvite: true,
+            positionLevel: row.candidatePositionLevel,
+            birthDate: row.candidateBirthDate,
+            lastName: row.candidateLastName,
+            firstName: row.candidateFirstName,
+            middleName: row.candidateMiddleName,
+            inviteCode: row.code,
+          });
+        }
+        continue;
+      }
       _upsertFolder(map, folderKey, displayName, {
-        pendingInvite: row.usedAt === null,
-        lastActivityAt: row.createdAt,
+        pendingInvite: false,
+        lastActivityAt: row.usedAt,
         positionLevel: row.candidatePositionLevel,
         birthDate: row.candidateBirthDate,
         lastName: row.candidateLastName,
@@ -761,10 +792,24 @@ function _mergeProfSbEducationIntoFolders(
       middleName: row.candidateMiddleName,
       birthDate: row.candidateBirthDate,
     });
+    if (row.usedAt === null) {
+      if (map.has(key)) {
+        _upsertFolder(map, key, displayName, {
+          pendingInvite: true,
+          positionLevel: row.candidatePositionLevel,
+          birthDate: row.candidateBirthDate,
+          lastName: row.candidateLastName,
+          firstName: row.candidateFirstName,
+          middleName: row.candidateMiddleName,
+          inviteCode: row.code,
+        });
+      }
+      continue;
+    }
     _upsertFolder(map, key, displayName, {
       hasProfSbEducation: true,
-      pendingInvite: row.usedAt === null,
-      lastActivityAt: row.usedAt ?? row.createdAt,
+      pendingInvite: false,
+      lastActivityAt: row.usedAt,
       positionLevel: row.candidatePositionLevel,
       birthDate: row.candidateBirthDate,
       lastName: row.candidateLastName,
@@ -804,8 +849,24 @@ function _profSbEducationVisibleInResults(
   if (!row.hasProfSbEducation || !row.key.startsWith("candidate:")) {
     return false;
   }
+  if (row.profSbEducationSessionCount <= 0) {
+    return false;
+  }
   if (archiveView) {
     return lifecycleStatus === CANDIDATE_LIFECYCLE_ARCHIVED;
   }
   return lifecycleStatus !== CANDIDATE_LIFECYCLE_ARCHIVED;
+}
+
+/**
+ * В результатах показываем папку только после хотя бы одного завершённого теста.
+ */
+function _folderHasCompletedTestData(row: FolderAccumulator): boolean {
+  return (
+    row.screeningSessions > 0 ||
+    row.auditSessions > 0 ||
+    row.profSbEducationSessionCount > 0 ||
+    row.hasScreening ||
+    row.hasAudit
+  );
 }
