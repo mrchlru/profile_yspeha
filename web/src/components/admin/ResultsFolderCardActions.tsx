@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState } from "react";
 
 import {
   AdminIconButton,
   ArchiveToIcon,
   DeleteFolderIcon,
+  OpenFolderIcon,
   RestoreFromArchiveIcon,
 } from "@/components/admin/AdminIconButton";
 import type { EmployeeFolderSummary } from "@/lib/admin/employeeFolderTypes";
@@ -35,6 +37,7 @@ export function ResultsFolderCardActions({
   const [busyLifecycle, setBusyLifecycle] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const busy = busyDelete || busyLifecycle;
+  const folderHref = `/admin/results/${encodeURIComponent(item.key)}`;
 
   async function runLifecycle(action: () => Promise<void>): Promise<void> {
     setBusyLifecycle(true);
@@ -53,7 +56,20 @@ export function ResultsFolderCardActions({
   const showDelete = isFullAdmin;
 
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    <div
+      className="relative z-10 flex shrink-0 items-center gap-2"
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <Link
+        href={folderHref}
+        title="Открыть папку"
+        aria-label={`Открыть папку ${item.displayName}`}
+        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 text-[#5F5E5E] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.12)] transition hover:bg-white"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <OpenFolderIcon />
+      </Link>
       {showArchive ? (
         <AdminIconButton
           label="Отправить в архив"

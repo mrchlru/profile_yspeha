@@ -31,22 +31,8 @@ export type PreviousAuditSubmissionRow = {
   auditReport: unknown;
 };
 
-/**
- * Достаёт плоские метрики из уже сохранённого JSON отчёта (для YoY).
- */
-export function extractMetricsFromStoredAuditReport(json: unknown): AuditReportMetrics | null {
-  if (json === null || typeof json !== "object") {
-    return null;
-  }
-  const rec = json as { version?: unknown; metrics?: unknown };
-  if (rec.version !== AUDIT_REPORT_VERSION) {
-    return null;
-  }
-  if (rec.metrics === null || typeof rec.metrics !== "object") {
-    return null;
-  }
-  return rec.metrics as AuditReportMetrics;
-}
+export { extractMetricsFromStoredAuditReport } from "@/lib/audit/report/extractAuditReportMetrics";
+import { extractMetricsFromStoredAuditReport } from "@/lib/audit/report/extractAuditReportMetrics";
 
 function buildMetricLabels(): Record<string, string> {
   const out: Record<string, string> = {};

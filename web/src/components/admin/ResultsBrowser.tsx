@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
@@ -41,6 +41,7 @@ import { stepNavPrimaryButtonClass } from "@/lib/stepPageTheme";
  * Список папок сотрудников с поиском и фильтрацией.
  */
 export function ResultsBrowser(): React.ReactElement {
+  const router = useRouter();
   const { session } = useAdminSession();
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<CandidateSearchTypeFilter>("all");
@@ -428,21 +429,38 @@ export function ResultsBrowser(): React.ReactElement {
                 )
               : adminPanelCardClass;
             return (
-            <div key={item.key} className={`${cardClass} space-y-3 px-5 py-5`}>
+            <div
+              key={item.key}
+              role="link"
+              tabIndex={0}
+              className={`${cardClass} cursor-pointer space-y-3 px-5 py-5 transition hover:opacity-95`}
+              onClick={() => {
+                router.push(`/admin/results/${encodeURIComponent(item.key)}`);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(`/admin/results/${encodeURIComponent(item.key)}`);
+                }
+              }}
+            >
               <div className="flex items-start justify-between gap-3">
-                <AdminSelectCheckbox
-                  checked={selection.isSelected(item.key)}
-                  disabled={bulkBusy || deletingKey === item.key}
-                  onChange={() => selection.toggle(item.key)}
-                  label={`Выбрать ${item.displayName}`}
-                  hideLabel
-                />
-                <Link
-                  href={`/admin/results/${encodeURIComponent(item.key)}`}
-                  className="min-w-0 flex-1 transition hover:opacity-80"
+                <div
+                  className="relative z-10"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
                 >
+                  <AdminSelectCheckbox
+                    checked={selection.isSelected(item.key)}
+                    disabled={bulkBusy || deletingKey === item.key}
+                    onChange={() => selection.toggle(item.key)}
+                    label={`Выбрать ${item.displayName}`}
+                    hideLabel
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
                   <h3 className={adminPanelSectionTitleClass}>{item.displayName}</h3>
-                </Link>
+                </div>
                 <ResultsFolderCardActions
                   item={item}
                   archiveView={archiveView}
@@ -453,11 +471,7 @@ export function ResultsBrowser(): React.ReactElement {
                   onDelete={async () => deleteFolder(item)}
                 />
               </div>
-              <Link
-                href={`/admin/results/${encodeURIComponent(item.key)}`}
-                className="block transition hover:opacity-80"
-              >
-                <div className={`space-y-1 ${adminPanelMutedTextClass}`}>
+              <div className={`space-y-1 ${adminPanelMutedTextClass}`}>
                   {similarityHighlightEnabled && hint ? (
                     <p className="text-[13px] font-bold text-[#8B4513]">
                       {hint.severity === "soft" ? "На грани" : "Похожие субтесты"}:{" "}
@@ -489,8 +503,7 @@ export function ResultsBrowser(): React.ReactElement {
                     Последняя активность:{" "}
                     {item.lastActivityAt ? formatMoscowDateTime(item.lastActivityAt) : "—"}
                   </p>
-                </div>
-              </Link>
+              </div>
             </div>
             );
           })
