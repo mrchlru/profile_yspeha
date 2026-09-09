@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
-import { deleteAccessInvite } from "@/lib/admin/deleteAccessInvite";
+import { changeAccessInviteTestKind } from "@/lib/admin/changeAccessInviteTestKind";
 import { requireAdminPanelSession } from "@/lib/admin/requireAdminApi";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
@@ -9,11 +9,22 @@ export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   inviteId: z.string().min(1).max(64),
+  testKind: z.string().min(1).max(64),
 });
 
 export async function POST(
   req: NextRequest
-): Promise<NextResponse<{ code: string } | { error: string }>> {
+): Promise<
+  NextResponse<
+    | {
+        id: string;
+        code: string;
+        testKind: string;
+        testKindLabel: string;
+      }
+    | { error: string }
+  >
+> {
   const auth = await requireAdminPanelSession(req);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -32,16 +43,21 @@ export async function POST(
   }
 
   try {
-    const result = await deleteAccessInvite(parsed.data.inviteId);
-    screeningServerLog("admin_invite_delete", "ok", {
+    const result = await changeAccessInviteTestKind(
+      parsed.data.inviteId,
+      parsed.data.testKind
+    );
+    screeningServerLog("admin_invite_change_test_kind", "ok", {
       inviteId: result.id,
       code: result.code,
+      testKind: result.testKind,
       adminEmail: auth.user.email,
     });
-    return NextResponse.json({ code: result.code });
+    return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Не удалось удалить приглашение";
-    screeningServerLog("admin_invite_delete", "error", {
+    const message =
+      error instanceof Error ? error.message : "Не удалось изменить тип теста";
+    screeningServerLog("admin_invite_change_test_kind", "error", {
       inviteId: parsed.data.inviteId,
       message,
     });

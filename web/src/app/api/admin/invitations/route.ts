@@ -7,6 +7,7 @@ import {
 } from "@/lib/admin/candidateSearch";
 import {
   computeInviteStatus,
+  inviteCanChangeTestKind,
   inviteTestKindLabel,
   INVITE_STATUS_LABELS,
   parseInviteStatusFilter,
@@ -33,6 +34,7 @@ export async function GET(
           code: string;
           testKind: string;
           testKindLabel: string;
+          canChangeTestKind: boolean;
           candidateDisplayName: string | null;
           positionLevelLabel: string | null;
           createdAt: string;
@@ -114,6 +116,7 @@ export async function GET(
           code: row.code,
           testKind: row.testKind,
           testKindLabel: inviteTestKindLabel(row.testKind),
+          canChangeTestKind: inviteCanChangeTestKind(row),
           candidateDisplayName,
           positionLevelLabel,
           createdAt: row.createdAt.toISOString(),
