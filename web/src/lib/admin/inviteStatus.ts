@@ -49,6 +49,17 @@ export function computeInviteStatus(row: InviteRow, now: Date = new Date()): Inv
 }
 
 /**
+ * Тип теста можно менять, пока приглашение не начали проходить / не прошли / не отозвали.
+ */
+export function inviteCanChangeTestKind(row: {
+  startedAt?: Date | string | null;
+  usedAt?: Date | string | null;
+  revokedAt?: Date | string | null;
+}): boolean {
+  return row.startedAt == null && row.usedAt == null && row.revokedAt == null;
+}
+
+/**
  * Человекочитаемое название типа теста для админ-панели.
  */
 export function inviteTestKindLabel(testKind: string): string {

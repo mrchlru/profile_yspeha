@@ -16,9 +16,10 @@ import {
   INVITE_STATUS_REVOKED,
   INVITE_STATUS_USED,
 } from "@/lib/admin/inviteStatus";
+import { listChangeableInviteTestKinds } from "@/lib/admin/adminTestCatalog";
 import { ACCESS_INVITE_VALIDITY_DAYS } from "@/lib/access/inviteValidity";
+import { TEST_KIND_LABELS, type TestKind } from "@/lib/access/testKinds";
 import { runBulkAdminActions } from "@/lib/admin/runBulkAdminActions";
-import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import { formatMoscowDateTimeTable } from "@/lib/datetime/moscowTime";
 import {
   adminPanelCardClass,
@@ -33,7 +34,9 @@ import type { CandidateSearchStatusFilter } from "@/components/admin/CandidateSe
 type InvitationRow = {
   id: string;
   code: string;
+  testKind: string;
   testKindLabel: string;
+  canChangeTestKind: boolean;
   candidateDisplayName: string | null;
   positionLevelLabel: string | null;
   createdAt: string;
@@ -42,6 +45,15 @@ type InvitationRow = {
   status: string;
   statusLabel: string;
 };
+
+const INVITE_TEST_KIND_OPTIONS: ReadonlyArray<{ value: TestKind; label: string }> =
+  listChangeableInviteTestKinds().map((value) => ({
+    value,
+    label: TEST_KIND_LABELS[value],
+  }));
+
+const inviteTestKindSelectClass =
+  "w-full min-w-[11.5rem] max-w-[15rem] cursor-pointer rounded-[10px] border border-black/[0.06] bg-white/70 py-1.5 pl-2.5 pr-7 text-[13px] font-medium leading-snug text-[#3A3A3A] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] outline-none transition-[background-color,border-color,box-shadow] hover:border-black/10 hover:bg-white focus:border-black/15 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)] disabled:cursor-wait disabled:opacity-55";
 
 function statusBadgeClass(status: string): string {
   switch (status) {
@@ -73,10 +85,13 @@ export function InvitationsTable(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [extendingId, setExtendingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [changingKindId, setChangingKindId] = useState<string | null>(null);
   const [extendMessage, setExtendMessage] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const isFullAdmin = session.status === "authenticated" && session.role === ADMIN_ROLE_ADMIN;
+  const canDeleteInvites = session.status === "authenticated";
   const selection = useBulkSelection(rows, (row) => row.id);
+  const rowActionBusy =
+    bulkBusy || extendingId !== null || deletingId !== null || changingKindId !== null;
 
   async function loadRows(search: string, status: CandidateSearchStatusFilter): Promise<void> {
     setLoading(true);
@@ -135,6 +150,26 @@ export function InvitationsTable(): React.ReactElement {
     if (!res.ok || !body.code) {
       throw new Error(body.error ?? "Не удалось удалить приглашение.");
     }
+  }
+
+  async function postChangeTestKind(inviteId: string, testKind: string): Promise<{
+    testKind: string;
+    testKindLabel: string;
+  }> {
+    const res = await fetch("/api/admin/invitations/change-test-kind", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inviteId, testKind }),
+    });
+    const body = (await res.json()) as {
+      testKind?: string;
+      testKindLabel?: string;
+      error?: string;
+    };
+    if (!res.ok || !body.testKind || !body.testKindLabel) {
+      throw new Error(body.error ?? "Не удалось изменить тип теста.");
+    }
+    return { testKind: body.testKind, testKindLabel: body.testKindLabel };
   }
 
   async function bulkExtendInvites(): Promise<void> {
@@ -254,6 +289,55 @@ export function InvitationsTable(): React.ReactElement {
     }
   }
 
+  async function changeTestKind(row: InvitationRow, nextTestKind: string): Promise<void> {
+    if (!row.canChangeTestKind || nextTestKind === row.testKind) {
+      return;
+    }
+
+    const previous = { testKind: row.testKind, testKindLabel: row.testKindLabel };
+    const nextLabel =
+      INVITE_TEST_KIND_OPTIONS.find((option) => option.value === nextTestKind)?.label ??
+      nextTestKind;
+
+    setChangingKindId(row.id);
+    setError(null);
+    setExtendMessage(null);
+    setRows((current) =>
+      current.map((item) =>
+        item.id === row.id
+          ? { ...item, testKind: nextTestKind, testKindLabel: nextLabel }
+          : item
+      )
+    );
+
+    try {
+      const result = await postChangeTestKind(row.id, nextTestKind);
+      setRows((current) =>
+        current.map((item) =>
+          item.id === row.id
+            ? {
+                ...item,
+                testKind: result.testKind,
+                testKindLabel: result.testKindLabel,
+              }
+            : item
+        )
+      );
+      setExtendMessage(`Тип теста для ${row.code} обновлён.`);
+    } catch (err) {
+      setRows((current) =>
+        current.map((item) =>
+          item.id === row.id
+            ? { ...item, testKind: previous.testKind, testKindLabel: previous.testKindLabel }
+            : item
+        )
+      );
+      setError(err instanceof Error ? err.message : "Сеть недоступна. Попробуйте ещё раз.");
+    } finally {
+      setChangingKindId(null);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <CandidateSearchPanel
@@ -298,14 +382,14 @@ export function InvitationsTable(): React.ReactElement {
         allSelected={selection.allSelected}
         onToggleAll={selection.toggleAll}
         onClear={selection.clear}
-        busy={bulkBusy || loading || extendingId !== null || deletingId !== null}
+        busy={rowActionBusy || loading}
       >
         <AdminBulkActionButton
           label={`Продлить (+${String(ACCESS_INVITE_VALIDITY_DAYS)} сут.)`}
           disabled={bulkBusy}
           onClick={() => void bulkExtendInvites()}
         />
-        {isFullAdmin ? (
+        {canDeleteInvites ? (
           <AdminBulkActionButton
             label="Удалить"
             variant="danger"
@@ -316,7 +400,7 @@ export function InvitationsTable(): React.ReactElement {
       </AdminBulkSelectionBar>
 
       <div className={`overflow-x-auto ${adminPanelCardClass}`}>
-        <table className="min-w-[1180px] w-full border-collapse text-left text-[14px] text-[#4F4F4F]">
+        <table className="min-w-[1240px] w-full border-collapse text-left text-[14px] text-[#4F4F4F]">
           <thead className="bg-black/[0.03] text-[12px] font-extrabold uppercase tracking-wide text-[#5F5E5E]">
             <tr>
               <th className="w-10 px-3 py-3" aria-label="Выбор" />
@@ -344,7 +428,7 @@ export function InvitationsTable(): React.ReactElement {
                   <td className="px-3 py-2">
                     <AdminSelectCheckbox
                       checked={selection.isSelected(row.id)}
-                      disabled={bulkBusy || extendingId !== null || deletingId !== null}
+                      disabled={rowActionBusy}
                       onChange={() => selection.toggle(row.id)}
                       label={`Выбрать ${row.code}`}
                       hideLabel
@@ -352,7 +436,34 @@ export function InvitationsTable(): React.ReactElement {
                   </td>
                   <td className="px-4 py-2">{row.candidateDisplayName ?? "—"}</td>
                   <td className="px-4 py-2 font-mono text-[13px] font-bold">{row.code}</td>
-                  <td className="px-4 py-2">{row.testKindLabel}</td>
+                  <td className="px-4 py-2 align-middle">
+                    {row.canChangeTestKind ? (
+                      <label className="block">
+                        <span className="sr-only">Тип теста для {row.code}</span>
+                        <select
+                          className={inviteTestKindSelectClass}
+                          value={row.testKind}
+                          disabled={rowActionBusy}
+                          onChange={(event) => {
+                            void changeTestKind(row, event.target.value);
+                          }}
+                        >
+                          {INVITE_TEST_KIND_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                          {!INVITE_TEST_KIND_OPTIONS.some(
+                            (option) => option.value === row.testKind
+                          ) ? (
+                            <option value={row.testKind}>{row.testKindLabel}</option>
+                          ) : null}
+                        </select>
+                      </label>
+                    ) : (
+                      <span className="text-[13px] text-[#5F5E5E]">{row.testKindLabel}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-2">{row.positionLevelLabel ?? "—"}</td>
                   <td className="px-4 py-2 font-mono text-[12px]">
                     {formatMoscowDateTimeTable(row.createdAt)}
@@ -376,7 +487,7 @@ export function InvitationsTable(): React.ReactElement {
                         <Button
                           type="button"
                           variant="secondary"
-                          disabled={extendingId !== null || deletingId !== null}
+                          disabled={rowActionBusy}
                           onClick={() => void extendInvite(row)}
                         >
                           {extendingId === row.id
@@ -384,17 +495,17 @@ export function InvitationsTable(): React.ReactElement {
                             : `+${String(ACCESS_INVITE_VALIDITY_DAYS)} сут.`}
                         </Button>
                       ) : null}
-                      {isFullAdmin ? (
+                      {canDeleteInvites ? (
                         <Button
                           type="button"
                           variant="secondary"
-                          disabled={extendingId !== null || deletingId !== null}
+                          disabled={rowActionBusy}
                           onClick={() => void deleteInvite(row)}
                         >
                           {deletingId === row.id ? "Удаление…" : "Удалить"}
                         </Button>
                       ) : null}
-                      {!canExtendInvite(row.status) && !isFullAdmin ? (
+                      {!canExtendInvite(row.status) && !canDeleteInvites ? (
                         <span className="text-[12px] text-[#8C8C8C]">—</span>
                       ) : null}
                     </div>

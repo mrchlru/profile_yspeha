@@ -84,3 +84,16 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
 export function getAdminTestCatalogItem(id: AdminTestCatalogId): AdminTestCatalogItem | null {
   return ADMIN_TEST_CATALOG.find((item) => item.id === id) ?? null;
 }
+
+/**
+ * Типы теста, доступные для создания и смены в приглашении.
+ */
+export function listChangeableInviteTestKinds(): ReadonlyArray<TestKind> {
+  const kinds: TestKind[] = [];
+  for (const item of ADMIN_TEST_CATALOG) {
+    if (item.available && item.inviteTestKind) {
+      kinds.push(item.inviteTestKind);
+    }
+  }
+  return kinds;
+}
