@@ -178,29 +178,36 @@ async function _listCandidateAuditSessions(
       lastName: true,
     },
   });
-  if (byFolderKey.length > 0) {
-    return byFolderKey.map((row) => _mapAuditSession(row));
-  }
 
   const assesseeKeys = await _resolveCandidateAssesseeKeys(folderKey);
-  if (assesseeKeys.length === 0) {
-    return [];
-  }
+  const byAssessee =
+    assesseeKeys.length > 0
+      ? await prisma.auditSubmission.findMany({
+          where: {
+            assesseeKey: { in: [...assesseeKeys] },
+            auditReport: { not: Prisma.JsonNull },
+            OR: [{ candidateFolderKey: null }, { candidateFolderKey: folderKey }],
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            sessionId: true,
+            createdAt: true,
+            firstName: true,
+            lastName: true,
+          },
+        })
+      : [];
 
-  const byAssessee = await prisma.auditSubmission.findMany({
-    where: {
-      assesseeKey: { in: [...assesseeKeys] },
-      auditReport: { not: Prisma.JsonNull },
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      sessionId: true,
-      createdAt: true,
-      firstName: true,
-      lastName: true,
-    },
-  });
-  return byAssessee.map((row) => _mapAuditSession(row));
+  const seen = new Set<string>();
+  const merged: FolderReportSessionRef[] = [];
+  for (const row of [...byFolderKey, ...byAssessee]) {
+    if (seen.has(row.sessionId)) {
+      continue;
+    }
+    seen.add(row.sessionId);
+    merged.push(_mapAuditSession(row));
+  }
+  return merged;
 }
 
 async function _listAssesseeAuditSessions(assesseeKey: string): Promise<FolderReportSessionRef[]> {

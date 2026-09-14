@@ -36,8 +36,13 @@ import {
 } from "@/lib/admin/buildEmployeeDashboardPreview";
 import { buildEmployeeDashboardVisual } from "@/lib/admin/buildEmployeeDashboardVisual";
 import { parseEmployeeFolderKey } from "@/lib/admin/employeeFolderKey";
-import { TEST_KIND_PROF_SB_EDUCATION, TEST_KIND_SCREENING } from "@/lib/access/testKinds";
+import {
+  TEST_KIND_BURNOUT,
+  TEST_KIND_PROF_SB_EDUCATION,
+  TEST_KIND_SCREENING,
+} from "@/lib/access/testKinds";
 import { folderHasProctorReport } from "@/lib/proctor/buildProctorViolationsReport";
+import { reconcileOrphanAuditFolderLinks } from "@/lib/admin/reconcileOrphanAuditFolderLinks";
 import { reconcileProfSbEducationFolderLinks } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
 import { prisma } from "@/lib/prisma";
 
@@ -50,10 +55,12 @@ type FolderAccumulator = {
   hasAudit: boolean;
   hasInterview: boolean;
   hasProfSbEducation: boolean;
+  hasBurnout: boolean;
   lastActivityAt: Date | null;
   screeningSessions: number;
   auditSessions: number;
   profSbEducationSessionCount: number;
+  burnoutSessionCount: number;
   hasShortReport: boolean;
   hasFullReport: boolean;
   positionLevel: string | null;
@@ -81,10 +88,12 @@ function _upsertFolder(
       hasAudit: false,
       hasInterview: false,
       hasProfSbEducation: false,
+      hasBurnout: false,
       lastActivityAt: null,
       screeningSessions: 0,
       auditSessions: 0,
       profSbEducationSessionCount: 0,
+      burnoutSessionCount: 0,
       hasShortReport: false,
       hasFullReport: false,
       positionLevel: null,
@@ -107,10 +116,12 @@ function _upsertFolder(
     hasAudit: existing.hasAudit || Boolean(patch.hasAudit),
     hasInterview: existing.hasInterview || Boolean(patch.hasInterview),
     hasProfSbEducation: existing.hasProfSbEducation || Boolean(patch.hasProfSbEducation),
+    hasBurnout: existing.hasBurnout || Boolean(patch.hasBurnout),
     screeningSessions: existing.screeningSessions + (patch.screeningSessions ?? 0),
     auditSessions: existing.auditSessions + (patch.auditSessions ?? 0),
     profSbEducationSessionCount:
       existing.profSbEducationSessionCount + (patch.profSbEducationSessionCount ?? 0),
+    burnoutSessionCount: existing.burnoutSessionCount + (patch.burnoutSessionCount ?? 0),
     hasShortReport: existing.hasShortReport || Boolean(patch.hasShortReport),
     hasFullReport: existing.hasFullReport || Boolean(patch.hasFullReport),
     positionLevel: patch.positionLevel ?? existing.positionLevel,
@@ -145,10 +156,12 @@ function _toSummary(
     hasAudit: row.hasAudit,
     hasInterview: row.hasInterview,
     hasProfSbEducation: row.hasProfSbEducation,
+    hasBurnout: row.hasBurnout,
     lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
     screeningSessions: row.screeningSessions,
     auditSessions: row.auditSessions,
     profSbEducationSessionCount: row.profSbEducationSessionCount,
+    burnoutSessionCount: row.burnoutSessionCount,
     positionLevel: row.positionLevel,
     positionLevelLabel: row.positionLevel
       ? candidatePositionLevelLabel(row.positionLevel)
@@ -246,9 +259,21 @@ export async function listEmployeeFolders(
   } catch {
     /* не блокируем список результатов */
   }
+  try {
+    await reconcileOrphanAuditFolderLinks();
+  } catch {
+    /* не блокируем список результатов */
+  }
 
-  const [inviteRows, screeningRows, auditRows, profInviteRows, profSubmissionRows] =
-    await Promise.all([
+  const [
+    inviteRows,
+    screeningRows,
+    auditRows,
+    profInviteRows,
+    profSubmissionRows,
+    burnoutInviteRows,
+    burnoutSubmissionRows,
+  ] = await Promise.all([
       prisma.accessInvite.findMany({
         where: {
           testKind: TEST_KIND_SCREENING,
@@ -321,6 +346,37 @@ export async function listEmployeeFolders(
           profReport: true,
         },
       }),
+      prisma.accessInvite.findMany({
+        where: {
+          testKind: TEST_KIND_BURNOUT,
+          candidateFolderKey: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          code: true,
+          candidateFolderKey: true,
+          candidateLastName: true,
+          candidateFirstName: true,
+          candidateMiddleName: true,
+          candidateBirthDate: true,
+          candidatePositionLevel: true,
+          createdAt: true,
+          usedAt: true,
+        },
+      }),
+      prisma.burnoutSubmission.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          createdAt: true,
+          firstName: true,
+          lastName: true,
+          candidateFolderKey: true,
+          accessInviteCode: true,
+          burnoutReport: true,
+        },
+      }),
     ]);
 
   const map = new Map<string, FolderAccumulator>();
@@ -381,9 +437,11 @@ export async function listEmployeeFolders(
 
   for (const row of auditRows) {
     const hasReport = row.auditReport !== null;
+    const linkedDisplayName = `${row.lastName} ${row.firstName}`.trim();
 
+    // Одна папка на человека: если есть candidateFolderKey — только туда.
+    // Отдельный ключ audit: оставляем лишь для настоящих legacy-сирот.
     if (row.candidateFolderKey) {
-      const linkedDisplayName = `${row.lastName} ${row.firstName}`.trim();
       _upsertFolder(map, row.candidateFolderKey, linkedDisplayName || row.candidateFolderKey, {
         hasAudit: true,
         auditSessions: 1,
@@ -394,11 +452,11 @@ export async function listEmployeeFolders(
         lastName: row.lastName,
         firstName: row.firstName,
       });
+      continue;
     }
 
-    const displayName = `${row.lastName} ${row.firstName}`.trim();
     const key = `audit:${row.assesseeKey}`;
-    _upsertFolder(map, key, displayName, {
+    _upsertFolder(map, key, linkedDisplayName, {
       hasAudit: true,
       auditSessions: 1,
       lastActivityAt: row.createdAt,
@@ -410,6 +468,7 @@ export async function listEmployeeFolders(
   }
 
   _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
+  _mergeBurnoutIntoFolders(map, burnoutInviteRows, burnoutSubmissionRows);
 
   const searchQuery = query?.trim() ?? "";
   const folderKeys = [...map.keys()];
@@ -434,8 +493,11 @@ export async function listEmployeeFolders(
       if (folderVisibleInResults(row.key, status, isArchiveMarked, archiveView)) {
         return true;
       }
-      // ПРОФ-only папки без ACTIVE всё равно показываем в результатах (не в архиве).
-      return _profSbEducationVisibleInResults(row, status, archiveView);
+      // ПРОФ/burnout-only папки без ACTIVE всё равно показываем в результатах (не в архиве).
+      return (
+        _profSbEducationVisibleInResults(row, status, archiveView) ||
+        _burnoutVisibleInResults(row, status, archiveView)
+      );
     })
     .map((row) => {
       const status =
@@ -479,6 +541,11 @@ export async function getEmployeeFolderSummaryByKey(
   } catch {
     /* не блокируем карточку */
   }
+  try {
+    await reconcileOrphanAuditFolderLinks();
+  } catch {
+    /* не блокируем карточку */
+  }
 
   const parsed = parseEmployeeFolderKey(folderKey);
   if (parsed === null) {
@@ -488,8 +555,15 @@ export async function getEmployeeFolderSummaryByKey(
   const map = new Map<string, FolderAccumulator>();
 
   if (parsed.kind === "candidate") {
-    const [inviteRows, screeningRows, auditRows, profInviteRows, profSubmissionRows] =
-      await Promise.all([
+    const [
+      inviteRows,
+      screeningRows,
+      auditRows,
+      profInviteRows,
+      profSubmissionRows,
+      burnoutInviteRows,
+      burnoutSubmissionRows,
+    ] = await Promise.all([
         prisma.accessInvite.findMany({
           where: {
             testKind: TEST_KIND_SCREENING,
@@ -559,6 +633,36 @@ export async function getEmployeeFolderSummaryByKey(
             profReport: true,
           },
         }),
+        prisma.accessInvite.findMany({
+          where: {
+            testKind: TEST_KIND_BURNOUT,
+            candidateFolderKey: folderKey,
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            code: true,
+            candidateFolderKey: true,
+            candidateLastName: true,
+            candidateFirstName: true,
+            candidateMiddleName: true,
+            candidateBirthDate: true,
+            candidatePositionLevel: true,
+            createdAt: true,
+            usedAt: true,
+          },
+        }),
+        prisma.burnoutSubmission.findMany({
+          where: { candidateFolderKey: folderKey },
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+            firstName: true,
+            lastName: true,
+            candidateFolderKey: true,
+            accessInviteCode: true,
+            burnoutReport: true,
+          },
+        }),
       ]);
 
     for (const row of inviteRows) {
@@ -625,6 +729,7 @@ export async function getEmployeeFolderSummaryByKey(
     }
 
     _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
+    _mergeBurnoutIntoFolders(map, burnoutInviteRows, burnoutSubmissionRows);
   } else {
     const auditRows = await prisma.auditSubmission.findMany({
       where: { assesseeKey: parsed.assesseeKey },
@@ -866,7 +971,112 @@ function _folderHasCompletedTestData(row: FolderAccumulator): boolean {
     row.screeningSessions > 0 ||
     row.auditSessions > 0 ||
     row.profSbEducationSessionCount > 0 ||
+    row.burnoutSessionCount > 0 ||
     row.hasScreening ||
-    row.hasAudit
+    row.hasAudit ||
+    row.hasBurnout
   );
+}
+
+type BurnoutInviteRow = {
+  code: string;
+  candidateFolderKey: string | null;
+  candidateLastName: string | null;
+  candidateFirstName: string | null;
+  candidateMiddleName: string | null;
+  candidateBirthDate: Date | null;
+  candidatePositionLevel: string | null;
+  createdAt: Date;
+  usedAt: Date | null;
+};
+
+type BurnoutSubmissionRow = {
+  createdAt: Date;
+  firstName: string;
+  lastName: string;
+  candidateFolderKey: string | null;
+  accessInviteCode: string | null;
+  burnoutReport: unknown;
+};
+
+/**
+ * Добавляет в индекс папок приглашения и прохождения теста на выгорание.
+ */
+function _mergeBurnoutIntoFolders(
+  map: Map<string, FolderAccumulator>,
+  inviteRows: ReadonlyArray<BurnoutInviteRow>,
+  submissionRows: ReadonlyArray<BurnoutSubmissionRow>
+): void {
+  for (const row of inviteRows) {
+    const key = row.candidateFolderKey;
+    if (!key || !row.candidateLastName || !row.candidateFirstName) {
+      continue;
+    }
+    const displayName = buildCandidateDisplayName({
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      birthDate: row.candidateBirthDate,
+    });
+    if (row.usedAt === null) {
+      if (map.has(key)) {
+        _upsertFolder(map, key, displayName, {
+          pendingInvite: true,
+          positionLevel: row.candidatePositionLevel,
+          birthDate: row.candidateBirthDate,
+          lastName: row.candidateLastName,
+          firstName: row.candidateFirstName,
+          middleName: row.candidateMiddleName,
+          inviteCode: row.code,
+        });
+      }
+      continue;
+    }
+    _upsertFolder(map, key, displayName, {
+      hasBurnout: true,
+      pendingInvite: false,
+      lastActivityAt: row.usedAt,
+      positionLevel: row.candidatePositionLevel,
+      birthDate: row.candidateBirthDate,
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      inviteCode: row.code,
+    });
+  }
+
+  for (const row of submissionRows) {
+    if (!row.candidateFolderKey) {
+      continue;
+    }
+    const displayName = `${row.lastName} ${row.firstName}`.trim();
+    _upsertFolder(map, row.candidateFolderKey, displayName || row.candidateFolderKey, {
+      hasBurnout: true,
+      burnoutSessionCount: 1,
+      lastActivityAt: row.createdAt,
+      pendingInvite: false,
+      lastName: row.lastName,
+      firstName: row.firstName,
+      inviteCode: row.accessInviteCode,
+      hasShortReport: row.burnoutReport !== null,
+      hasFullReport: row.burnoutReport !== null,
+    });
+  }
+}
+
+/**
+ * Burnout-only папки показываем в «Результатах», даже если lifecycle ещё не ACTIVE.
+ */
+function _burnoutVisibleInResults(
+  row: FolderAccumulator,
+  lifecycleStatus: CandidateLifecycleStatus | null,
+  archiveView: boolean
+): boolean {
+  if (!row.key.startsWith("candidate:") || row.burnoutSessionCount <= 0) {
+    return false;
+  }
+  if (archiveView) {
+    return lifecycleStatus === CANDIDATE_LIFECYCLE_ARCHIVED;
+  }
+  return lifecycleStatus !== CANDIDATE_LIFECYCLE_ARCHIVED;
 }

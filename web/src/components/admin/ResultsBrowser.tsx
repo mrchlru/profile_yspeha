@@ -500,6 +500,14 @@ export function ResultsBrowser(): React.ReactElement {
                       : "нет"}
                   </p>
                   <p>
+                    Выгорание:{" "}
+                    {item.hasBurnout
+                      ? item.burnoutSessionCount > 0
+                        ? `${String(item.burnoutSessionCount)} сессий`
+                        : "есть"
+                      : "нет"}
+                  </p>
+                  <p>
                     Последняя активность:{" "}
                     {item.lastActivityAt ? formatMoscowDateTime(item.lastActivityAt) : "—"}
                   </p>
