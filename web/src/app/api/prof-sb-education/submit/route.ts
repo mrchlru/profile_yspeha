@@ -7,6 +7,8 @@ import { checkAccessInvite } from "@/lib/access/findActiveInvite";
 import { markAccessCodeUsed } from "@/lib/access/markAccessCodeUsed";
 import { isProfSbEducationTestKind, TEST_KIND_PROF_SB_EDUCATION } from "@/lib/access/testKinds";
 import { formatMoscowNow } from "@/lib/datetime/moscowTime";
+import { sendProfSbEducationCompletionEmail } from "@/lib/email/sendProfSbEducationCompletionEmail";
+import { smtpErrorLogFields } from "@/lib/email/sendScreeningReportEmail";
 import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServerLog";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
 import { finalizeProctorSessionIfNeeded } from "@/lib/proctor/buildProctorViolationsReport";
@@ -141,6 +143,30 @@ export async function POST(
     totalMs: Date.now() - startedAt,
     dbMs: Date.now() - dbStarted,
   });
+
+  const emailStarted = Date.now();
+  try {
+    const emailSent = await sendProfSbEducationCompletionEmail({
+      sessionId: payload.sessionId,
+      sessionRef,
+      fullName: `${assessee.lastNameDisplay} ${assessee.firstNameDisplay}`.trim(),
+      summaryText: profReport.interpretation,
+    });
+    screeningServerLog("prof_sb_education_submit", "email_finished", {
+      sessionRef,
+      sent: emailSent,
+      durationMs: Date.now() - emailStarted,
+    });
+  } catch (err) {
+    const smtpFields = smtpErrorLogFields(err);
+    screeningServerLog("prof_sb_education_submit", "email_exception", {
+      sessionRef,
+      durationMs: Date.now() - emailStarted,
+      errorName: smtpFields.errorName,
+      errorMessage: smtpFields.errorMessage,
+      responseCode: smtpFields.responseCode ?? undefined,
+    });
+  }
 
   try {
     await finalizeProctorSessionIfNeeded(payload.sessionId, TEST_KIND_PROF_SB_EDUCATION);

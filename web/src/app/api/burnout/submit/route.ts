@@ -13,6 +13,8 @@ import { runDueBurnoutRemindersInBackground } from "@/lib/burnout/runDueBurnoutR
 import type { BurnoutReportJson } from "@/lib/burnout/burnoutReportTypes";
 import type { MaslachBurnoutAnswers } from "@/lib/burnout/maslachBurnoutQuestions";
 import { formatMoscowNow } from "@/lib/datetime/moscowTime";
+import { sendBurnoutCompletionEmail } from "@/lib/email/sendBurnoutCompletionEmail";
+import { smtpErrorLogFields } from "@/lib/email/sendScreeningReportEmail";
 import { finalizeProctorSessionIfNeeded } from "@/lib/proctor/buildProctorViolationsReport";
 import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServerLog";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
@@ -166,6 +168,34 @@ export async function POST(
   }
 
   runDueBurnoutRemindersInBackground("burnout_submit");
+
+  const emailStarted = Date.now();
+  try {
+    if (interpretation === null) {
+      screeningServerLog("burnout_submit", "email_skipped_no_interpretation", { sessionRef });
+    } else {
+      const emailSent = await sendBurnoutCompletionEmail({
+        sessionId: payload.sessionId,
+        sessionRef,
+        fullName: `${assessee.lastNameDisplay} ${assessee.firstNameDisplay}`.trim(),
+        interpretation,
+      });
+      screeningServerLog("burnout_submit", "email_finished", {
+        sessionRef,
+        sent: emailSent,
+        durationMs: Date.now() - emailStarted,
+      });
+    }
+  } catch (err) {
+    const smtpFields = smtpErrorLogFields(err);
+    screeningServerLog("burnout_submit", "email_exception", {
+      sessionRef,
+      durationMs: Date.now() - emailStarted,
+      errorName: smtpFields.errorName,
+      errorMessage: smtpFields.errorMessage,
+      responseCode: smtpFields.responseCode ?? undefined,
+    });
+  }
 
   screeningServerLog("burnout_submit", "success", {
     sessionRef,
