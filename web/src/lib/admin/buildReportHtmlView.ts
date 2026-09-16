@@ -16,7 +16,11 @@ import {
 } from "@/lib/proctor/buildProctorViolationsReport";
 import { prisma } from "@/lib/prisma";
 
-export type ReportPdfKind = "screening" | "audit" | "audit_manager";
+export type ReportPdfKind =
+  | "screening"
+  | "audit"
+  | "audit_manager"
+  | "executive_manager";
 
 export type ScreeningBriefReportView = {
   kind: "screening_brief";
@@ -154,6 +158,9 @@ export async function resolveReportPdfKind(
   if (documentId === "manager_report") {
     return source === "audit" ? "audit_manager" : null;
   }
+  if (documentId === "executive_manager_report") {
+    return "executive_manager";
+  }
   if (documentId !== "full_report") {
     return null;
   }
@@ -281,5 +288,10 @@ async function _buildDashboard(sessionId: string): Promise<EmployeeDashboardRepo
 }
 
 export function reportPdfSourceFromKind(kind: ReportPdfKind): FolderReportSource {
-  return kind === "screening" ? "screening" : "audit";
+  if (kind === "screening") {
+    return "screening";
+  }
+  // executive_manager может быть и screening, и audit — вызывающий код
+  // должен резолвить source через resolveFolderReportSessionSource.
+  return "audit";
 }

@@ -31,6 +31,7 @@ const DOCUMENT_TITLES: Record<EmployeeDocumentSlotId, string> = {
   short_report: "Короткий отчёт",
   full_report: "Объёмный отчёт",
   manager_report: "Отчёт для руководителя",
+  executive_manager_report: "Экспертный отчёт (собственник/HRD)",
   violations_report: "Отчёт по нарушениям",
   commission_reports: "Отчёты комиссии",
   dashboard: "Дашборд по сотруднику",
@@ -58,9 +59,16 @@ export function EmployeeReportViewer(): React.ReactElement {
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pdfCacheBust, setPdfCacheBust] = useState(0);
+  const [forceRegenerate, setForceRegenerate] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   const documentId = isDocumentId(documentParam) ? documentParam : null;
-  const isPdf = documentId === "full_report" || documentId === "manager_report";
+  const isPdf =
+    documentId === "full_report" ||
+    documentId === "manager_report" ||
+    documentId === "executive_manager_report";
+  const isExecutivePdf = documentId === "executive_manager_report";
   const isDashboard = documentId === "dashboard";
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const htmlPrintRef = useRef<HTMLDivElement>(null);
@@ -82,8 +90,14 @@ export function EmployeeReportViewer(): React.ReactElement {
       documentId,
       sessionId,
     });
+    if (forceRegenerate && isExecutivePdf) {
+      query.set("regenerate", "1");
+    }
+    if (pdfCacheBust > 0) {
+      query.set("_", String(pdfCacheBust));
+    }
     return `/api/admin/reports/pdf?${query.toString()}`;
-  }, [documentId, folderKey, isPdf, sessionId]);
+  }, [documentId, folderKey, forceRegenerate, isExecutivePdf, isPdf, pdfCacheBust, sessionId]);
 
   const pdfDownloadUrl = useMemo(() => {
     if (!pdfUrl) {
@@ -123,6 +137,15 @@ export function EmployeeReportViewer(): React.ReactElement {
       return;
     }
     downloadHtmlFile(reportFileName, DOCUMENT_TITLES[documentId], html);
+  }
+
+  function handleRegenerateExecutive(): void {
+    if (!isExecutivePdf || regenerating) {
+      return;
+    }
+    setRegenerating(true);
+    setForceRegenerate(true);
+    setPdfCacheBust((value) => value + 1);
   }
 
   useEffect(() => {
@@ -235,6 +258,16 @@ export function EmployeeReportViewer(): React.ReactElement {
           {!loading && !error && !isPdf && !isDashboard ? (
             <DocumentViewerActionBar onPrint={handlePrint} onDownload={handleDownload} />
           ) : null}
+          {isExecutivePdf && !loading ? (
+            <button
+              type="button"
+              disabled={regenerating}
+              onClick={handleRegenerateExecutive}
+              className="rounded-full bg-white/80 px-4 py-2 text-[13px] font-bold text-[#5F5E5E] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.12)] disabled:opacity-50"
+            >
+              {regenerating ? "Пересобираю…" : "Пересобрать экспертный отчёт"}
+            </button>
+          ) : null}
           <Link
             href={`/admin/results/${encodeURIComponent(folderKey)}`}
             className="rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
@@ -274,11 +307,22 @@ export function EmployeeReportViewer(): React.ReactElement {
 
       {!loading && !error && isPdf && pdfUrl ? (
         <div className={`overflow-hidden ${adminPanelCardClass}`}>
+          {isExecutivePdf ? (
+            <p className={`${adminPanelMutedTextClass} px-5 pt-4`}>
+              {regenerating
+                ? "Идёт пересборка экспертного отчёта через ИИ — это может занять до нескольких минут."
+                : "При первом открытии отчёт формируется через ИИ и сохраняется в сессии."}
+            </p>
+          ) : null}
           <iframe
             ref={iframeRef}
             title={DOCUMENT_TITLES[documentId]}
             src={pdfUrl}
             className="h-[80vh] w-full border-0 bg-white"
+            onLoad={() => {
+              setRegenerating(false);
+              setForceRegenerate(false);
+            }}
           />
         </div>
       ) : null}

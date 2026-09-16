@@ -3,22 +3,26 @@ import { z } from "zod";
 
 import {
   reportPdfSourceFromKind,
+  resolveFolderReportSessionSource,
   resolveReportPdfKind,
 } from "@/lib/admin/buildReportHtmlView";
 import { assertFolderReportSession } from "@/lib/admin/folderReportSessions";
 import type { EmployeeDocumentSlotId } from "@/lib/admin/employeeFolderTypes";
 import { generateAuditManagerReportPdfBySession } from "@/lib/admin/generateAuditManagerReportPdfBySession";
 import { generateAuditReportPdfBySession } from "@/lib/admin/generateAuditReportPdfBySession";
+import { generateExecutiveManagerReportPdfBySession } from "@/lib/admin/generateExecutiveManagerReportBySession";
 import { generateScreeningReportPdfBySession } from "@/lib/admin/generateScreeningReportPdfBySession";
 import { requireAdminPanelSession } from "@/lib/admin/requireAdminApi";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 
 const querySchema = z.object({
   folderKey: z.string().min(1).max(300),
-  documentId: z.enum(["full_report", "manager_report"]),
+  documentId: z.enum(["full_report", "manager_report", "executive_manager_report"]),
   sessionId: z.string().min(1).max(120),
+  regenerate: z.enum(["0", "1"]).optional(),
 });
 
 export async function GET(req: NextRequest): Promise<NextResponse<Buffer | { error: string }>> {
@@ -31,12 +35,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<Buffer | { err
     folderKey: req.nextUrl.searchParams.get("folderKey") ?? undefined,
     documentId: req.nextUrl.searchParams.get("documentId") ?? undefined,
     sessionId: req.nextUrl.searchParams.get("sessionId") ?? undefined,
+    regenerate: req.nextUrl.searchParams.get("regenerate") ?? undefined,
   });
   if (!parsed.success) {
     return NextResponse.json({ error: "Некорректный запрос" }, { status: 400 });
   }
 
-  const { folderKey, documentId, sessionId } = parsed.data;
+  const { folderKey, documentId, sessionId, regenerate } = parsed.data;
   const pdfKind = await resolveReportPdfKind(
     folderKey,
     documentId as EmployeeDocumentSlotId,
@@ -46,8 +51,19 @@ export async function GET(req: NextRequest): Promise<NextResponse<Buffer | { err
     return NextResponse.json({ error: "PDF для этого документа недоступен" }, { status: 404 });
   }
 
-  const source = reportPdfSourceFromKind(pdfKind);
-  const allowed = await assertFolderReportSession(folderKey, source, sessionId);
+  const sessionSource =
+    pdfKind === "executive_manager"
+      ? await resolveFolderReportSessionSource(
+          folderKey,
+          documentId as EmployeeDocumentSlotId,
+          sessionId
+        )
+      : reportPdfSourceFromKind(pdfKind);
+  if (!sessionSource) {
+    return NextResponse.json({ error: "Отчёт не найден в этой папке" }, { status: 404 });
+  }
+
+  const allowed = await assertFolderReportSession(folderKey, sessionSource, sessionId);
   if (!allowed) {
     return NextResponse.json({ error: "Отчёт не найден в этой папке" }, { status: 404 });
   }
@@ -57,17 +73,35 @@ export async function GET(req: NextRequest): Promise<NextResponse<Buffer | { err
       ? await generateScreeningReportPdfBySession(sessionId)
       : pdfKind === "audit_manager"
         ? await generateAuditManagerReportPdfBySession(sessionId)
-        : await generateAuditReportPdfBySession(sessionId);
+        : pdfKind === "executive_manager"
+          ? await generateExecutiveManagerReportPdfBySession({
+              sessionId,
+              source: sessionSource === "screening" ? "screening" : "audit",
+              regenerate: regenerate === "1",
+            })
+          : await generateAuditReportPdfBySession(sessionId);
 
   if (!pdfBuffer) {
-    return NextResponse.json({ error: "Не удалось сформировать PDF" }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          pdfKind === "executive_manager"
+            ? "Не удалось сформировать экспертный отчёт (нет данных или ошибка ИИ)"
+            : "Не удалось сформировать PDF",
+      },
+      { status: 500 }
+    );
   }
 
   screeningServerLog("admin_report_view", "pdf_ok", { sessionId, pdfKind });
 
   const forceDownload = req.nextUrl.searchParams.get("download") === "1";
   const fileStem =
-    documentId === "manager_report" ? `manager-report-${sessionId}` : `report-${sessionId}`;
+    documentId === "manager_report"
+      ? `manager-report-${sessionId}`
+      : documentId === "executive_manager_report"
+        ? `executive-manager-report-${sessionId}`
+        : `report-${sessionId}`;
   return new NextResponse(new Uint8Array(pdfBuffer), {
     status: 200,
     headers: {

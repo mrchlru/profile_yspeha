@@ -4,6 +4,7 @@
  */
 
 import type { AuditReportProfile } from "@/lib/audit/report/auditReportProfile";
+import type { ExecutiveManagerReportV1 } from "@/lib/audit/report/executiveManagerReportTypes";
 
 export type AuditReportVersion = 1;
 
@@ -229,6 +230,8 @@ export type AuditReportJson = {
   yoy: AuditReportYoY | null;
   ai: AuditReportAiBlock;
   managerBrief: AuditReportManagerBrief;
+  /** Экспертный отчёт для собственника/HRD (v2); не заменяет managerBrief. */
+  executiveManagerReport?: ExecutiveManagerReportV1;
   delivery: AuditReportDelivery;
 };
 
