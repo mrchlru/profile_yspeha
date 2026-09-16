@@ -12,6 +12,7 @@
 import { execSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "pg";
 
 /** Среда для CLI Prisma/npm — меньше «ложных» ошибок в stderr на Railway. */
@@ -21,6 +22,62 @@ function toolEnv() {
     PRISMA_HIDE_UPDATE_MESSAGE: "1",
     NPM_CONFIG_UPDATE_NOTIFIER: "false",
   };
+}
+
+/**
+ * Путь к локальному Prisma CLI (без npx/.bin — в slim Docker их может не быть).
+ */
+function resolvePrismaCliEntry() {
+  const candidates = [
+    path.join(process.cwd(), "node_modules", "prisma", "build", "index.js"),
+    path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "..",
+      "node_modules",
+      "prisma",
+      "build",
+      "index.js"
+    ),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(
+    "Prisma CLI не найден (node_modules/prisma/build/index.js). В Docker скопируйте пакет prisma в образ."
+  );
+}
+
+/**
+ * Запускает `prisma <args…>` через `node …/prisma/build/index.js`.
+ */
+function runPrismaCli(args, options = {}) {
+  const entry = resolvePrismaCliEntry();
+  return execSync(`node "${entry}" ${args.map(_shellQuote).join(" ")}`, {
+    cwd: options.cwd ?? process.cwd(),
+    env: options.env ?? toolEnv(),
+    stdio: options.stdio ?? "inherit",
+  });
+}
+
+/**
+ * spawnSync-вариант для случаев, когда нужен разбор stdout/stderr.
+ */
+function spawnPrismaCli(args, options = {}) {
+  const entry = resolvePrismaCliEntry();
+  return spawnSync(process.execPath, [entry, ...args], {
+    cwd: options.cwd ?? process.cwd(),
+    env: options.env ?? toolEnv(),
+    encoding: options.encoding ?? "utf8",
+  });
+}
+
+function _shellQuote(value) {
+  if (/^[A-Za-z0-9_./:@+=,-]+$/.test(value)) {
+    return value;
+  }
+  return `"${value.replace(/"/g, '\\"')}"`;
 }
 
 async function main() {
@@ -133,10 +190,8 @@ async function baselinePrismaMigrationsIfNeeded(databaseUrl) {
     );
     for (const name of names) {
       console.log(`[db:setup] baseline: resolve --applied «${name}»`);
-      execSync(`npx prisma migrate resolve --applied "${name}"`, {
-        cwd: process.cwd(),
+      runPrismaCli(["migrate", "resolve", "--applied", name], {
         env: process.env,
-        stdio: "inherit",
       });
     }
     console.log("[db:setup] baseline: готово.");
@@ -174,11 +229,7 @@ async function resolveFailedPrismaMigrations(databaseUrl) {
     for (const row of failed.rows) {
       const name = row.migration_name;
       console.log(`[db:setup] failed migration: resolve --rolled-back «${name}»`);
-      execSync(`npx prisma migrate resolve --rolled-back "${name}"`, {
-        cwd: process.cwd(),
-        env: toolEnv(),
-        stdio: "inherit",
-      });
+      runPrismaCli(["migrate", "resolve", "--rolled-back", name]);
     }
   } finally {
     await client.end();
@@ -187,7 +238,7 @@ async function resolveFailedPrismaMigrations(databaseUrl) {
 
 /**
  * Bootstrap SQL (create_tables.sql) иногда опережает Prisma migrate deploy.
- * Если колонка/таблица уже есть, помечаем соответствующую мigration как applied,
+ * Если колонка/таблица уже есть, помечаем соответствующую миграцию как applied,
  * иначе deploy падает с duplicate column (42701) и контейнер не доходит до next start.
  */
 async function reconcileBootstrapAlreadyAppliedMigrations(databaseUrl) {
@@ -254,15 +305,7 @@ async function reconcileBootstrapAlreadyAppliedMigrations(databaseUrl) {
  * Помечает миграцию applied; P3008 («уже applied») не считается ошибкой.
  */
 function runPrismaMigrateResolveApplied(migrationName) {
-  const result = spawnSync(
-    "npx",
-    ["prisma", "migrate", "resolve", "--applied", migrationName],
-    {
-      cwd: process.cwd(),
-      env: toolEnv(),
-      encoding: "utf8",
-    }
-  );
+  const result = spawnPrismaCli(["migrate", "resolve", "--applied", migrationName]);
 
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`;
   if (result.status === 0) {
@@ -294,11 +337,7 @@ function runPrismaMigrateDeploy() {
     return;
   }
   console.log("[db:setup] prisma migrate deploy…");
-  execSync("npx prisma migrate deploy", {
-    cwd: process.cwd(),
-    env: toolEnv(),
-    stdio: "inherit",
-  });
+  runPrismaCli(["migrate", "deploy"]);
   console.log("[db:setup] prisma migrate deploy: успех.");
 }
 
