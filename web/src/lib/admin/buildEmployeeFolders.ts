@@ -521,7 +521,7 @@ function _documentViewKind(
   if (!available) {
     return "none";
   }
-  if (slotId === "full_report" || slotId === "manager_report") {
+  if (slotId === "full_report" || slotId === "manager_report" || slotId === "executive_manager_report") {
     return "pdf";
   }
   if (slotId === "short_report" || slotId === "dashboard" || slotId === "violations_report") {
@@ -814,6 +814,9 @@ export async function getEmployeeFolderDetail(
         break;
       case "manager_report":
         available = hasAuditReport;
+        break;
+      case "executive_manager_report":
+        available = hasScreeningReport || hasAuditReport;
         break;
       case "violations_report":
         available = hasProctorReport;

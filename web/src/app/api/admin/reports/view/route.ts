@@ -17,6 +17,7 @@ const DOCUMENT_IDS = [
   "short_report",
   "full_report",
   "manager_report",
+  "executive_manager_report",
   "violations_report",
   "commission_reports",
   "dashboard",

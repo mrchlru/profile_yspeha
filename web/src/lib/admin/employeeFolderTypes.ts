@@ -6,6 +6,7 @@ export type EmployeeDocumentSlotId =
   | "short_report"
   | "full_report"
   | "manager_report"
+  | "executive_manager_report"
   | "violations_report"
   | "commission_reports"
   | "dashboard";
@@ -135,6 +136,12 @@ export const EMPLOYEE_DOCUMENT_SLOTS: ReadonlyArray<{
     id: "manager_report",
     title: "Отчёт для руководителя",
     description: "Отдельный PDF с краткими выводами и заключением для руководителя.",
+  },
+  {
+    id: "executive_manager_report",
+    title: "Экспертный отчёт (собственник/HRD)",
+    description:
+      "Развёрнутый экспертный отчёт для собственника и HRD: потенциал, риски, загрузка и HR-анализ по 14 направлениям.",
   },
   {
     id: "violations_report",

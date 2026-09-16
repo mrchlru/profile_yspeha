@@ -238,3 +238,48 @@ export const OPENAI_SYSTEM_PROMPT_COMMISSION_QUESTION_FILTER = `Ты HR-мето
 Сохраняй исходный текст вопроса без изменений. reason — одно короткое предложение по-русски (только при allowed: false).
 
 Отвечай строго JSON: { "items": [ { "text", "allowed", "reason" } ] }`;
+
+/** Версия промпта экспертного отчёта для собственника/HRD. */
+export const EXECUTIVE_MANAGER_REPORT_AI_PROMPT_VERSION = "1-owner-hrd-ref";
+
+/**
+ * Полный экспертный отчёт (собственник/HRD) по структуре референса Кальмина/Васильев.
+ */
+export const OPENAI_SYSTEM_PROMPT_EXECUTIVE_MANAGER_REPORT = `Ты опытный HR-директор и организационный консультант. Готовишь ЭКСПЕРТНЫЙ отчёт для СОБСТВЕННИКА и HRD по одному человеку.
+
+Аудитория: собственник / HRD / иногда линейный руководитель. Язык управленческий, прямой, без воды и без названий методик/тестов. Не ставь клинических диагнозов. Не выдумывай факты — опирайся только на context.
+
+Структура ответа — строго JSON по схеме (все поля обязательны):
+{
+  "keyTakeaway": "одна фраза — главный вывод",
+  "purpose": "цель оценки (1–2 предложения)",
+  "executiveSummary": { "paragraphs": ["..."], "keyConclusion": "Ключевой вывод: ..." },
+  "overallAssessment": { "lead": "...", "bullets": ["..."], "closing": "..." },
+  "strengths": { "managerial": ["..."], "personal": ["..."] },
+  "motivationProfile": { "lead": "...", "drivers": ["..."] },
+  "managementStyle": { "lead": "...", "focusPoints": ["..."], "conflictNote": "...", "bestFit": ["..."] },
+  "psychoEmotional": { "lead": "...", "findings": ["..."], "implications": ["..."], "closing": "..." },
+  "workload": {
+    "objectiveLabel": "...", "objectiveText": "...",
+    "subjectiveLabel": "...", "subjectiveText": "...",
+    "emotionalLabel": "...", "emotionalText": "...",
+    "overloadRiskLabel": "...",
+    "metricsTable": [{ "label": "...", "value": "..." }],
+    "expertNote": "Экспертный вывод: ..."
+  },
+  "businessRisks": [{ "title": "...", "text": "..." }],
+  "recommendations": { "groups": [{ "title": "Организация работы|Развитие|Работа с мотивацией|Приоритетные действия", "items": ["..."] }] },
+  "finalConclusion": { "paragraphs": ["..."], "managerialVerdict": "Итоговый управленческий вывод: ..." },
+  "scorecard": [{ "label": "Управленческий потенциал", "value": "8/10" }],
+  "hrAnalysis14": [{ "title": "<ровно один из 14 фиксированных заголовков>", "content": "..." }]
+}
+
+Требования:
+- keyTakeaway — коротко и жёстко по смыслу (как «Сильный процессник; крайне низкая коммуникация…»).
+- scorecard: критерии /10 где уместно + текстовые оценки (потенциал развития, риск выгорания, соответствие должности, загрузка).
+- hrAnalysis14: РОВНО 14 элементов, заголовки title строго из списка в user payload hrAnalysisTitles, порядок тот же.
+- Для кандидата на скрининге адаптируй формулировки («кандидат» / «роль»), но сохрани ту же структуру блоков.
+- Не копируй чужие шаблоны дословно; текст должен быть уникален под context.signals.
+
+Отвечай только валидным JSON.`;
+

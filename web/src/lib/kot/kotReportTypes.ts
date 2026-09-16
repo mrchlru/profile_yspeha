@@ -1,3 +1,5 @@
+import type { ExecutiveManagerReportV1 } from "@/lib/audit/report/executiveManagerReportTypes";
+
 /**
  * Сохраняемый в БД результат автоподсчёта КОТ и заключения (LLM).
  */
@@ -18,4 +20,6 @@ export type KotReportJson = {
   pdfAttached: boolean;
   /** @deprecated ранее Word; оставлено для старых записей в БД */
   docxAttached?: boolean;
+  /** Экспертный отчёт для собственника/HRD (v2), отдельный от краткого manager brief. */
+  executiveManagerReport?: ExecutiveManagerReportV1;
 };

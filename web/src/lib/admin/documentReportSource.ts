@@ -21,6 +21,8 @@ export function documentReportSourceCandidates(
       return parsed.kind === "candidate" ? ["screening", "audit"] : ["audit"];
     case "manager_report":
       return ["audit"];
+    case "executive_manager_report":
+      return parsed.kind === "candidate" ? ["screening", "audit"] : ["audit"];
     case "violations_report":
       return parsed.kind === "candidate" || parsed.kind === "audit" ? ["audit"] : [];
     case "dashboard":
