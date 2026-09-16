@@ -2,8 +2,14 @@ node_modules
 .next
 # НЕ исключать prisma/migrations — иначе в образе пусто, migrate deploy / P3005.
 .env
+.env.*
 .git
 .github
 npm-debug.log*
 Dockerfile
-
+**/*.md
+**/tsconfig.tsbuildinfo
+coverage
+.turbo
+.vercel
+scripts/_tmp*
