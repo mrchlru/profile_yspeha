@@ -52,10 +52,14 @@ COPY --from=builder /app/node_modules/global-agent ./node_modules/global-agent
 COPY --from=builder /app/node_modules/tar ./node_modules/tar
 
 # Убрать чужие платформы и Studio — сильно уменьшает слой экспорта образа.
+# Симлинк .bin/prisma — на случай вызовов через PATH/npx.
 RUN rm -rf \
   node_modules/onnxruntime-node/bin/napi-v3/win32 \
   node_modules/onnxruntime-node/bin/napi-v3/darwin \
-  node_modules/@prisma/studio-core
+  node_modules/@prisma/studio-core \
+  && mkdir -p node_modules/.bin \
+  && ln -sf ../prisma/build/index.js node_modules/.bin/prisma \
+  && chmod +x node_modules/prisma/build/index.js
 
 # Timeweb App Platform маршрутизирует HTTPS по EXPOSE, не по переменной PORT.
 EXPOSE 8080
