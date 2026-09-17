@@ -25,15 +25,10 @@ function toolEnv() {
 }
 
 /**
- * Путь к Prisma CLI.
- * В Docker: /prisma-cli/... (полный install, см. Dockerfile).
- * Локально: node_modules/prisma из npm ci.
+ * Путь к Prisma CLI из локального node_modules (полный install в Docker runner).
  */
 function resolvePrismaCliEntry() {
-  const fromEnv = process.env.PRISMA_CLI_ENTRY?.trim();
   const candidates = [
-    ...(fromEnv ? [fromEnv] : []),
-    "/prisma-cli/node_modules/prisma/build/index.js",
     path.join(process.cwd(), "node_modules", "prisma", "build", "index.js"),
     path.join(
       path.dirname(fileURLToPath(import.meta.url)),
@@ -50,7 +45,7 @@ function resolvePrismaCliEntry() {
     }
   }
   throw new Error(
-    "Prisma CLI не найден. Ожидается PRISMA_CLI_ENTRY или node_modules/prisma/build/index.js."
+    "Prisma CLI не найден (node_modules/prisma/build/index.js)."
   );
 }
 

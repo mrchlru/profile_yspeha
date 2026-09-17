@@ -1,7 +1,5 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
-  /** Ужимает Docker-образ: в runner не нужен полный node_modules. */
-  output: "standalone",
   productionBrowserSourceMaps: false,
   experimental: {
     serverComponentsExternalPackages: ["onnxruntime-node"],
