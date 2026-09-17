@@ -8,6 +8,7 @@ import {
   MyCredentialsForm,
   OpenAiTestPanel,
 } from "@/components/admin/AdminSettingsPanels";
+import { DataMigrationPanel } from "@/components/admin/DataMigrationPanel";
 import { RegenerateManagerBriefPanel } from "@/components/admin/RegenerateManagerBriefPanel";
 import { RegenerateReportsPanel } from "@/components/admin/RegenerateReportsPanel";
 import { CommissionEvalLogsPanel } from "@/components/admin/CommissionEvalLogsPanel";
@@ -65,6 +66,7 @@ export function AdminSettingsContent(): React.ReactElement {
           {session.role === ADMIN_ROLE_ADMIN ? <GoogleSheetsTestPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <RegenerateManagerBriefPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <RegenerateReportsPanel /> : null}
+          {session.role === ADMIN_ROLE_ADMIN ? <DataMigrationPanel /> : null}
         </div>
       ) : tab === "commission" ? (
         <CommissionQuestionsPanel />
