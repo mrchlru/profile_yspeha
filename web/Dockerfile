@@ -4,8 +4,7 @@ FROM node:20-bookworm-slim AS node-os
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
-# Изолированный Prisma CLI со ВСЕМИ зависимостями (включая @prisma/studio-core).
-# Не мержить в app node_modules и не вырезать studio-core — CLI падает без него.
+# Изолированный Prisma CLI со всеми зависимостями (включая @prisma/studio-core).
 FROM node-os AS prisma-cli
 
 WORKDIR /prisma-cli
@@ -42,6 +41,8 @@ ENV NODE_OPTIONS=--dns-result-order=ipv4first
 ENV HOSTNAME=0.0.0.0
 ENV PORT=8080
 ENV PRISMA_CLI_ENTRY=/prisma-cli/node_modules/prisma/build/index.js
+# Резолв `prisma/config` и прочих модулей CLI при загрузке /app/prisma.config.ts
+ENV NODE_PATH=/prisma-cli/node_modules
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
@@ -53,7 +54,6 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
-# Полный Prisma CLI отдельной директорией (не трогаем standalone node_modules).
 COPY --from=prisma-cli /prisma-cli /prisma-cli
 
 # onnxruntime-node — external для Next; только linux-бинарь.
