@@ -20,7 +20,7 @@ export async function buildMigrationArchiveZip(): Promise<{
   manifest: MigrationArchiveManifest;
 }> {
   const files: Record<string, Uint8Array> = {};
-  const tableStats: MigrationArchiveManifest["tables"] = [];
+  const tableStats: Array<{ name: MigrationTableName; rowCount: number }> = [];
 
   for (const tableName of MIGRATION_TABLE_ORDER) {
     const rows = await _loadAllRows(tableName);
