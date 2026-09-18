@@ -437,32 +437,24 @@ async function _upsertById(
   row: Record<string, unknown>
 ): Promise<UpsertOutcome> {
   const id = String(row.id);
+  type IdDelegate = {
+    findUnique: (args: {
+      where: { id: string };
+      select: { id: true };
+    }) => Promise<{ id: string } | null>;
+    create: (args: { data: never }) => Promise<unknown>;
+    update: (args: { where: { id: string }; data: never }) => Promise<unknown>;
+  };
+  const delegate = prisma[model] as unknown as IdDelegate;
   return _upsertByUnique({
     mode,
-    exists: async () => {
-      const delegate = prisma[model] as {
-        findUnique: (args: {
-          where: { id: string };
-          select: { id: true };
-        }) => Promise<{ id: string } | null>;
-      };
-      return delegate.findUnique({ where: { id }, select: { id: true } });
-    },
-    create: async () => {
-      const delegate = prisma[model] as {
-        create: (args: { data: never }) => Promise<unknown>;
-      };
-      return delegate.create({ data: row as never });
-    },
-    update: async () => {
-      const delegate = prisma[model] as {
-        update: (args: { where: { id: string }; data: never }) => Promise<unknown>;
-      };
-      return delegate.update({
+    exists: () => delegate.findUnique({ where: { id }, select: { id: true } }),
+    create: () => delegate.create({ data: row as never }),
+    update: () =>
+      delegate.update({
         where: { id },
         data: _omitKeys(row, ["id"]) as never,
-      });
-    },
+      }),
   });
 }
 
