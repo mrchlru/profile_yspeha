@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
-import { checkAccessInvite } from "@/lib/access/findActiveInvite";
+import { checkAccessInviteForStartedAudit } from "@/lib/access/findActiveInvite";
 import { markAccessCodeStarted } from "@/lib/access/markAccessCodeStarted";
 import { isAuditAccessTestKind } from "@/lib/access/testKinds";
 import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServerLog";
@@ -36,7 +36,7 @@ export async function POST(
   const payload = parsed.data;
   const sessionRef = shortSessionRef(payload.sessionId);
 
-  const invite = await checkAccessInvite(payload.accessCode);
+  const invite = await checkAccessInviteForStartedAudit(payload.accessCode);
   if (invite.status !== "ok" && invite.status !== "used") {
     return NextResponse.json({ error: "Недействительный код доступа" }, { status: 403 });
   }

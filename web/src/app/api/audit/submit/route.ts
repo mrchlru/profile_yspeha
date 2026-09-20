@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
-import { checkAccessInvite } from "@/lib/access/findActiveInvite";
+import { checkAccessInviteForStartedAudit } from "@/lib/access/findActiveInvite";
 import { markAccessCodeUsed } from "@/lib/access/markAccessCodeUsed";
 import { normalizeAccessCode } from "@/lib/access/accessCode";
 import {
@@ -70,7 +70,7 @@ export async function POST(
     return NextResponse.json({ error: "Некорректные данные" }, { status: 400 });
   }
 
-  const invite = await checkAccessInvite(payload.accessCode);
+  const invite = await checkAccessInviteForStartedAudit(payload.accessCode);
   if (invite.status !== "ok" && invite.status !== "used") {
     screeningServerLog("audit_submit", "invalid_access_code", {
       sessionRef,
@@ -81,6 +81,9 @@ export async function POST(
   if (invite.status === "ok" && !isAuditAccessTestKind(invite.testKind)) {
     screeningServerLog("audit_submit", "wrong_test_kind", { sessionRef });
     return NextResponse.json({ error: "Недействительный код доступа" }, { status: 403 });
+  }
+  if (invite.status === "ok" && invite.expiredButStarted) {
+    screeningServerLog("audit_submit", "expired_but_started_allowed", { sessionRef });
   }
 
   const consentAt = new Date(payload.consentRecordedAt);

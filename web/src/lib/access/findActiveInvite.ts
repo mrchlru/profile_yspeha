@@ -11,6 +11,8 @@ export type AccessInviteCheckResult =
       devMode: boolean;
       candidateFirstName: string | null;
       candidateLastName: string | null;
+      /** Код формально истёк, но прохождение уже начато — submit/sync разрешены. */
+      expiredButStarted?: boolean;
     }
   | { status: "not_found" }
   | { status: "expired" }
@@ -25,6 +27,9 @@ export type AccessInviteOkDetails = {
   candidateLastName: string | null;
 };
 
+/**
+ * Проверяет код доступа: активен / использован / истёк / отозван.
+ */
 export async function checkAccessInvite(
   rawCode: string
 ): Promise<AccessInviteCheckResult> {
@@ -73,6 +78,57 @@ export async function checkAccessInvite(
   };
 }
 
+/**
+ * Проверка кода для продолжения уже начатого аудита (sync/submit).
+ * Истёкший код допускается, если `startedAt` уже проставлен.
+ */
+export async function checkAccessInviteForStartedAudit(
+  rawCode: string
+): Promise<AccessInviteCheckResult> {
+  const primary = await checkAccessInvite(rawCode);
+  if (primary.status !== "expired") {
+    return primary;
+  }
+
+  const code = normalizeAccessCode(rawCode);
+  const row = await prisma.accessInvite.findFirst({
+    where: { code },
+    select: {
+      code: true,
+      testKind: true,
+      devMode: true,
+      candidateFirstName: true,
+      candidateLastName: true,
+      startedAt: true,
+      revokedAt: true,
+      usedAt: true,
+    },
+  });
+
+  if (!row || row.revokedAt !== null) {
+    return { status: "expired" };
+  }
+  if (row.usedAt !== null) {
+    return { status: "used" };
+  }
+  if (row.startedAt === null) {
+    return { status: "expired" };
+  }
+  if (!isTestKind(row.testKind)) {
+    return { status: "not_found" };
+  }
+
+  return {
+    status: "ok",
+    code: row.code,
+    testKind: row.testKind,
+    devMode: row.devMode,
+    candidateFirstName: row.candidateFirstName,
+    candidateLastName: row.candidateLastName,
+    expiredButStarted: true,
+  };
+}
+
 /** Детали действующего приглашения (код, тип, DEV, ФИО из карточки). */
 export async function loadActiveInviteDetails(
   rawCode: string
@@ -90,6 +146,9 @@ export async function loadActiveInviteDetails(
   };
 }
 
+/**
+ * Ищет действующее приглашение по коду.
+ */
 export async function findActiveInviteByCode(
   rawCode: string
 ): Promise<{ code: string; testKind: TestKind; devMode: boolean } | null> {
