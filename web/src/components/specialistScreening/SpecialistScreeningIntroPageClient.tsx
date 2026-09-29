@@ -115,8 +115,8 @@ export function SpecialistScreeningIntroPageClient(): React.ReactElement {
       <div className="flex flex-1 items-center justify-center px-4 pb-10 pt-2">
         <div className={`w-full max-w-[860px] space-y-6 px-8 py-8 ${stepSurfaceCardClass}`}>
           <p className={stepSecondaryTextClass}>
-            Скрининг депрессивных симптомов: три блока — PHQ-9, GAD-7 и ASRS (часть A). Всего 22
-            вопроса, около 10–15 минут. Результаты конфиденциальны и видны только администратору.
+            Опросник из 22 вопросов. На каждый выберите подходящий вариант ответа. Займёт около
+            10–15 минут.
           </p>
 
           {!isReturning ? (

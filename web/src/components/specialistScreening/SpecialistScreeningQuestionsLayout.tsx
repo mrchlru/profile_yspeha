@@ -33,7 +33,7 @@ export function SpecialistScreeningQuestionsLayout({
     <div className="flex flex-1 justify-center px-4 pb-10 pt-2">
       <div className="w-full max-w-[900px]">
         <div className={`mb-5 px-5 py-5 sm:px-6 ${stepSurfaceCardClass}`}>
-          <h1 className={stepSectionTitleClass}>Скрининг депрессивных симптомов</h1>
+          <h1 className={stepSectionTitleClass}>Опросник</h1>
           <p className={`mt-2 ${stepSecondaryTextClass}`}>
             Отвечено: {String(answered)} из {String(total)}
           </p>

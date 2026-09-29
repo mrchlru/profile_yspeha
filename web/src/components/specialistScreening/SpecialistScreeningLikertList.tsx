@@ -9,8 +9,8 @@ import type {
 import {
   ASRS_OPTIONS,
   PHQ_GAD_OPTIONS,
+  SPECIALIST_SCREENING_SECTION_CANDIDATE_TITLES,
   SPECIALIST_SCREENING_SECTION_PROMPTS,
-  SPECIALIST_SCREENING_SECTION_TITLES,
 } from "@/lib/specialistScreening/specialistScreeningQuestions";
 import {
   questionCardSurfaceClass,
@@ -42,7 +42,7 @@ export function SpecialistScreeningLikertList({
         <section key={section.sectionId} className="space-y-3">
           <div className="px-1">
             <h2 className={stepSectionTitleClass}>
-              {SPECIALIST_SCREENING_SECTION_TITLES[section.sectionId]}
+              {SPECIALIST_SCREENING_SECTION_CANDIDATE_TITLES[section.sectionId]}
             </h2>
             <p className={`mt-1 ${stepSecondaryTextClass}`}>
               {SPECIALIST_SCREENING_SECTION_PROMPTS[section.sectionId]}
