@@ -397,6 +397,12 @@ function _buildDocumentReportHref(
     return null;
   }
 
+  // Отчёт по нарушениям строится по всей папке (proctor), а не по audit/screening-сессии.
+  if (doc.id === "violations_report") {
+    const query = new URLSearchParams({ sessionId: "folder" });
+    return `/admin/results/${encodeURIComponent(folderKey)}/report/${encodeURIComponent(doc.id)}?${query.toString()}`;
+  }
+
   const sources = documentReportSourceCandidates(doc.id, folderKey);
   const session = sources
     .map((source) => reportSessions.find((item) => item.source === source))
