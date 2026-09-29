@@ -4,11 +4,13 @@ import {
   isAuditAccessTestKind,
   isBurnoutTestKind,
   isProfSbEducationTestKind,
+  isSpecialistScreeningTestKind,
 } from "@/lib/access/testKinds";
 import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useBurnoutFormStore } from "@/store/useBurnoutFormStore";
 import { useFormStore } from "@/store/useFormStore";
 import { useProfSbEducationFormStore } from "@/store/useProfSbEducationFormStore";
+import { useSpecialistScreeningFormStore } from "@/store/useSpecialistScreeningFormStore";
 
 export type ProctorBinding = {
   sessionId: string | null;
@@ -39,6 +41,10 @@ export function useProctorBinding(): ProctorBinding {
   const profAccessCode = useProfSbEducationFormStore((s) => s.accessCodeSnapshot);
   const profConsent = useProfSbEducationFormStore((s) => s.personalDataConsent);
 
+  const specialistSessionId = useSpecialistScreeningFormStore((s) => s.sessionId);
+  const specialistAccessCode = useSpecialistScreeningFormStore((s) => s.accessCodeSnapshot);
+  const specialistConsent = useSpecialistScreeningFormStore((s) => s.personalDataConsent);
+
   const legacySessionId = useFormStore((s) => s.sessionId);
   const legacyAccessCode = useFormStore((s) => s.validatedAccessCode);
   const legacyConsent = useFormStore((s) => s.personalDataConsent);
@@ -68,6 +74,14 @@ export function useProctorBinding(): ProctorBinding {
       sessionId: profSessionId,
       accessCode: profAccessCode,
       started: profConsent && profSessionId !== null,
+    };
+  }
+
+  if (isSpecialistScreeningTestKind(testKind)) {
+    return {
+      sessionId: specialistSessionId,
+      accessCode: specialistAccessCode,
+      started: specialistConsent && specialistSessionId !== null,
     };
   }
 

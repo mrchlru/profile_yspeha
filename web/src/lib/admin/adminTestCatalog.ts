@@ -4,6 +4,7 @@ import {
   TEST_KIND_BURNOUT,
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SCREENING,
+  TEST_KIND_SPECIALIST_SCREENING,
   type TestKind,
 } from "@/lib/access/testKinds";
 
@@ -12,13 +13,15 @@ export const ADMIN_TEST_CATALOG_ID_AUDIT_SENIOR = "audit_senior" as const;
 export const ADMIN_TEST_CATALOG_ID_AUDIT_MIDDLE = "audit_middle" as const;
 export const ADMIN_TEST_CATALOG_ID_BURNOUT = "burnout" as const;
 export const ADMIN_TEST_CATALOG_ID_PROF_SB_EDUCATION = "prof_sb_education" as const;
+export const ADMIN_TEST_CATALOG_ID_SPECIALIST_SCREENING = "specialist_screening" as const;
 
 export type AdminTestCatalogId =
   | typeof ADMIN_TEST_CATALOG_ID_SCREENING
   | typeof ADMIN_TEST_CATALOG_ID_AUDIT_SENIOR
   | typeof ADMIN_TEST_CATALOG_ID_AUDIT_MIDDLE
   | typeof ADMIN_TEST_CATALOG_ID_BURNOUT
-  | typeof ADMIN_TEST_CATALOG_ID_PROF_SB_EDUCATION;
+  | typeof ADMIN_TEST_CATALOG_ID_PROF_SB_EDUCATION
+  | typeof ADMIN_TEST_CATALOG_ID_SPECIALIST_SCREENING;
 
 export type AdminTestCatalogItem = {
   id: AdminTestCatalogId;
@@ -74,6 +77,15 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
       "Комплексная анкета из двух блоков: ПРОФ СБ и ПРОФ образование. Приглашение для сотрудника из архива скрининга или с новыми данными. Код действует 3 суток.",
     available: true,
     inviteTestKind: TEST_KIND_PROF_SB_EDUCATION,
+    supportsEmployeePick: true,
+  },
+  {
+    id: ADMIN_TEST_CATALOG_ID_SPECIALIST_SCREENING,
+    title: "Скрининг депрессивных симптомов",
+    description:
+      "Конфиденциальный скрининг PHQ-9, GAD-7 и ASRS v1.1 (часть A). Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
+    available: true,
+    inviteTestKind: TEST_KIND_SPECIALIST_SCREENING,
     supportsEmployeePick: true,
   },
 ];

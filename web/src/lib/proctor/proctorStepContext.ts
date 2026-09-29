@@ -65,6 +65,13 @@ export function readProctorStepContext(): ProctorStepContext | null {
     };
   }
 
+  if (path.startsWith("/specialist-screening/test")) {
+    return {
+      stepLabel: `${testPrefix ?? "Скрининг депрессивных симптомов"} · PHQ-9 / GAD-7 / ASRS`,
+      routePath: path,
+    };
+  }
+
   if (path.startsWith("/prof-sb-education/test")) {
     return {
       stepLabel: `${testPrefix ?? "ПРОФ СБ"} · анкета`,

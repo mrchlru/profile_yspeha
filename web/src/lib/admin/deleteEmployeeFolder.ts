@@ -12,6 +12,7 @@ export type DeleteEmployeeFolderTarget =
   | { type: "auditSubmission"; id: string }
   | { type: "burnoutSubmission"; id: string }
   | { type: "profSbEducationSubmission"; id: string }
+  | { type: "specialistScreeningSubmission"; id: string }
   | { type: "invite"; id: string };
 
 export type DeleteEmployeeFolderResult = {
@@ -103,6 +104,17 @@ async function _deleteCandidateFolder(
       await prisma.profSbEducationSubmission.delete({ where: { id: row.id } });
       return { deleted: 1, folderRemoved: false };
     }
+    case "specialistScreeningSubmission": {
+      const row = await prisma.specialistScreeningSubmission.findFirst({
+        where: { id: target.id, candidateFolderKey: folderKey },
+        select: { id: true },
+      });
+      if (!row) {
+        throw new Error("Запись скрининга депрессивных симптомов не найдена в этой папке");
+      }
+      await prisma.specialistScreeningSubmission.delete({ where: { id: row.id } });
+      return { deleted: 1, folderRemoved: false };
+    }
     case "auditSubmission":
       throw new Error("В папке скрининга нет данных аудита");
     default:
@@ -149,8 +161,15 @@ async function _deleteAuditFolder(
 }
 
 async function _deleteCandidateAll(folderKey: string): Promise<DeleteEmployeeFolderResult> {
-  const [screeningResult, inviteResult, burnoutResult, profResult, filesDeleted, candidateResult] =
-    await Promise.all([
+  const [
+    screeningResult,
+    inviteResult,
+    burnoutResult,
+    profResult,
+    specialistResult,
+    filesDeleted,
+    candidateResult,
+  ] = await Promise.all([
       prisma.screeningSubmission.deleteMany({
         where: { candidateFolderKey: folderKey },
       }),
@@ -161,6 +180,9 @@ async function _deleteCandidateAll(folderKey: string): Promise<DeleteEmployeeFol
         where: { candidateFolderKey: folderKey },
       }),
       prisma.profSbEducationSubmission.deleteMany({
+        where: { candidateFolderKey: folderKey },
+      }),
+      prisma.specialistScreeningSubmission.deleteMany({
         where: { candidateFolderKey: folderKey },
       }),
       deleteAllEmployeeFolderFiles(folderKey),
@@ -178,6 +200,7 @@ async function _deleteCandidateAll(folderKey: string): Promise<DeleteEmployeeFol
     inviteResult.count +
     burnoutResult.count +
     profResult.count +
+    specialistResult.count +
     filesDeleted +
     candidateResult.count;
   return { deleted, folderRemoved: deleted > 0 };

@@ -40,10 +40,12 @@ import {
   TEST_KIND_BURNOUT,
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SCREENING,
+  TEST_KIND_SPECIALIST_SCREENING,
 } from "@/lib/access/testKinds";
 import { folderHasProctorReport } from "@/lib/proctor/buildProctorViolationsReport";
 import { reconcileOrphanAuditFolderLinks } from "@/lib/admin/reconcileOrphanAuditFolderLinks";
 import { reconcileProfSbEducationFolderLinks } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
+import { listFolderSpecialistScreeningSessions } from "@/lib/admin/folderSpecialistScreeningSessions";
 import { prisma } from "@/lib/prisma";
 
 export type EmployeeFolderTypeFilter = "all" | "screening" | "audit";
@@ -56,11 +58,13 @@ type FolderAccumulator = {
   hasInterview: boolean;
   hasProfSbEducation: boolean;
   hasBurnout: boolean;
+  hasSpecialistScreening: boolean;
   lastActivityAt: Date | null;
   screeningSessions: number;
   auditSessions: number;
   profSbEducationSessionCount: number;
   burnoutSessionCount: number;
+  specialistScreeningSessionCount: number;
   hasShortReport: boolean;
   hasFullReport: boolean;
   positionLevel: string | null;
@@ -89,11 +93,13 @@ function _upsertFolder(
       hasInterview: false,
       hasProfSbEducation: false,
       hasBurnout: false,
+      hasSpecialistScreening: false,
       lastActivityAt: null,
       screeningSessions: 0,
       auditSessions: 0,
       profSbEducationSessionCount: 0,
       burnoutSessionCount: 0,
+      specialistScreeningSessionCount: 0,
       hasShortReport: false,
       hasFullReport: false,
       positionLevel: null,
@@ -117,11 +123,15 @@ function _upsertFolder(
     hasInterview: existing.hasInterview || Boolean(patch.hasInterview),
     hasProfSbEducation: existing.hasProfSbEducation || Boolean(patch.hasProfSbEducation),
     hasBurnout: existing.hasBurnout || Boolean(patch.hasBurnout),
+    hasSpecialistScreening:
+      existing.hasSpecialistScreening || Boolean(patch.hasSpecialistScreening),
     screeningSessions: existing.screeningSessions + (patch.screeningSessions ?? 0),
     auditSessions: existing.auditSessions + (patch.auditSessions ?? 0),
     profSbEducationSessionCount:
       existing.profSbEducationSessionCount + (patch.profSbEducationSessionCount ?? 0),
     burnoutSessionCount: existing.burnoutSessionCount + (patch.burnoutSessionCount ?? 0),
+    specialistScreeningSessionCount:
+      existing.specialistScreeningSessionCount + (patch.specialistScreeningSessionCount ?? 0),
     hasShortReport: existing.hasShortReport || Boolean(patch.hasShortReport),
     hasFullReport: existing.hasFullReport || Boolean(patch.hasFullReport),
     positionLevel: patch.positionLevel ?? existing.positionLevel,
@@ -157,11 +167,13 @@ function _toSummary(
     hasInterview: row.hasInterview,
     hasProfSbEducation: row.hasProfSbEducation,
     hasBurnout: row.hasBurnout,
+    hasSpecialistScreening: row.hasSpecialistScreening,
     lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
     screeningSessions: row.screeningSessions,
     auditSessions: row.auditSessions,
     profSbEducationSessionCount: row.profSbEducationSessionCount,
     burnoutSessionCount: row.burnoutSessionCount,
+    specialistScreeningSessionCount: row.specialistScreeningSessionCount,
     positionLevel: row.positionLevel,
     positionLevelLabel: row.positionLevel
       ? candidatePositionLevelLabel(row.positionLevel)
@@ -273,6 +285,8 @@ export async function listEmployeeFolders(
     profSubmissionRows,
     burnoutInviteRows,
     burnoutSubmissionRows,
+    specialistInviteRows,
+    specialistSubmissionRows,
   ] = await Promise.all([
       prisma.accessInvite.findMany({
         where: {
@@ -377,6 +391,37 @@ export async function listEmployeeFolders(
           burnoutReport: true,
         },
       }),
+      prisma.accessInvite.findMany({
+        where: {
+          testKind: TEST_KIND_SPECIALIST_SCREENING,
+          candidateFolderKey: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          code: true,
+          candidateFolderKey: true,
+          candidateLastName: true,
+          candidateFirstName: true,
+          candidateMiddleName: true,
+          candidateBirthDate: true,
+          candidatePositionLevel: true,
+          createdAt: true,
+          usedAt: true,
+        },
+      }),
+      prisma.specialistScreeningSubmission.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          createdAt: true,
+          firstName: true,
+          lastName: true,
+          candidateFolderKey: true,
+          accessInviteCode: true,
+          specialistScreeningReport: true,
+        },
+      }),
     ]);
 
   const map = new Map<string, FolderAccumulator>();
@@ -469,6 +514,7 @@ export async function listEmployeeFolders(
 
   _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
   _mergeBurnoutIntoFolders(map, burnoutInviteRows, burnoutSubmissionRows);
+  _mergeSpecialistScreeningIntoFolders(map, specialistInviteRows, specialistSubmissionRows);
 
   const searchQuery = query?.trim() ?? "";
   const folderKeys = [...map.keys()];
@@ -493,10 +539,11 @@ export async function listEmployeeFolders(
       if (folderVisibleInResults(row.key, status, isArchiveMarked, archiveView)) {
         return true;
       }
-      // ПРОФ/burnout-only папки без ACTIVE всё равно показываем в результатах (не в архиве).
+      // ПРОФ/burnout/specialist-only папки без ACTIVE всё равно показываем в результатах (не в архиве).
       return (
         _profSbEducationVisibleInResults(row, status, archiveView) ||
-        _burnoutVisibleInResults(row, status, archiveView)
+        _burnoutVisibleInResults(row, status, archiveView) ||
+        _specialistScreeningVisibleInResults(row, status, archiveView)
       );
     })
     .map((row) => {
@@ -563,6 +610,8 @@ export async function getEmployeeFolderSummaryByKey(
       profSubmissionRows,
       burnoutInviteRows,
       burnoutSubmissionRows,
+      specialistInviteRows,
+      specialistSubmissionRows,
     ] = await Promise.all([
         prisma.accessInvite.findMany({
           where: {
@@ -663,6 +712,36 @@ export async function getEmployeeFolderSummaryByKey(
             burnoutReport: true,
           },
         }),
+        prisma.accessInvite.findMany({
+          where: {
+            testKind: TEST_KIND_SPECIALIST_SCREENING,
+            candidateFolderKey: folderKey,
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            code: true,
+            candidateFolderKey: true,
+            candidateLastName: true,
+            candidateFirstName: true,
+            candidateMiddleName: true,
+            candidateBirthDate: true,
+            candidatePositionLevel: true,
+            createdAt: true,
+            usedAt: true,
+          },
+        }),
+        prisma.specialistScreeningSubmission.findMany({
+          where: { candidateFolderKey: folderKey },
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+            firstName: true,
+            lastName: true,
+            candidateFolderKey: true,
+            accessInviteCode: true,
+            specialistScreeningReport: true,
+          },
+        }),
       ]);
 
     for (const row of inviteRows) {
@@ -730,6 +809,7 @@ export async function getEmployeeFolderSummaryByKey(
 
     _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
     _mergeBurnoutIntoFolders(map, burnoutInviteRows, burnoutSubmissionRows);
+    _mergeSpecialistScreeningIntoFolders(map, specialistInviteRows, specialistSubmissionRows);
   } else {
     const auditRows = await prisma.auditSubmission.findMany({
       where: { assesseeKey: parsed.assesseeKey },
@@ -790,6 +870,10 @@ export async function getEmployeeFolderDetail(
   const burnoutSessions =
     summary.key.startsWith("candidate:")
       ? await listFolderBurnoutSessions(folderKey)
+      : [];
+  const specialistScreeningSessions =
+    summary.key.startsWith("candidate:")
+      ? await listFolderSpecialistScreeningSessions(folderKey)
       : [];
   const profSbEducationSessions =
     summary.key.startsWith("candidate:")
@@ -853,6 +937,7 @@ export async function getEmployeeFolderDetail(
     dataItems,
     reportSessions,
     burnoutSessions,
+    specialistScreeningSessions,
     profSbEducationSessions,
     uploadedFiles,
     dashboardPreview,
@@ -975,9 +1060,11 @@ function _folderHasCompletedTestData(row: FolderAccumulator): boolean {
     row.auditSessions > 0 ||
     row.profSbEducationSessionCount > 0 ||
     row.burnoutSessionCount > 0 ||
+    row.specialistScreeningSessionCount > 0 ||
     row.hasScreening ||
     row.hasAudit ||
-    row.hasBurnout
+    row.hasBurnout ||
+    row.hasSpecialistScreening
   );
 }
 
@@ -1076,6 +1163,109 @@ function _burnoutVisibleInResults(
   archiveView: boolean
 ): boolean {
   if (!row.key.startsWith("candidate:") || row.burnoutSessionCount <= 0) {
+    return false;
+  }
+  if (archiveView) {
+    return lifecycleStatus === CANDIDATE_LIFECYCLE_ARCHIVED;
+  }
+  return lifecycleStatus !== CANDIDATE_LIFECYCLE_ARCHIVED;
+}
+
+type SpecialistScreeningInviteRow = {
+  code: string;
+  candidateFolderKey: string | null;
+  candidateLastName: string | null;
+  candidateFirstName: string | null;
+  candidateMiddleName: string | null;
+  candidateBirthDate: Date | null;
+  candidatePositionLevel: string | null;
+  createdAt: Date;
+  usedAt: Date | null;
+};
+
+type SpecialistScreeningSubmissionRow = {
+  createdAt: Date;
+  firstName: string;
+  lastName: string;
+  candidateFolderKey: string | null;
+  accessInviteCode: string | null;
+  specialistScreeningReport: unknown;
+};
+
+/**
+ * Добавляет в индекс папок приглашения и прохождения скрининга направления к специалисту.
+ */
+function _mergeSpecialistScreeningIntoFolders(
+  map: Map<string, FolderAccumulator>,
+  inviteRows: ReadonlyArray<SpecialistScreeningInviteRow>,
+  submissionRows: ReadonlyArray<SpecialistScreeningSubmissionRow>
+): void {
+  for (const row of inviteRows) {
+    const key = row.candidateFolderKey;
+    if (!key || !row.candidateLastName || !row.candidateFirstName) {
+      continue;
+    }
+    const displayName = buildCandidateDisplayName({
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      birthDate: row.candidateBirthDate,
+    });
+    if (row.usedAt === null) {
+      if (map.has(key)) {
+        _upsertFolder(map, key, displayName, {
+          pendingInvite: true,
+          positionLevel: row.candidatePositionLevel,
+          birthDate: row.candidateBirthDate,
+          lastName: row.candidateLastName,
+          firstName: row.candidateFirstName,
+          middleName: row.candidateMiddleName,
+          inviteCode: row.code,
+        });
+      }
+      continue;
+    }
+    _upsertFolder(map, key, displayName, {
+      hasSpecialistScreening: true,
+      pendingInvite: false,
+      lastActivityAt: row.usedAt,
+      positionLevel: row.candidatePositionLevel,
+      birthDate: row.candidateBirthDate,
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      inviteCode: row.code,
+    });
+  }
+
+  for (const row of submissionRows) {
+    if (!row.candidateFolderKey) {
+      continue;
+    }
+    const displayName = `${row.lastName} ${row.firstName}`.trim();
+    _upsertFolder(map, row.candidateFolderKey, displayName || row.candidateFolderKey, {
+      hasSpecialistScreening: true,
+      specialistScreeningSessionCount: 1,
+      lastActivityAt: row.createdAt,
+      pendingInvite: false,
+      lastName: row.lastName,
+      firstName: row.firstName,
+      inviteCode: row.accessInviteCode,
+      hasShortReport: row.specialistScreeningReport !== null,
+      hasFullReport: row.specialistScreeningReport !== null,
+    });
+  }
+}
+
+/**
+ * Specialist-screening-only папки показываем в «Результатах», даже если lifecycle ещё не ACTIVE.
+ */
+function _specialistScreeningVisibleInResults(
+  row: FolderAccumulator,
+  lifecycleStatus: CandidateLifecycleStatus | null,
+  archiveView: boolean
+): boolean {
+  if (!row.key.startsWith("candidate:") || row.specialistScreeningSessionCount <= 0) {
     return false;
   }
   if (archiveView) {

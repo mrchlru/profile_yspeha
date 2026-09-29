@@ -208,6 +208,35 @@ model ProfSbEducationSubmission {
   @@map("prof_sb_education_submission")
 }
 
+/** Скрининг депрессивных симптомов (PHQ-9, GAD-7, ASRS). */
+model SpecialistScreeningSubmission {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sessionId String @unique @map("session_id")
+
+  assesseeKey    String @map("assessee_key")
+  assesseeKeyVer Int    @map("assessee_key_version")
+  firstName      String @map("first_name")
+  lastName       String @map("last_name")
+
+  personalDataConsent Boolean  @map("personal_data_consent")
+  consentRecordedAt   DateTime @map("consent_recorded_at")
+
+  /** Ответы: `{ "phq9_q1": 0..3, ..., "asrs_q6": 0..4 }`. */
+  answers Json @map("answers")
+
+  /** Суммы шкал, интерпретация и метаданные подсчёта. */
+  specialistScreeningReport Json? @map("specialist_screening_report")
+
+  accessInviteCode   String? @map("access_invite_code")
+  candidateFolderKey String? @map("candidate_folder_key")
+
+  @@index([assesseeKey, createdAt], map: "specialist_screening_submission_assessee_idx")
+  @@index([candidateFolderKey], map: "specialist_screening_submission_candidate_folder_idx")
+  @@map("specialist_screening_submission")
+}
+
 /** Код доступа к прохождению теста (скрининг / аудит состояния). */
 model AccessInvite {
   id        String    @id @default(cuid())

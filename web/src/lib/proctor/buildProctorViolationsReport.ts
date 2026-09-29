@@ -345,6 +345,13 @@ async function _resolveProctorCandidateName(
     if (burnoutRow) {
       return `${burnoutRow.lastName} ${burnoutRow.firstName}`.trim();
     }
+    const specialistRow = await prisma.specialistScreeningSubmission.findUnique({
+      where: { sessionId },
+      select: { firstName: true, lastName: true },
+    });
+    if (specialistRow) {
+      return `${specialistRow.lastName} ${specialistRow.firstName}`.trim();
+    }
     const profRow = await prisma.profSbEducationSubmission.findUnique({
       where: { sessionId },
       select: { firstName: true, lastName: true },

@@ -14,7 +14,8 @@ export async function loadEmployeeFolderDataItems(
   }
 
   if (parsed.kind === "candidate") {
-    const [inviteRows, screeningRows, burnoutRows, profRows] = await Promise.all([
+    const [inviteRows, screeningRows, burnoutRows, profRows, specialistRows] =
+      await Promise.all([
       prisma.accessInvite.findMany({
         where: { candidateFolderKey: parsed.folderKey },
         orderBy: { createdAt: "desc" },
@@ -31,6 +32,11 @@ export async function loadEmployeeFolderDataItems(
         select: { id: true, lastName: true, firstName: true, createdAt: true },
       }),
       prisma.profSbEducationSubmission.findMany({
+        where: { candidateFolderKey: parsed.folderKey },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, lastName: true, firstName: true, createdAt: true },
+      }),
+      prisma.specialistScreeningSubmission.findMany({
         where: { candidateFolderKey: parsed.folderKey },
         orderBy: { createdAt: "desc" },
         select: { id: true, lastName: true, firstName: true, createdAt: true },
@@ -60,6 +66,12 @@ export async function loadEmployeeFolderDataItems(
         kind: "profSbEducation" as const,
         id: row.id,
         label: `ПРОФ СБ + образование — ${row.lastName} ${row.firstName}`,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      ...specialistRows.map((row) => ({
+        kind: "specialistScreening" as const,
+        id: row.id,
+        label: `Скрининг депрессивных симптомов — ${row.lastName} ${row.firstName}`,
         createdAt: row.createdAt.toISOString(),
       })),
     ];

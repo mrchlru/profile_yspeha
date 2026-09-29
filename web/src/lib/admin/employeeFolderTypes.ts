@@ -43,6 +43,8 @@ export type EmployeeFolderSummary = {
   hasProfSbEducation: boolean;
   /** Есть прохождения теста на выгорание (Маслач). */
   hasBurnout: boolean;
+  /** Есть прохождения конфиденциального скрининга направления к специалисту. */
+  hasSpecialistScreening: boolean;
   lastActivityAt: string | null;
   screeningSessions: number;
   auditSessions: number;
@@ -50,6 +52,8 @@ export type EmployeeFolderSummary = {
   profSbEducationSessionCount: number;
   /** Число сохранённых прохождений теста на выгорание. */
   burnoutSessionCount: number;
+  /** Число сохранённых прохождений скрининга направления к специалисту. */
+  specialistScreeningSessionCount: number;
   positionLevel: string | null;
   positionLevelLabel: string | null;
   birthDate: string | null;
@@ -86,6 +90,14 @@ export type EmployeeFolderDetail = EmployeeFolderSummary & {
     classicBurnout: boolean;
     hasConcerningScale: boolean;
   }>;
+  /** Прохождения скрининга направления к специалисту. */
+  specialistScreeningSessions: ReadonlyArray<{
+    sessionId: string;
+    label: string;
+    createdAt: string;
+    referralSuggested: boolean;
+    phq9Item9Positive: boolean;
+  }>;
   /** Прохождения анкеты ПРОФ СБ + ПРОФ образование. */
   profSbEducationSessions: ReadonlyArray<{
     sessionId: string;
@@ -103,7 +115,8 @@ export type EmployeeFolderDataKind =
   | "audit"
   | "invite"
   | "burnout"
-  | "profSbEducation";
+  | "profSbEducation"
+  | "specialistScreening";
 
 export type EmployeeFolderDataItem = {
   kind: EmployeeFolderDataKind;

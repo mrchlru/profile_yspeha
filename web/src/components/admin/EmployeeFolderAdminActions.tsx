@@ -212,6 +212,8 @@ function _kindLabel(kind: EmployeeFolderDataKind): string {
       return "Выгорание";
     case "profSbEducation":
       return "ПРОФ СБ + образование";
+    case "specialistScreening":
+      return "Скрининг депрессивных симптомов";
   }
 }
 
@@ -227,5 +229,7 @@ function _itemTarget(item: EmployeeFolderDataItem): DeleteEmployeeFolderTarget {
       return { type: "burnoutSubmission", id: item.id };
     case "profSbEducation":
       return { type: "profSbEducationSubmission", id: item.id };
+    case "specialistScreening":
+      return { type: "specialistScreeningSubmission", id: item.id };
   }
 }

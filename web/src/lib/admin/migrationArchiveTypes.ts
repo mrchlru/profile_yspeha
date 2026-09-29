@@ -20,6 +20,7 @@ export const MIGRATION_TABLE_ORDER = [
   "audit_submission",
   "burnout_submission",
   "prof_sb_education_submission",
+  "specialist_screening_submission",
   "burnout_reminder_schedule",
   "employee_folder_file",
   "commission_member_question_set",

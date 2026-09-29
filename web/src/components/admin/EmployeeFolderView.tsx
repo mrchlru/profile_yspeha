@@ -263,6 +263,45 @@ export function EmployeeFolderView(): React.ReactElement {
         </div>
       ) : null}
 
+      {folder.specialistScreeningSessions.length > 0 ? (
+        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
+          <h3 className={adminPanelSectionTitleClass}>
+            Скрининг депрессивных симптомов (конфиденциально)
+          </h3>
+          <ul className="space-y-3">
+            {folder.specialistScreeningSessions.map((session) => (
+              <li
+                key={session.sessionId}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/70 px-4 py-3"
+              >
+                <div>
+                  <p className="font-bold text-[#5F5E5E]">{session.label}</p>
+                  {session.phq9Item9Positive ? (
+                    <p className="mt-1 text-[13px] font-medium text-red-700">
+                      Срочный сигнал по вопросу 9 PHQ-9
+                    </p>
+                  ) : session.referralSuggested ? (
+                    <p className="mt-1 text-[13px] font-medium text-amber-800">
+                      Рекомендуется направление к специалисту
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-[13px] font-medium text-emerald-800">
+                      Пороги направления не достигнуты
+                    </p>
+                  )}
+                </div>
+                <Link
+                  href={`/admin/results/${encodeURIComponent(folderKey)}/specialist-screening/${encodeURIComponent(session.sessionId)}`}
+                  className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
+                >
+                  Отчёт
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {folder.profSbEducationSessions.length > 0 ? (
         <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
           <h3 className={adminPanelSectionTitleClass}>ПРОФ СБ + ПРОФ образование</h3>

@@ -254,6 +254,21 @@ async function _upsertRow(
             data: _omitKeys(row, ["id", "sessionId"]) as never,
           }),
       });
+    case "specialist_screening_submission":
+      return _upsertByUnique({
+        mode,
+        exists: () =>
+          prisma.specialistScreeningSubmission.findUnique({
+            where: { sessionId: String(row.sessionId) },
+            select: { id: true },
+          }),
+        create: () => prisma.specialistScreeningSubmission.create({ data: row as never }),
+        update: () =>
+          prisma.specialistScreeningSubmission.update({
+            where: { sessionId: String(row.sessionId) },
+            data: _omitKeys(row, ["id", "sessionId"]) as never,
+          }),
+      });
     case "burnout_reminder_schedule":
       return _upsertById(mode, "burnoutReminderSchedule", row);
     case "employee_folder_file":

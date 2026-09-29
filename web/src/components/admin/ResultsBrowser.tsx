@@ -508,6 +508,14 @@ export function ResultsBrowser(): React.ReactElement {
                       : "нет"}
                   </p>
                   <p>
+                    Скрининг депрессивных симптомов:{" "}
+                    {item.hasSpecialistScreening
+                      ? item.specialistScreeningSessionCount > 0
+                        ? `${String(item.specialistScreeningSessionCount)} сессий`
+                        : "есть"
+                      : "нет"}
+                  </p>
+                  <p>
                     Последняя активность:{" "}
                     {item.lastActivityAt ? formatMoscowDateTime(item.lastActivityAt) : "—"}
                   </p>
