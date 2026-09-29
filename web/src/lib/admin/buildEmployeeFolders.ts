@@ -41,10 +41,12 @@ import {
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SCREENING,
   TEST_KIND_SPECIALIST_SCREENING,
+  TEST_KIND_ATTESTATION,
 } from "@/lib/access/testKinds";
 import { folderHasProctorReport } from "@/lib/proctor/buildProctorViolationsReport";
 import { reconcileOrphanAuditFolderLinks } from "@/lib/admin/reconcileOrphanAuditFolderLinks";
 import { reconcileProfSbEducationFolderLinks } from "@/lib/profSbEducation/reconcileProfSbEducationFolderLinks";
+import { listFolderAttestationSessions } from "@/lib/admin/folderAttestationSessions";
 import { listFolderSpecialistScreeningSessions } from "@/lib/admin/folderSpecialistScreeningSessions";
 import { prisma } from "@/lib/prisma";
 
@@ -59,12 +61,14 @@ type FolderAccumulator = {
   hasProfSbEducation: boolean;
   hasBurnout: boolean;
   hasSpecialistScreening: boolean;
+  hasAttestation: boolean;
   lastActivityAt: Date | null;
   screeningSessions: number;
   auditSessions: number;
   profSbEducationSessionCount: number;
   burnoutSessionCount: number;
   specialistScreeningSessionCount: number;
+  attestationSessionCount: number;
   hasShortReport: boolean;
   hasFullReport: boolean;
   positionLevel: string | null;
@@ -94,12 +98,14 @@ function _upsertFolder(
       hasProfSbEducation: false,
       hasBurnout: false,
       hasSpecialistScreening: false,
+      hasAttestation: false,
       lastActivityAt: null,
       screeningSessions: 0,
       auditSessions: 0,
       profSbEducationSessionCount: 0,
       burnoutSessionCount: 0,
       specialistScreeningSessionCount: 0,
+      attestationSessionCount: 0,
       hasShortReport: false,
       hasFullReport: false,
       positionLevel: null,
@@ -125,6 +131,7 @@ function _upsertFolder(
     hasBurnout: existing.hasBurnout || Boolean(patch.hasBurnout),
     hasSpecialistScreening:
       existing.hasSpecialistScreening || Boolean(patch.hasSpecialistScreening),
+    hasAttestation: existing.hasAttestation || Boolean(patch.hasAttestation),
     screeningSessions: existing.screeningSessions + (patch.screeningSessions ?? 0),
     auditSessions: existing.auditSessions + (patch.auditSessions ?? 0),
     profSbEducationSessionCount:
@@ -132,6 +139,8 @@ function _upsertFolder(
     burnoutSessionCount: existing.burnoutSessionCount + (patch.burnoutSessionCount ?? 0),
     specialistScreeningSessionCount:
       existing.specialistScreeningSessionCount + (patch.specialistScreeningSessionCount ?? 0),
+    attestationSessionCount:
+      existing.attestationSessionCount + (patch.attestationSessionCount ?? 0),
     hasShortReport: existing.hasShortReport || Boolean(patch.hasShortReport),
     hasFullReport: existing.hasFullReport || Boolean(patch.hasFullReport),
     positionLevel: patch.positionLevel ?? existing.positionLevel,
@@ -168,12 +177,14 @@ function _toSummary(
     hasProfSbEducation: row.hasProfSbEducation,
     hasBurnout: row.hasBurnout,
     hasSpecialistScreening: row.hasSpecialistScreening,
+    hasAttestation: row.hasAttestation,
     lastActivityAt: row.lastActivityAt?.toISOString() ?? null,
     screeningSessions: row.screeningSessions,
     auditSessions: row.auditSessions,
     profSbEducationSessionCount: row.profSbEducationSessionCount,
     burnoutSessionCount: row.burnoutSessionCount,
     specialistScreeningSessionCount: row.specialistScreeningSessionCount,
+    attestationSessionCount: row.attestationSessionCount,
     positionLevel: row.positionLevel,
     positionLevelLabel: row.positionLevel
       ? candidatePositionLevelLabel(row.positionLevel)
@@ -287,6 +298,8 @@ export async function listEmployeeFolders(
     burnoutSubmissionRows,
     specialistInviteRows,
     specialistSubmissionRows,
+    attestationInviteRows,
+    attestationSubmissionRows,
   ] = await Promise.all([
       prisma.accessInvite.findMany({
         where: {
@@ -422,6 +435,37 @@ export async function listEmployeeFolders(
           specialistScreeningReport: true,
         },
       }),
+      prisma.accessInvite.findMany({
+        where: {
+          testKind: TEST_KIND_ATTESTATION,
+          candidateFolderKey: { not: null },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          code: true,
+          candidateFolderKey: true,
+          candidateLastName: true,
+          candidateFirstName: true,
+          candidateMiddleName: true,
+          candidateBirthDate: true,
+          candidatePositionLevel: true,
+          createdAt: true,
+          usedAt: true,
+        },
+      }),
+      prisma.attestationSubmission.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 500,
+        select: {
+          createdAt: true,
+          firstName: true,
+          lastName: true,
+          candidateFolderKey: true,
+          accessInviteCode: true,
+          attestationReport: true,
+        },
+      }),
     ]);
 
   const map = new Map<string, FolderAccumulator>();
@@ -515,6 +559,7 @@ export async function listEmployeeFolders(
   _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
   _mergeBurnoutIntoFolders(map, burnoutInviteRows, burnoutSubmissionRows);
   _mergeSpecialistScreeningIntoFolders(map, specialistInviteRows, specialistSubmissionRows);
+  _mergeAttestationIntoFolders(map, attestationInviteRows, attestationSubmissionRows);
 
   const searchQuery = query?.trim() ?? "";
   const folderKeys = [...map.keys()];
@@ -543,7 +588,8 @@ export async function listEmployeeFolders(
       return (
         _profSbEducationVisibleInResults(row, status, archiveView) ||
         _burnoutVisibleInResults(row, status, archiveView) ||
-        _specialistScreeningVisibleInResults(row, status, archiveView)
+        _specialistScreeningVisibleInResults(row, status, archiveView) ||
+        _attestationVisibleInResults(row, status, archiveView)
       );
     })
     .map((row) => {
@@ -571,7 +617,12 @@ function _documentViewKind(
   if (slotId === "full_report" || slotId === "manager_report" || slotId === "executive_manager_report") {
     return "pdf";
   }
-  if (slotId === "short_report" || slotId === "dashboard" || slotId === "violations_report") {
+  if (
+    slotId === "short_report" ||
+    slotId === "dashboard" ||
+    slotId === "violations_report" ||
+    slotId === "attestation_report"
+  ) {
     return "html";
   }
   return "none";
@@ -612,6 +663,8 @@ export async function getEmployeeFolderSummaryByKey(
       burnoutSubmissionRows,
       specialistInviteRows,
       specialistSubmissionRows,
+      attestationInviteRows,
+      attestationSubmissionRows,
     ] = await Promise.all([
         prisma.accessInvite.findMany({
           where: {
@@ -742,6 +795,36 @@ export async function getEmployeeFolderSummaryByKey(
             specialistScreeningReport: true,
           },
         }),
+        prisma.accessInvite.findMany({
+          where: {
+            testKind: TEST_KIND_ATTESTATION,
+            candidateFolderKey: folderKey,
+          },
+          orderBy: { createdAt: "desc" },
+          select: {
+            code: true,
+            candidateFolderKey: true,
+            candidateLastName: true,
+            candidateFirstName: true,
+            candidateMiddleName: true,
+            candidateBirthDate: true,
+            candidatePositionLevel: true,
+            createdAt: true,
+            usedAt: true,
+          },
+        }),
+        prisma.attestationSubmission.findMany({
+          where: { candidateFolderKey: folderKey },
+          orderBy: { createdAt: "desc" },
+          select: {
+            createdAt: true,
+            firstName: true,
+            lastName: true,
+            candidateFolderKey: true,
+            accessInviteCode: true,
+            attestationReport: true,
+          },
+        }),
       ]);
 
     for (const row of inviteRows) {
@@ -810,6 +893,7 @@ export async function getEmployeeFolderSummaryByKey(
     _mergeProfSbEducationIntoFolders(map, profInviteRows, profSubmissionRows);
     _mergeBurnoutIntoFolders(map, burnoutInviteRows, burnoutSubmissionRows);
     _mergeSpecialistScreeningIntoFolders(map, specialistInviteRows, specialistSubmissionRows);
+    _mergeAttestationIntoFolders(map, attestationInviteRows, attestationSubmissionRows);
   } else {
     const auditRows = await prisma.auditSubmission.findMany({
       where: { assesseeKey: parsed.assesseeKey },
@@ -875,6 +959,8 @@ export async function getEmployeeFolderDetail(
     summary.key.startsWith("candidate:")
       ? await listFolderSpecialistScreeningSessions(folderKey)
       : [];
+  const attestationSessions =
+    summary.key.startsWith("candidate:") ? await listFolderAttestationSessions(folderKey) : [];
   const profSbEducationSessions =
     summary.key.startsWith("candidate:")
       ? await listFolderProfSbEducationSessions(folderKey)
@@ -911,6 +997,9 @@ export async function getEmployeeFolderDetail(
       case "dashboard":
         available = hasAuditReport;
         break;
+      case "attestation_report":
+        available = attestationSessions.length > 0;
+        break;
     }
 
     return {
@@ -938,6 +1027,7 @@ export async function getEmployeeFolderDetail(
     reportSessions,
     burnoutSessions,
     specialistScreeningSessions,
+    attestationSessions,
     profSbEducationSessions,
     uploadedFiles,
     dashboardPreview,
@@ -1061,10 +1151,12 @@ function _folderHasCompletedTestData(row: FolderAccumulator): boolean {
     row.profSbEducationSessionCount > 0 ||
     row.burnoutSessionCount > 0 ||
     row.specialistScreeningSessionCount > 0 ||
+    row.attestationSessionCount > 0 ||
     row.hasScreening ||
     row.hasAudit ||
     row.hasBurnout ||
-    row.hasSpecialistScreening
+    row.hasSpecialistScreening ||
+    row.hasAttestation
   );
 }
 
@@ -1266,6 +1358,109 @@ function _specialistScreeningVisibleInResults(
   archiveView: boolean
 ): boolean {
   if (!row.key.startsWith("candidate:") || row.specialistScreeningSessionCount <= 0) {
+    return false;
+  }
+  if (archiveView) {
+    return lifecycleStatus === CANDIDATE_LIFECYCLE_ARCHIVED;
+  }
+  return lifecycleStatus !== CANDIDATE_LIFECYCLE_ARCHIVED;
+}
+
+type AttestationInviteRow = {
+  code: string;
+  candidateFolderKey: string | null;
+  candidateLastName: string | null;
+  candidateFirstName: string | null;
+  candidateMiddleName: string | null;
+  candidateBirthDate: Date | null;
+  candidatePositionLevel: string | null;
+  createdAt: Date;
+  usedAt: Date | null;
+};
+
+type AttestationSubmissionRow = {
+  createdAt: Date;
+  firstName: string;
+  lastName: string;
+  candidateFolderKey: string | null;
+  accessInviteCode: string | null;
+  attestationReport: unknown;
+};
+
+/**
+ * Добавляет в индекс папок приглашения и прохождения аттестации.
+ */
+function _mergeAttestationIntoFolders(
+  map: Map<string, FolderAccumulator>,
+  inviteRows: ReadonlyArray<AttestationInviteRow>,
+  submissionRows: ReadonlyArray<AttestationSubmissionRow>
+): void {
+  for (const row of inviteRows) {
+    const key = row.candidateFolderKey;
+    if (!key || !row.candidateLastName || !row.candidateFirstName) {
+      continue;
+    }
+    const displayName = buildCandidateDisplayName({
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      birthDate: row.candidateBirthDate,
+    });
+    if (row.usedAt === null) {
+      if (map.has(key)) {
+        _upsertFolder(map, key, displayName, {
+          pendingInvite: true,
+          positionLevel: row.candidatePositionLevel,
+          birthDate: row.candidateBirthDate,
+          lastName: row.candidateLastName,
+          firstName: row.candidateFirstName,
+          middleName: row.candidateMiddleName,
+          inviteCode: row.code,
+        });
+      }
+      continue;
+    }
+    _upsertFolder(map, key, displayName, {
+      hasAttestation: true,
+      pendingInvite: false,
+      lastActivityAt: row.usedAt,
+      positionLevel: row.candidatePositionLevel,
+      birthDate: row.candidateBirthDate,
+      lastName: row.candidateLastName,
+      firstName: row.candidateFirstName,
+      middleName: row.candidateMiddleName,
+      inviteCode: row.code,
+    });
+  }
+
+  for (const row of submissionRows) {
+    if (!row.candidateFolderKey) {
+      continue;
+    }
+    const displayName = `${row.lastName} ${row.firstName}`.trim();
+    _upsertFolder(map, row.candidateFolderKey, displayName || row.candidateFolderKey, {
+      hasAttestation: true,
+      attestationSessionCount: 1,
+      lastActivityAt: row.createdAt,
+      pendingInvite: false,
+      lastName: row.lastName,
+      firstName: row.firstName,
+      inviteCode: row.accessInviteCode,
+      hasShortReport: row.attestationReport !== null,
+      hasFullReport: row.attestationReport !== null,
+    });
+  }
+}
+
+/**
+ * Attestation-only папки показываем в «Результатах», даже если lifecycle ещё не ACTIVE.
+ */
+function _attestationVisibleInResults(
+  row: FolderAccumulator,
+  lifecycleStatus: CandidateLifecycleStatus | null,
+  archiveView: boolean
+): boolean {
+  if (!row.key.startsWith("candidate:") || row.attestationSessionCount <= 0) {
     return false;
   }
   if (archiveView) {

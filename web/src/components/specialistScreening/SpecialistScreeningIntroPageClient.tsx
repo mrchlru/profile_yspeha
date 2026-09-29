@@ -9,6 +9,7 @@ import { StepLayout } from "@/components/StepLayout";
 import { useSpecialistScreeningAccessReady } from "@/hooks/useSpecialistScreeningAccessGate";
 import { useProctorIntroReady, useProctorIntroRequired } from "@/hooks/useProctorIntro";
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
+import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
 import {
   stepInputClass,
   stepLabelClass,
@@ -107,6 +108,7 @@ export function SpecialistScreeningIntroPageClient(): React.ReactElement {
       setPersonalDataConsent(true);
     }
     beginSession();
+    void requestProctorFullscreen();
     router.push("/specialist-screening/test");
   }
 

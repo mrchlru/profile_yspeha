@@ -35,6 +35,7 @@ const DOCUMENT_TITLES: Record<EmployeeDocumentSlotId, string> = {
   violations_report: "Отчёт по нарушениям",
   commission_reports: "Отчёты комиссии",
   dashboard: "Дашборд по сотруднику",
+  attestation_report: "Отчёт по аттестации",
 };
 
 function isDocumentId(value: string): value is EmployeeDocumentSlotId {
@@ -543,7 +544,7 @@ function ViolationsReportContent({
         {view.fullName} · {formatMoscowDateTime(view.createdAt)} · МСК
       </p>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl bg-white/70 px-4 py-3">
           <p className="text-[13px] font-extrabold text-[#8C8C8C]">Звуковые нарушения</p>
           <p className="mt-1 text-[24px] font-extrabold text-[#5F5E5E]">
@@ -554,6 +555,12 @@ function ViolationsReportContent({
           <p className="text-[13px] font-extrabold text-[#8C8C8C]">Видеонарушения</p>
           <p className="mt-1 text-[24px] font-extrabold text-[#5F5E5E]">
             {view.summary.videoViolations}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white/70 px-4 py-3">
+          <p className="text-[13px] font-extrabold text-[#8C8C8C]">Экран / вкладка</p>
+          <p className="mt-1 text-[24px] font-extrabold text-[#5F5E5E]">
+            {view.summary.securityViolations}
           </p>
         </div>
         <div className="rounded-2xl bg-white/70 px-4 py-3">
@@ -632,7 +639,9 @@ function ViolationsReportContent({
                           ? "Звук"
                           : event.category === "identity"
                             ? "Проверка личности"
-                            : "Видео"}
+                            : event.category === "security"
+                              ? "Экран / вкладка"
+                              : "Видео"}
                         {event.stepLabel ? ` · ${event.stepLabel}` : null}
                       </p>
                       {(event.clientFaceCount !== null ||

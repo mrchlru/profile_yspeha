@@ -516,6 +516,14 @@ export function ResultsBrowser(): React.ReactElement {
                       : "нет"}
                   </p>
                   <p>
+                    Аттестация:{" "}
+                    {item.hasAttestation
+                      ? item.attestationSessionCount > 0
+                        ? `${String(item.attestationSessionCount)} сессий`
+                        : "есть"
+                      : "нет"}
+                  </p>
+                  <p>
                     Последняя активность:{" "}
                     {item.lastActivityAt ? formatMoscowDateTime(item.lastActivityAt) : "—"}
                   </p>

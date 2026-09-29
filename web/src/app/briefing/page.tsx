@@ -11,6 +11,7 @@ import {
 } from "@/lib/stepPageTheme";
 import { useScreeningStepLog } from "@/lib/logging/useScreeningStepLog";
 import { isProfileReady } from "@/lib/progress";
+import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
 import { useFormStore } from "@/store/useFormStore";
 import { useScreeningAccessReady } from "@/hooks/useAccessGate";
 
@@ -40,6 +41,7 @@ export default function BriefingPage(): React.ReactElement {
     if (!sessionId) {
       beginTestSession();
     }
+    void requestProctorFullscreen();
     router.push("/step-1");
   }
 

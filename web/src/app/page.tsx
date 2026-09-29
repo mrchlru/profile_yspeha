@@ -17,6 +17,7 @@ import {
   isAuditAccessTestKind,
   isBurnoutTestKind,
   isProfSbEducationTestKind,
+  isAttestationTestKind,
   isSpecialistScreeningTestKind,
   isTestKind,
 } from "@/lib/access/testKinds";
@@ -57,6 +58,10 @@ export default function AccessPage(): React.ReactElement {
     }
     if (validatedAccessCode && isSpecialistScreeningTestKind(activeTestKind)) {
       router.replace("/specialist-screening/intro");
+      return;
+    }
+    if (validatedAccessCode && isAttestationTestKind(activeTestKind)) {
+      router.replace("/attestation/intro");
     }
   }, [activeTestKind, hydrated, validatedAccessCode, router]);
 
@@ -109,6 +114,8 @@ export default function AccessPage(): React.ReactElement {
         router.push("/prof-sb-education/intro");
       } else if (isSpecialistScreeningTestKind(kind)) {
         router.push("/specialist-screening/intro");
+      } else if (isAttestationTestKind(kind)) {
+        router.push("/attestation/intro");
       } else {
         setError("Неизвестный тип приглашения.");
       }

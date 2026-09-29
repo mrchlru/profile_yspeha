@@ -1,7 +1,9 @@
 import { TEST_KIND_LABELS } from "@/lib/access/testKinds";
+import { ATTESTATION_BLOCKS } from "@/lib/attestation/attestationBlocks";
 import { getAuditStepBySlug, getAuditStepByIndex } from "@/lib/audit/auditSteps";
 import { getAuditStepDevTitle } from "@/lib/audit/auditStepDevTitles";
 import { getAuditBatteryById } from "@/lib/audit/auditBatteries";
+import { useAttestationFormStore } from "@/store/useAttestationFormStore";
 import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useFormStore } from "@/store/useFormStore";
 
@@ -68,6 +70,16 @@ export function readProctorStepContext(): ProctorStepContext | null {
   if (path.startsWith("/specialist-screening/test")) {
     return {
       stepLabel: `${testPrefix ?? "Скрининг депрессивных симптомов"} · PHQ-9 / GAD-7 / ASRS`,
+      routePath: path,
+    };
+  }
+
+  if (path.startsWith("/attestation/test")) {
+    const blockIndex = useAttestationFormStore.getState().currentBlockIndex;
+    const blockTitle =
+      ATTESTATION_BLOCKS[blockIndex]?.candidateTitle ?? `блок ${blockIndex + 1}`;
+    return {
+      stepLabel: `${testPrefix ?? "Аттестация"} · ${blockTitle}`,
       routePath: path,
     };
   }

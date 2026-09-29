@@ -28,6 +28,7 @@ import {
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { ensureBatteryProfSbRouteCookie } from "@/lib/ensureBatteryProfSbRouteCookie";
 import { needsOdIdentityQuestionnaire } from "@/lib/identity/needsOdIdentityQuestionnaire";
+import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
 
 /**
  * Стартовый экран аудита состояния — аналог приветственного экрана Fisom lab,
@@ -212,6 +213,7 @@ export default function AuditIntroPage(): React.ReactElement {
     if (!canStart || !validatedAccessCode) {
       return;
     }
+    void requestProctorFullscreen();
     setAccessCodeSnapshot(validatedAccessCode);
     setPersonalDataConsent(true);
     if (!isReturningSession) {

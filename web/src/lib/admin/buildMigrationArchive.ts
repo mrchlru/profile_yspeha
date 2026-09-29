@@ -104,6 +104,12 @@ async function _findBatch(
         take,
         orderBy: { createdAt: "asc" },
       });
+    case "attestation_submission":
+      return prisma.attestationSubmission.findMany({
+        skip,
+        take,
+        orderBy: { createdAt: "asc" },
+      });
     case "burnout_reminder_schedule":
       return prisma.burnoutReminderSchedule.findMany({
         skip,

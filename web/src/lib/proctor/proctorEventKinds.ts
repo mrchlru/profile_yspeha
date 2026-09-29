@@ -10,6 +10,12 @@ export const PROCTOR_EVENT_PHONE_DETECTED = "phone_detected" as const;
 export const PROCTOR_EVENT_IDENTITY_CHECK_FAILED = "identity_check_failed" as const;
 /** Таймаут или пустой ответ на проверочный вопрос по анкете. */
 export const PROCTOR_EVENT_IDENTITY_CHECK_TIMEOUT = "identity_check_timeout" as const;
+/** Вкладка браузера скрыта (свернуть / уйти с вкладки). */
+export const PROCTOR_EVENT_TAB_HIDDEN = "tab_hidden" as const;
+/** Выход из полноэкранного режима. */
+export const PROCTOR_EVENT_FULLSCREEN_EXIT = "fullscreen_exit" as const;
+/** Окно потеряло фокус. */
+export const PROCTOR_EVENT_WINDOW_BLUR = "window_blur" as const;
 
 export type ClientProctorEventKind =
   | typeof PROCTOR_EVENT_FACE_MISSING
@@ -17,8 +23,15 @@ export type ClientProctorEventKind =
   | typeof PROCTOR_EVENT_AUDIO_NOISE
   | typeof PROCTOR_EVENT_GAZE_AWAY;
 
+/** События оболочки безопасности (fullscreen / вкладка / фокус). */
+export type SecurityProctorEventKind =
+  | typeof PROCTOR_EVENT_TAB_HIDDEN
+  | typeof PROCTOR_EVENT_FULLSCREEN_EXIT
+  | typeof PROCTOR_EVENT_WINDOW_BLUR;
+
 export type ProctorEventKind =
   | ClientProctorEventKind
+  | SecurityProctorEventKind
   | typeof PROCTOR_EVENT_PHONE_DETECTED
   | typeof PROCTOR_EVENT_IDENTITY_CHECK_FAILED
   | typeof PROCTOR_EVENT_IDENTITY_CHECK_TIMEOUT;
@@ -31,9 +44,12 @@ export const PROCTOR_EVENT_KIND_LABELS: Record<ProctorEventKind, string> = {
   phone_detected: "Телефон в кадре",
   identity_check_failed: "Неверный ответ на проверочный вопрос",
   identity_check_timeout: "Не ответил на проверочный вопрос",
+  tab_hidden: "Вкладка скрыта",
+  fullscreen_exit: "Выход из полноэкранного режима",
+  window_blur: "Окно потеряло фокус",
 };
 
-export type ProctorEventKindCategory = "video" | "audio" | "identity";
+export type ProctorEventKindCategory = "video" | "audio" | "identity" | "security";
 
 /** Возвращает категорию нарушения для отчёта. */
 export function proctorEventCategory(kind: ProctorEventKind): ProctorEventKindCategory {
@@ -46,6 +62,13 @@ export function proctorEventCategory(kind: ProctorEventKind): ProctorEventKindCa
   ) {
     return "identity";
   }
+  if (
+    kind === PROCTOR_EVENT_TAB_HIDDEN ||
+    kind === PROCTOR_EVENT_FULLSCREEN_EXIT ||
+    kind === PROCTOR_EVENT_WINDOW_BLUR
+  ) {
+    return "security";
+  }
   return "video";
 }
 
@@ -57,7 +80,10 @@ export function isProctorEventKind(value: string): value is ProctorEventKind {
     value === PROCTOR_EVENT_GAZE_AWAY ||
     value === PROCTOR_EVENT_PHONE_DETECTED ||
     value === PROCTOR_EVENT_IDENTITY_CHECK_FAILED ||
-    value === PROCTOR_EVENT_IDENTITY_CHECK_TIMEOUT
+    value === PROCTOR_EVENT_IDENTITY_CHECK_TIMEOUT ||
+    value === PROCTOR_EVENT_TAB_HIDDEN ||
+    value === PROCTOR_EVENT_FULLSCREEN_EXIT ||
+    value === PROCTOR_EVENT_WINDOW_BLUR
   );
 }
 

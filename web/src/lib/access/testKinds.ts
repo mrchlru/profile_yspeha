@@ -9,6 +9,8 @@ export const TEST_KIND_BURNOUT = "burnout" as const;
 export const TEST_KIND_PROF_SB_EDUCATION = "prof_sb_education" as const;
 /** Скрининг депрессивных симптомов (PHQ-9, GAD-7, ASRS). */
 export const TEST_KIND_SPECIALIST_SCREENING = "specialist_screening" as const;
+/** Аттестация: батарея из 7 методик. */
+export const TEST_KIND_ATTESTATION = "attestation" as const;
 
 export type TestKind =
   | typeof TEST_KIND_SCREENING
@@ -18,7 +20,8 @@ export type TestKind =
   | typeof TEST_KIND_AUDIT_MIDDLE
   | typeof TEST_KIND_BURNOUT
   | typeof TEST_KIND_PROF_SB_EDUCATION
-  | typeof TEST_KIND_SPECIALIST_SCREENING;
+  | typeof TEST_KIND_SPECIALIST_SCREENING
+  | typeof TEST_KIND_ATTESTATION;
 
 export const TEST_KIND_LABELS: Record<TestKind, string> = {
   screening: "Скрининг кандидата",
@@ -29,6 +32,7 @@ export const TEST_KIND_LABELS: Record<TestKind, string> = {
   burnout: "Тест на выгорание",
   prof_sb_education: "ПРОФ СБ + ПРОФ образование",
   specialist_screening: "Скрининг депрессивных симптомов",
+  attestation: "Аттестация",
 };
 
 /** Подпись типа прохождения в админке (таблица audit_submission, не отдельный продукт «аудит»). */
@@ -43,6 +47,7 @@ const ALL_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_BURNOUT,
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SPECIALIST_SCREENING,
+  TEST_KIND_ATTESTATION,
 ];
 
 export function isTestKind(value: string): value is TestKind {
@@ -57,6 +62,7 @@ export const INVITE_CANDIDATE_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_BURNOUT,
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SPECIALIST_SCREENING,
+  TEST_KIND_ATTESTATION,
 ];
 
 /**
@@ -68,6 +74,7 @@ export const INVITE_EMPLOYEE_PICK_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_BURNOUT,
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SPECIALIST_SCREENING,
+  TEST_KIND_ATTESTATION,
 ];
 
 export function testKindRequiresInviteCandidate(testKind: string): boolean {
@@ -108,6 +115,11 @@ export function isSpecialistScreeningTestKind(kind: TestKind | null | undefined)
   return kind === TEST_KIND_SPECIALIST_SCREENING;
 }
 
+/** Доступ к маршрутам `/attestation/*` и отправка ответов аттестации. */
+export function isAttestationTestKind(kind: TestKind | null | undefined): boolean {
+  return kind === TEST_KIND_ATTESTATION;
+}
+
 /** Батареи с камерой, микрофоном и отчётом по нарушениям. */
 export const PROCTOR_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_SCREENING,
@@ -116,6 +128,7 @@ export const PROCTOR_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_BURNOUT,
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SPECIALIST_SCREENING,
+  TEST_KIND_ATTESTATION,
 ];
 
 /** Нужен ли прокторинг (камера/микрофон) для типа приглашения. */

@@ -9,6 +9,7 @@ import { StepLayout } from "@/components/StepLayout";
 import { useBurnoutAccessReady } from "@/hooks/useBurnoutAccessGate";
 import { useProctorIntroReady, useProctorIntroRequired } from "@/hooks/useProctorIntro";
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
+import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
 import {
   stepInputClass,
   stepLabelClass,
@@ -105,6 +106,7 @@ export function BurnoutIntroPageClient(): React.ReactElement {
       setPersonalDataConsent(true);
     }
     beginBurnoutSession();
+    void requestProctorFullscreen();
     router.push("/burnout/test");
   }
 

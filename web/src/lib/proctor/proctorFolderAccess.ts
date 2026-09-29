@@ -8,7 +8,8 @@ export async function collectFolderSubmissionSessionIds(folderKey: string): Prom
   const parsed = parseEmployeeFolderKey(folderKey);
   const sessionIds = new Set<string>();
 
-  const [screeningRows, auditByFolder, burnoutRows, profRows, specialistRows] = await Promise.all([
+  const [screeningRows, auditByFolder, burnoutRows, profRows, specialistRows, attestationRows] =
+    await Promise.all([
     prisma.screeningSubmission.findMany({
       where: { candidateFolderKey: folderKey },
       select: { sessionId: true },
@@ -29,6 +30,10 @@ export async function collectFolderSubmissionSessionIds(folderKey: string): Prom
       where: { candidateFolderKey: folderKey },
       select: { sessionId: true },
     }),
+    prisma.attestationSubmission.findMany({
+      where: { candidateFolderKey: folderKey },
+      select: { sessionId: true },
+    }),
   ]);
 
   for (const row of screeningRows) sessionIds.add(row.sessionId);
@@ -36,6 +41,7 @@ export async function collectFolderSubmissionSessionIds(folderKey: string): Prom
   for (const row of burnoutRows) sessionIds.add(row.sessionId);
   for (const row of profRows) sessionIds.add(row.sessionId);
   for (const row of specialistRows) sessionIds.add(row.sessionId);
+  for (const row of attestationRows) sessionIds.add(row.sessionId);
 
   if (parsed?.kind === "audit") {
     const auditByAssessee = await prisma.auditSubmission.findMany({

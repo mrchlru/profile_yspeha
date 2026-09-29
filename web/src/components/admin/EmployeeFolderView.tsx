@@ -214,6 +214,7 @@ export function EmployeeFolderView(): React.ReactElement {
               doc={doc}
               folderKey={folderKey}
               reportSessions={folder.reportSessions}
+              attestationSessions={folder.attestationSessions}
             />
           ))
         )}
@@ -302,6 +303,33 @@ export function EmployeeFolderView(): React.ReactElement {
         </div>
       ) : null}
 
+      {folder.attestationSessions.length > 0 ? (
+        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
+          <h3 className={adminPanelSectionTitleClass}>Аттестация</h3>
+          <ul className="space-y-3">
+            {folder.attestationSessions.map((session) => (
+              <li
+                key={session.sessionId}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/70 px-4 py-3"
+              >
+                <div>
+                  <p className="font-bold text-[#5F5E5E]">{session.label}</p>
+                  <p className="mt-1 text-[13px] text-[#8C8C8C]">
+                    {session.hasReport ? "Отчёт рассчитан" : "Ожидает расчёта"}
+                  </p>
+                </div>
+                <Link
+                  href={`/admin/results/${encodeURIComponent(folderKey)}/attestation/${encodeURIComponent(session.sessionId)}`}
+                  className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
+                >
+                  Отчёт
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
       {folder.profSbEducationSessions.length > 0 ? (
         <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
           <h3 className={adminPanelSectionTitleClass}>ПРОФ СБ + ПРОФ образование</h3>
@@ -360,12 +388,19 @@ function DocumentCard({
   doc,
   folderKey,
   reportSessions,
+  attestationSessions,
 }: {
   doc: EmployeeDocumentSlot;
   folderKey: string;
   reportSessions: EmployeeFolderDetail["reportSessions"];
+  attestationSessions: EmployeeFolderDetail["attestationSessions"];
 }): React.ReactElement {
-  const reportHref = _buildDocumentReportHref(doc, folderKey, reportSessions);
+  const reportHref = _buildDocumentReportHref(
+    doc,
+    folderKey,
+    reportSessions,
+    attestationSessions
+  );
 
   return (
     <div className={`px-5 py-5 ${adminPanelCardClass}`}>
@@ -391,10 +426,19 @@ function DocumentCard({
 function _buildDocumentReportHref(
   doc: EmployeeDocumentSlot,
   folderKey: string,
-  reportSessions: EmployeeFolderDetail["reportSessions"]
+  reportSessions: EmployeeFolderDetail["reportSessions"],
+  attestationSessions: EmployeeFolderDetail["attestationSessions"]
 ): string | null {
   if (!doc.available || doc.viewKind === "none") {
     return null;
+  }
+
+  if (doc.id === "attestation_report") {
+    const latest = attestationSessions[0];
+    if (!latest) {
+      return null;
+    }
+    return `/admin/results/${encodeURIComponent(folderKey)}/attestation/${encodeURIComponent(latest.sessionId)}`;
   }
 
   // Отчёт по нарушениям строится по всей папке (proctor), а не по audit/screening-сессии.

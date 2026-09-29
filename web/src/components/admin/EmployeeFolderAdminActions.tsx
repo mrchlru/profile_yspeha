@@ -214,6 +214,8 @@ function _kindLabel(kind: EmployeeFolderDataKind): string {
       return "ПРОФ СБ + образование";
     case "specialistScreening":
       return "Скрининг депрессивных симптомов";
+    case "attestation":
+      return "Аттестация";
   }
 }
 
@@ -231,5 +233,7 @@ function _itemTarget(item: EmployeeFolderDataItem): DeleteEmployeeFolderTarget {
       return { type: "profSbEducationSubmission", id: item.id };
     case "specialistScreening":
       return { type: "specialistScreeningSubmission", id: item.id };
+    case "attestation":
+      return { type: "attestationSubmission", id: item.id };
   }
 }

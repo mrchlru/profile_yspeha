@@ -1,4 +1,5 @@
 import {
+  TEST_KIND_ATTESTATION,
   TEST_KIND_AUDIT_MIDDLE,
   TEST_KIND_AUDIT_SENIOR,
   TEST_KIND_BURNOUT,
@@ -14,6 +15,7 @@ export const ADMIN_TEST_CATALOG_ID_AUDIT_MIDDLE = "audit_middle" as const;
 export const ADMIN_TEST_CATALOG_ID_BURNOUT = "burnout" as const;
 export const ADMIN_TEST_CATALOG_ID_PROF_SB_EDUCATION = "prof_sb_education" as const;
 export const ADMIN_TEST_CATALOG_ID_SPECIALIST_SCREENING = "specialist_screening" as const;
+export const ADMIN_TEST_CATALOG_ID_ATTESTATION = "attestation" as const;
 
 export type AdminTestCatalogId =
   | typeof ADMIN_TEST_CATALOG_ID_SCREENING
@@ -21,7 +23,8 @@ export type AdminTestCatalogId =
   | typeof ADMIN_TEST_CATALOG_ID_AUDIT_MIDDLE
   | typeof ADMIN_TEST_CATALOG_ID_BURNOUT
   | typeof ADMIN_TEST_CATALOG_ID_PROF_SB_EDUCATION
-  | typeof ADMIN_TEST_CATALOG_ID_SPECIALIST_SCREENING;
+  | typeof ADMIN_TEST_CATALOG_ID_SPECIALIST_SCREENING
+  | typeof ADMIN_TEST_CATALOG_ID_ATTESTATION;
 
 export type AdminTestCatalogItem = {
   id: AdminTestCatalogId;
@@ -86,6 +89,15 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
       "Конфиденциальный скрининг PHQ-9, GAD-7 и ASRS v1.1 (часть A). Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
     available: true,
     inviteTestKind: TEST_KIND_SPECIALIST_SCREENING,
+    supportsEmployeePick: true,
+  },
+  {
+    id: ADMIN_TEST_CATALOG_ID_ATTESTATION,
+    title: "Аттестация",
+    description:
+      "Батарея из 7 методик: Big Five, управленческий потенциал, CBI, тревожность, ДДО, Люшер, Розенцвейг. Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
+    available: true,
+    inviteTestKind: TEST_KIND_ATTESTATION,
     supportsEmployeePick: true,
   },
 ];

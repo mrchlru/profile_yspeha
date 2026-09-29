@@ -3,6 +3,7 @@
 import {
   isAuditAccessTestKind,
   isBurnoutTestKind,
+  isAttestationTestKind,
   isProfSbEducationTestKind,
   isSpecialistScreeningTestKind,
 } from "@/lib/access/testKinds";
@@ -10,6 +11,7 @@ import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useBurnoutFormStore } from "@/store/useBurnoutFormStore";
 import { useFormStore } from "@/store/useFormStore";
 import { useProfSbEducationFormStore } from "@/store/useProfSbEducationFormStore";
+import { useAttestationFormStore } from "@/store/useAttestationFormStore";
 import { useSpecialistScreeningFormStore } from "@/store/useSpecialistScreeningFormStore";
 
 export type ProctorBinding = {
@@ -44,6 +46,10 @@ export function useProctorBinding(): ProctorBinding {
   const specialistSessionId = useSpecialistScreeningFormStore((s) => s.sessionId);
   const specialistAccessCode = useSpecialistScreeningFormStore((s) => s.accessCodeSnapshot);
   const specialistConsent = useSpecialistScreeningFormStore((s) => s.personalDataConsent);
+
+  const attestationSessionId = useAttestationFormStore((s) => s.sessionId);
+  const attestationAccessCode = useAttestationFormStore((s) => s.accessCodeSnapshot);
+  const attestationConsent = useAttestationFormStore((s) => s.personalDataConsent);
 
   const legacySessionId = useFormStore((s) => s.sessionId);
   const legacyAccessCode = useFormStore((s) => s.validatedAccessCode);
@@ -82,6 +88,14 @@ export function useProctorBinding(): ProctorBinding {
       sessionId: specialistSessionId,
       accessCode: specialistAccessCode,
       started: specialistConsent && specialistSessionId !== null,
+    };
+  }
+
+  if (isAttestationTestKind(testKind)) {
+    return {
+      sessionId: attestationSessionId,
+      accessCode: attestationAccessCode,
+      started: attestationConsent && attestationSessionId !== null,
     };
   }
 

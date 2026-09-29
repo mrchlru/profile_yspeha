@@ -9,7 +9,8 @@ export type EmployeeDocumentSlotId =
   | "executive_manager_report"
   | "violations_report"
   | "commission_reports"
-  | "dashboard";
+  | "dashboard"
+  | "attestation_report";
 
 export type EmployeeDocumentSlot = {
   id: EmployeeDocumentSlotId;
@@ -45,6 +46,8 @@ export type EmployeeFolderSummary = {
   hasBurnout: boolean;
   /** Есть прохождения конфиденциального скрининга направления к специалисту. */
   hasSpecialistScreening: boolean;
+  /** Есть прохождения аттестации. */
+  hasAttestation: boolean;
   lastActivityAt: string | null;
   screeningSessions: number;
   auditSessions: number;
@@ -54,6 +57,8 @@ export type EmployeeFolderSummary = {
   burnoutSessionCount: number;
   /** Число сохранённых прохождений скрининга направления к специалисту. */
   specialistScreeningSessionCount: number;
+  /** Число сохранённых прохождений аттестации. */
+  attestationSessionCount: number;
   positionLevel: string | null;
   positionLevelLabel: string | null;
   birthDate: string | null;
@@ -98,6 +103,13 @@ export type EmployeeFolderDetail = EmployeeFolderSummary & {
     referralSuggested: boolean;
     phq9Item9Positive: boolean;
   }>;
+  /** Прохождения аттестации. */
+  attestationSessions: ReadonlyArray<{
+    sessionId: string;
+    label: string;
+    createdAt: string;
+    hasReport: boolean;
+  }>;
   /** Прохождения анкеты ПРОФ СБ + ПРОФ образование. */
   profSbEducationSessions: ReadonlyArray<{
     sessionId: string;
@@ -116,7 +128,8 @@ export type EmployeeFolderDataKind =
   | "invite"
   | "burnout"
   | "profSbEducation"
-  | "specialistScreening";
+  | "specialistScreening"
+  | "attestation";
 
 export type EmployeeFolderDataItem = {
   kind: EmployeeFolderDataKind;
@@ -172,6 +185,11 @@ export const EMPLOYEE_DOCUMENT_SLOTS: ReadonlyArray<{
     title: "Дашборд по сотруднику",
     description:
       "Критические показатели, динамика год к году, профиль и применимая мотивация.",
+  },
+  {
+    id: "attestation_report",
+    title: "Отчёт по аттестации",
+    description: "Сводные баллы по блокам аттестации и кодирование Розенцвейга.",
   },
 ];
 

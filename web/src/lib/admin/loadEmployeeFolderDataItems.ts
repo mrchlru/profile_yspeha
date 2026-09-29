@@ -14,7 +14,7 @@ export async function loadEmployeeFolderDataItems(
   }
 
   if (parsed.kind === "candidate") {
-    const [inviteRows, screeningRows, burnoutRows, profRows, specialistRows] =
+    const [inviteRows, screeningRows, burnoutRows, profRows, specialistRows, attestationRows] =
       await Promise.all([
       prisma.accessInvite.findMany({
         where: { candidateFolderKey: parsed.folderKey },
@@ -37,6 +37,11 @@ export async function loadEmployeeFolderDataItems(
         select: { id: true, lastName: true, firstName: true, createdAt: true },
       }),
       prisma.specialistScreeningSubmission.findMany({
+        where: { candidateFolderKey: parsed.folderKey },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, lastName: true, firstName: true, createdAt: true },
+      }),
+      prisma.attestationSubmission.findMany({
         where: { candidateFolderKey: parsed.folderKey },
         orderBy: { createdAt: "desc" },
         select: { id: true, lastName: true, firstName: true, createdAt: true },
@@ -72,6 +77,12 @@ export async function loadEmployeeFolderDataItems(
         kind: "specialistScreening" as const,
         id: row.id,
         label: `Скрининг депрессивных симптомов — ${row.lastName} ${row.firstName}`,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      ...attestationRows.map((row) => ({
+        kind: "attestation" as const,
+        id: row.id,
+        label: `Аттестация — ${row.lastName} ${row.firstName}`,
         createdAt: row.createdAt.toISOString(),
       })),
     ];

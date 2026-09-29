@@ -15,6 +15,7 @@ import {
   ensureCandidateFolderRecord,
 } from "@/lib/admin/candidateFolderLifecycle";
 import {
+  TEST_KIND_ATTESTATION,
   TEST_KIND_AUDIT_MIDDLE,
   TEST_KIND_AUDIT_SENIOR,
   TEST_KIND_BURNOUT,
@@ -50,6 +51,7 @@ export const accessInviteBodySchema = z
       TEST_KIND_BURNOUT,
       TEST_KIND_PROF_SB_EDUCATION,
       TEST_KIND_SPECIALIST_SCREENING,
+      TEST_KIND_ATTESTATION,
     ]),
     candidate: inviteCandidateFormSchema.optional(),
     existingFolderKey: z.string().trim().min(1).max(300).optional(),

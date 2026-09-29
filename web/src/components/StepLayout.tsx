@@ -6,6 +6,7 @@ import { FaqMenu } from "@/components/FaqMenu";
 import { BtsBrandLogoLink } from "@/components/BtsBrandLogoLink";
 import { MetaballBackground } from "@/components/MetaballBackground";
 import { ProctorMonitor } from "@/components/proctor/ProctorMonitor";
+import { ProctorSecurityGate } from "@/components/proctor/ProctorSecurityGate";
 import { useProctorUiActive } from "@/hooks/useProctorUiActive";
 import { useScreeningNoSelect } from "@/hooks/useScreeningNoSelect";
 import { screeningNoSelectContentClass } from "@/lib/stepPageTheme";
@@ -79,6 +80,7 @@ export function StepLayout({
         {children}
       </main>
 
+      <ProctorSecurityGate />
       <ProctorMonitor />
     </div>
   );

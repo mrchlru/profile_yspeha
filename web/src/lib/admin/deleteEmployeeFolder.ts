@@ -13,6 +13,7 @@ export type DeleteEmployeeFolderTarget =
   | { type: "burnoutSubmission"; id: string }
   | { type: "profSbEducationSubmission"; id: string }
   | { type: "specialistScreeningSubmission"; id: string }
+  | { type: "attestationSubmission"; id: string }
   | { type: "invite"; id: string };
 
 export type DeleteEmployeeFolderResult = {
@@ -115,6 +116,17 @@ async function _deleteCandidateFolder(
       await prisma.specialistScreeningSubmission.delete({ where: { id: row.id } });
       return { deleted: 1, folderRemoved: false };
     }
+    case "attestationSubmission": {
+      const row = await prisma.attestationSubmission.findFirst({
+        where: { id: target.id, candidateFolderKey: folderKey },
+        select: { id: true },
+      });
+      if (!row) {
+        throw new Error("Запись аттестации не найдена в этой папке");
+      }
+      await prisma.attestationSubmission.delete({ where: { id: row.id } });
+      return { deleted: 1, folderRemoved: false };
+    }
     case "auditSubmission":
       throw new Error("В папке скрининга нет данных аудита");
     default:
@@ -167,6 +179,7 @@ async function _deleteCandidateAll(folderKey: string): Promise<DeleteEmployeeFol
     burnoutResult,
     profResult,
     specialistResult,
+    attestationResult,
     filesDeleted,
     candidateResult,
   ] = await Promise.all([
@@ -185,6 +198,9 @@ async function _deleteCandidateAll(folderKey: string): Promise<DeleteEmployeeFol
       prisma.specialistScreeningSubmission.deleteMany({
         where: { candidateFolderKey: folderKey },
       }),
+      prisma.attestationSubmission.deleteMany({
+        where: { candidateFolderKey: folderKey },
+      }),
       deleteAllEmployeeFolderFiles(folderKey),
       prisma.candidateFolderRecord.deleteMany({
         where: { folderKey },
@@ -201,6 +217,7 @@ async function _deleteCandidateAll(folderKey: string): Promise<DeleteEmployeeFol
     burnoutResult.count +
     profResult.count +
     specialistResult.count +
+    attestationResult.count +
     filesDeleted +
     candidateResult.count;
   return { deleted, folderRemoved: deleted > 0 };

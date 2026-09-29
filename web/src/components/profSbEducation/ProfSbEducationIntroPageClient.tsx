@@ -10,6 +10,7 @@ import { useProfSbEducationAccessReady } from "@/hooks/useProfSbEducationAccessG
 import { useProctorIntroReady, useProctorIntroRequired } from "@/hooks/useProctorIntro";
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { PROF_SB_EDUCATION_SECTIONS } from "@/lib/profSbEducation/profSbEducationTypes";
+import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
 import {
   stepInputClass,
   stepLabelClass,
@@ -118,6 +119,7 @@ export function ProfSbEducationIntroPageClient(): React.ReactElement {
       setPersonalDataConsent(true);
     }
     beginProfSbEducationSession();
+    void requestProctorFullscreen();
     router.push("/prof-sb-education/test");
   }
 

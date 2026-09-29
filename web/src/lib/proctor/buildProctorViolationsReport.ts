@@ -26,6 +26,7 @@ export type ProctorViolationsReportJson = {
   summary: {
     audioViolations: number;
     videoViolations: number;
+    securityViolations: number;
     totalViolations: number;
   };
   events: ReadonlyArray<{
@@ -141,6 +142,9 @@ export async function buildProctorViolationsReportJson(
 
   const audioViolations = eventsWithSnapshots.filter((item) => item.category === "audio").length;
   const videoViolations = eventsWithSnapshots.filter((item) => item.category === "video").length;
+  const securityViolations = eventsWithSnapshots.filter(
+    (item) => item.category === "security"
+  ).length;
 
   return {
     version: 1,
@@ -149,6 +153,7 @@ export async function buildProctorViolationsReportJson(
     summary: {
       audioViolations,
       videoViolations,
+      securityViolations,
       totalViolations: eventsWithSnapshots.length,
     },
     events: eventsWithSnapshots.map((event) => ({
@@ -282,6 +287,7 @@ export async function buildProctorFolderViolationsReportView(
     const events = _mapSessionEvents(session.events);
     const audioViolations = events.filter((item) => item.category === "audio").length;
     const videoViolations = events.filter((item) => item.category === "video").length;
+    const securityViolations = events.filter((item) => item.category === "security").length;
     return {
       sessionId: session.sessionId,
       testKind: session.testKind,
@@ -290,6 +296,7 @@ export async function buildProctorFolderViolationsReportView(
       summary: {
         audioViolations,
         videoViolations,
+        securityViolations,
         totalViolations: events.length,
       },
       events,
@@ -302,6 +309,7 @@ export async function buildProctorFolderViolationsReportView(
   const summary = {
     audioViolations: allEvents.filter((item) => item.category === "audio").length,
     videoViolations: allEvents.filter((item) => item.category === "video").length,
+    securityViolations: allEvents.filter((item) => item.category === "security").length,
     totalViolations: allEvents.length,
   };
 
@@ -351,6 +359,13 @@ async function _resolveProctorCandidateName(
     });
     if (specialistRow) {
       return `${specialistRow.lastName} ${specialistRow.firstName}`.trim();
+    }
+    const attestationRow = await prisma.attestationSubmission.findUnique({
+      where: { sessionId },
+      select: { firstName: true, lastName: true },
+    });
+    if (attestationRow) {
+      return `${attestationRow.lastName} ${attestationRow.firstName}`.trim();
     }
     const profRow = await prisma.profSbEducationSubmission.findUnique({
       where: { sessionId },
@@ -448,6 +463,7 @@ export async function buildProctorViolationsReportView(
     return null;
   }
 
+  const normalizedSummary = _normalizeViolationsSummary(report.summary);
   const fullName = await _resolveProctorCandidateName("", sessionId);
   const events = report.events.map((event) => ({ ...event, audioClipId: event.audioClipId ?? null }));
 
@@ -456,7 +472,7 @@ export async function buildProctorViolationsReportView(
     title: "Отчёт по нарушениям",
     fullName,
     createdAt: (session.endedAt ?? session.createdAt).toISOString(),
-    summary: report.summary,
+    summary: normalizedSummary,
     events,
     sessions: [
       {
@@ -464,16 +480,40 @@ export async function buildProctorViolationsReportView(
         testKind: session.testKind,
         testLabel: proctorTestLabel(session.testKind),
         startedAtMsk: formatMoscowDateTimeTable(session.createdAt),
-        summary: report.summary,
+        summary: normalizedSummary,
         events,
         sessionRecordingId: session.sessionAudio?.id ?? null,
         sessionRecordingDurationMs: session.sessionAudio?.durationMs ?? null,
       },
     ],
     testsWithViolations:
-      report.summary.totalViolations > 0
-        ? [{ testLabel: proctorTestLabel(session.testKind), totalViolations: report.summary.totalViolations }]
+      normalizedSummary.totalViolations > 0
+        ? [
+            {
+              testLabel: proctorTestLabel(session.testKind),
+              totalViolations: normalizedSummary.totalViolations,
+            },
+          ]
         : [],
+  };
+}
+
+/**
+ * Дополняет сводку полем securityViolations для старых сохранённых отчётов.
+ */
+function _normalizeViolationsSummary(
+  summary: ProctorViolationsReportJson["summary"] | {
+    audioViolations: number;
+    videoViolations: number;
+    totalViolations: number;
+    securityViolations?: number;
+  }
+): ProctorViolationsReportJson["summary"] {
+  return {
+    audioViolations: summary.audioViolations,
+    videoViolations: summary.videoViolations,
+    securityViolations: summary.securityViolations ?? 0,
+    totalViolations: summary.totalViolations,
   };
 }
 
