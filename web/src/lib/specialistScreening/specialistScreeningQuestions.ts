@@ -44,16 +44,6 @@ export const SPECIALIST_SCREENING_SECTION_TITLES: Record<SpecialistScreeningSect
   asrs: "ASRS v1.1 (часть A) — скрининг СДВГ у взрослых",
 };
 
-/** Подписи секций для экрана испытуемого (без клинических названий методик). */
-export const SPECIALIST_SCREENING_SECTION_CANDIDATE_TITLES: Record<
-  SpecialistScreeningSectionId,
-  string
-> = {
-  phq9: "Часть 1",
-  gad7: "Часть 2",
-  asrs: "Часть 3",
-};
-
 export const SPECIALIST_SCREENING_SECTION_PROMPTS: Record<SpecialistScreeningSectionId, string> = {
   phq9: "За последние 2 недели, как часто вас беспокоило:",
   gad7: "За последние 2 недели, как часто вас беспокоило:",

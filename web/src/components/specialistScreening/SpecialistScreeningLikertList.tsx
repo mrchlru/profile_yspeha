@@ -9,14 +9,12 @@ import type {
 import {
   ASRS_OPTIONS,
   PHQ_GAD_OPTIONS,
-  SPECIALIST_SCREENING_SECTION_CANDIDATE_TITLES,
   SPECIALIST_SCREENING_SECTION_PROMPTS,
 } from "@/lib/specialistScreening/specialistScreeningQuestions";
 import {
   questionCardSurfaceClass,
   stepQuestionTitleClass,
   stepSecondaryTextClass,
-  stepSectionTitleClass,
 } from "@/lib/stepPageTheme";
 
 export type SpecialistScreeningLikertListProps = {
@@ -40,14 +38,9 @@ export function SpecialistScreeningLikertList({
     <div className="space-y-8">
       {sections.map((section) => (
         <section key={section.sectionId} className="space-y-3">
-          <div className="px-1">
-            <h2 className={stepSectionTitleClass}>
-              {SPECIALIST_SCREENING_SECTION_CANDIDATE_TITLES[section.sectionId]}
-            </h2>
-            <p className={`mt-1 ${stepSecondaryTextClass}`}>
-              {SPECIALIST_SCREENING_SECTION_PROMPTS[section.sectionId]}
-            </p>
-          </div>
+          <p className={`px-1 ${stepSecondaryTextClass}`}>
+            {SPECIALIST_SCREENING_SECTION_PROMPTS[section.sectionId]}
+          </p>
           <ol className="space-y-3" type="1">
             {section.questions.map((question) => {
               const current = answers[question.id] ?? null;
