@@ -62,14 +62,6 @@ export type AttestationComputedScores = {
   rosenzweigTexts: ReadonlyArray<RosenzweigAnswerPresence>;
 };
 
-const MINI_IPIP_FACTORS: ReadonlyArray<MiniIpipFactor> = [
-  "Extraversion",
-  "Agreeableness",
-  "Conscientiousness",
-  "Neuroticism",
-  "Openness",
-];
-
 const MANAGEMENT_SCALES: ReadonlyArray<ManagementPotentialScale> = [
   "decision_making",
   "delegation",
