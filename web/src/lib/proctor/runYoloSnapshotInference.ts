@@ -8,8 +8,15 @@ export const YOLO_COCO_PERSON_CLASS = 0;
 export const YOLO_COCO_CELL_PHONE_CLASS = 67;
 
 const YOLO_INPUT_SIZE = 640;
-const CONFIDENCE_THRESHOLD = 0.35;
-const IOU_THRESHOLD = 0.45;
+/** Person: выше порог — меньше ложных «двух людей» от отражений и фрагментов. */
+const PERSON_CONFIDENCE_THRESHOLD = 0.42;
+/** Cell phone: ниже порог — веб-камера плохо ловит телефон при 0.35+. */
+const PHONE_CONFIDENCE_THRESHOLD = 0.2;
+const IOU_THRESHOLD = 0.4;
+/** Минимальная доля площади кадра для person (отсекает мелкий шум). */
+const MIN_PERSON_AREA_RATIO = 0.02;
+/** Минимальная доля площади кадра для phone. */
+const MIN_PHONE_AREA_RATIO = 0.002;
 
 export type YoloDetection = {
   classId: number;
@@ -55,15 +62,21 @@ export async function analyzeSnapshotWithYolo(jpegBuffer: Buffer): Promise<YoloS
   const meta = await sharp(jpegBuffer).rotate().metadata();
   const origWidth = meta.width ?? YOLO_INPUT_SIZE;
   const origHeight = meta.height ?? YOLO_INPUT_SIZE;
+  const frameArea = Math.max(1, origWidth * origHeight);
 
   const detections = _decodeDetections(output.data, origWidth, origHeight);
-  const filtered = _applyNms(
-    detections.filter(
-      (item) =>
-        item.confidence >= CONFIDENCE_THRESHOLD &&
-        (item.classId === YOLO_COCO_PERSON_CLASS || item.classId === YOLO_COCO_CELL_PHONE_CLASS)
-    )
-  );
+  const sizeFiltered = detections.filter((item) => {
+    const area = Math.max(0, item.x2 - item.x1) * Math.max(0, item.y2 - item.y1);
+    const ratio = area / frameArea;
+    if (item.classId === YOLO_COCO_PERSON_CLASS) {
+      return ratio >= MIN_PERSON_AREA_RATIO;
+    }
+    if (item.classId === YOLO_COCO_CELL_PHONE_CLASS) {
+      return ratio >= MIN_PHONE_AREA_RATIO;
+    }
+    return false;
+  });
+  const filtered = _applyNms(sizeFiltered);
 
   return {
     personCount: filtered.filter((item) => item.classId === YOLO_COCO_PERSON_CLASS).length,
@@ -114,9 +127,9 @@ async function _preprocessImage(jpegBuffer: Buffer): Promise<{ tensor: Float32Ar
   const pixelCount = YOLO_INPUT_SIZE * YOLO_INPUT_SIZE;
   const tensor = new Float32Array(3 * pixelCount);
   for (let i = 0; i < pixelCount; i += 1) {
-    const r = data[i * 3] / 255;
-    const g = data[i * 3 + 1] / 255;
-    const b = data[i * 3 + 2] / 255;
+    const r = data[i * 3]! / 255;
+    const g = data[i * 3 + 1]! / 255;
+    const b = data[i * 3 + 2]! / 255;
     tensor[i] = r;
     tensor[pixelCount + i] = g;
     tensor[2 * pixelCount + i] = b;
@@ -125,6 +138,10 @@ async function _preprocessImage(jpegBuffer: Buffer): Promise<{ tensor: Float32Ar
   return { tensor };
 }
 
+/**
+ * Декодирует выходы YOLOv8: отдельно проверяет person и cell phone по своим порогам
+ * (не только «лучший класс» якоря — иначе телефон часто теряется).
+ */
 function _decodeDetections(output: Float32Array, origWidth: number, origHeight: number): YoloDetection[] {
   const numClasses = 80;
   const numPredictions = output.length / (4 + numClasses);
@@ -134,42 +151,46 @@ function _decodeDetections(output: Float32Array, origWidth: number, origHeight: 
   const detections: YoloDetection[] = [];
 
   for (let i = 0; i < numPredictions; i += 1) {
-    const cx = output[i];
-    const cy = output[numPredictions + i];
-    const w = output[2 * numPredictions + i];
-    const h = output[3 * numPredictions + i];
-
-    let bestClass = 0;
-    let bestScore = 0;
-    for (let c = 0; c < numClasses; c += 1) {
-      const score = output[(4 + c) * numPredictions + i];
-      if (score > bestScore) {
-        bestScore = score;
-        bestClass = c;
-      }
-    }
-
-    if (bestScore < CONFIDENCE_THRESHOLD) {
+    const personScore = output[(4 + YOLO_COCO_PERSON_CLASS) * numPredictions + i] ?? 0;
+    const phoneScore = output[(4 + YOLO_COCO_CELL_PHONE_CLASS) * numPredictions + i] ?? 0;
+    const keepPerson = personScore >= PERSON_CONFIDENCE_THRESHOLD;
+    const keepPhone = phoneScore >= PHONE_CONFIDENCE_THRESHOLD;
+    if (!keepPerson && !keepPhone) {
       continue;
     }
-    if (bestClass !== YOLO_COCO_PERSON_CLASS && bestClass !== YOLO_COCO_CELL_PHONE_CLASS) {
-      continue;
-    }
+
+    const cx = output[i] ?? 0;
+    const cy = output[numPredictions + i] ?? 0;
+    const w = output[2 * numPredictions + i] ?? 0;
+    const h = output[3 * numPredictions + i] ?? 0;
 
     const x1 = (cx - w / 2 - padLeft) / scale;
     const y1 = (cy - h / 2 - padTop) / scale;
     const x2 = (cx + w / 2 - padLeft) / scale;
     const y2 = (cy + h / 2 - padTop) / scale;
-
-    detections.push({
-      classId: bestClass,
-      label: CLASS_LABELS[bestClass] ?? String(bestClass),
-      confidence: bestScore,
+    const box = {
       x1: Math.max(0, x1),
       y1: Math.max(0, y1),
       x2: Math.min(origWidth, x2),
       y2: Math.min(origHeight, y2),
-    });
+    };
+
+    if (keepPerson) {
+      detections.push({
+        classId: YOLO_COCO_PERSON_CLASS,
+        label: CLASS_LABELS[YOLO_COCO_PERSON_CLASS]!,
+        confidence: personScore,
+        ...box,
+      });
+    }
+    if (keepPhone) {
+      detections.push({
+        classId: YOLO_COCO_CELL_PHONE_CLASS,
+        label: CLASS_LABELS[YOLO_COCO_CELL_PHONE_CLASS]!,
+        confidence: phoneScore,
+        ...box,
+      });
+    }
   }
 
   return detections;

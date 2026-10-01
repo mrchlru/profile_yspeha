@@ -116,13 +116,14 @@ async function _loadFaceDetector(): Promise<{
 function _isViolationConfirmed(
   kind: ProctorEventKind,
   serverPersonCount: number,
-  clientFaceCount: number | null
+  _clientFaceCount: number | null
 ): boolean {
   if (kind === PROCTOR_EVENT_FACE_MISSING) {
     return serverPersonCount === 0;
   }
   if (kind === PROCTOR_EVENT_MULTIPLE_FACES) {
-    return serverPersonCount >= 2 || (clientFaceCount !== null && clientFaceCount >= 2);
+    // Подтверждаем только по серверу: клиентский MediaPipe часто даёт ложные «2 лица».
+    return serverPersonCount >= 2;
   }
   if (kind === PROCTOR_EVENT_GAZE_AWAY) {
     return serverPersonCount === 1;

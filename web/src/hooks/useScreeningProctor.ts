@@ -57,7 +57,9 @@ type UseScreeningProctorResult = {
 
 const FACE_SAMPLE_MS = 1000;
 const FACE_MISSING_STREAK = 2;
-const PERIODIC_SCAN_MS = 12_000;
+/** Несколько лиц подряд, чтобы отсечь разовые ложные срабатывания MediaPipe. */
+const MULTIPLE_FACES_STREAK = 3;
+const PERIODIC_SCAN_MS = 5_000;
 /** После снятия нарушения полоса ещё 5 с; новое краткое уведомление заменяет предыдущее. */
 const BANNER_LINGER_MS = 5_000;
 /** Приоритет сообщений, если активно несколько нарушений (выше — важнее). */
@@ -79,7 +81,7 @@ const AUDIO_RMS_THRESHOLD = 0.072;
 const AUDIO_SUSTAIN_MS = 750;
 const AUDIO_QUIET_MS = 1400;
 const AUDIO_RMS_SMOOTHING = 0.88;
-const SNAPSHOT_JPEG_QUALITY = 0.72;
+const SNAPSHOT_JPEG_QUALITY = 0.85;
 const AUDIO_SLICE_MS = 1000;
 const AUDIO_ROLLING_SLICES = 4;
 const MAX_AUDIO_CLIP_MS = 45_000;
@@ -108,6 +110,7 @@ export function useScreeningProctor(options: UseScreeningProctorOptions): UseScr
   const flushInFlightRef = useRef(false);
   const lastEventAtRef = useRef<Partial<Record<ClientProctorEventKind, number>>>({});
   const zeroFaceStreakRef = useRef(0);
+  const multipleFacesStreakRef = useRef(0);
   const gazeAwayStreakRef = useRef(0);
   const gazeStateRef = useRef<"ok" | "away">("ok");
   const audioHighSinceRef = useRef<number | null>(null);
@@ -697,6 +700,7 @@ export function useScreeningProctor(options: UseScreeningProctorOptions): UseScr
 
           if (count === 0) {
             zeroFaceStreakRef.current += 1;
+            multipleFacesStreakRef.current = 0;
             gazeAwayStreakRef.current = 0;
             gazeStateRef.current = "ok";
             faceStateRef.current = "missing";
@@ -707,13 +711,18 @@ export function useScreeningProctor(options: UseScreeningProctorOptions): UseScr
             }
           } else if (count >= 2) {
             zeroFaceStreakRef.current = 0;
+            multipleFacesStreakRef.current += 1;
             gazeAwayStreakRef.current = 0;
             gazeStateRef.current = "ok";
             faceStateRef.current = "multiple";
             showViolationBanner(PROCTOR_EVENT_MULTIPLE_FACES);
-            enqueueEventRef.current(PROCTOR_EVENT_MULTIPLE_FACES, count);
+            if (multipleFacesStreakRef.current >= MULTIPLE_FACES_STREAK) {
+              enqueueEventRef.current(PROCTOR_EVENT_MULTIPLE_FACES, count);
+              multipleFacesStreakRef.current = 0;
+            }
           } else {
             zeroFaceStreakRef.current = 0;
+            multipleFacesStreakRef.current = 0;
             if (faceStateRef.current !== "ok") {
               faceStateRef.current = "ok";
               refreshBannerAfterStateChange();

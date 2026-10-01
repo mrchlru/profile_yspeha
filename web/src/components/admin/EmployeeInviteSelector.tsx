@@ -44,7 +44,7 @@ export type EmployeeInviteSelectorProps = {
 };
 
 /**
- * Выбор сотрудника из архива скрининга или создание нового для приглашения.
+ * Выбор сотрудника из архива или создание нового для приглашения.
  */
 export function EmployeeInviteSelector({
   value,
@@ -165,9 +165,6 @@ export function EmployeeInviteSelector({
               placeholder="Фамилия, имя, дата рождения, должность"
               className={`${stepInputClass} h-12 text-[16px]`}
             />
-            <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-              Показаны сотрудники, которые уже проходили скрининг.
-            </p>
           </div>
 
           {loadError ? (

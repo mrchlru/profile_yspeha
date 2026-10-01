@@ -65,9 +65,7 @@ export const INVITE_CANDIDATE_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_ATTESTATION,
 ];
 
-/**
- * Тесты с выбором сотрудника из архива скрининга или созданием нового.
- */
+/** Тесты с выбором сотрудника из архива или созданием нового. */
 export const INVITE_EMPLOYEE_PICK_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_AUDIT_SENIOR,
   TEST_KIND_AUDIT_MIDDLE,

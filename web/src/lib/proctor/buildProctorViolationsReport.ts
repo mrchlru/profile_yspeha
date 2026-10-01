@@ -126,7 +126,7 @@ export async function buildProctorViolationsReportJson(
       sourceEventId:
         typeof metadata?.sourceEventId === "string" ? metadata.sourceEventId : null,
     };
-  });
+  }).filter(_isReportableProctorEvent);
 
   const snapshotByEventId = new Map(
     events.filter((item) => item.snapshotId).map((item) => [item.id, item.snapshotId as string])
@@ -219,7 +219,7 @@ function _mapSessionEvents(
       sourceEventId:
         typeof metadata?.sourceEventId === "string" ? metadata.sourceEventId : null,
     };
-  });
+  }).filter(_isReportableProctorEvent);
 
   const snapshotByEventId = new Map(
     mapped.filter((item) => item.snapshotId).map((item) => [item.id, item.snapshotId as string])
@@ -542,3 +542,20 @@ export const VIDEO_VIOLATION_KINDS: ReadonlyArray<ProctorEventKind> = [
 ];
 
 export const AUDIO_VIOLATION_KINDS: ReadonlyArray<ProctorEventKind> = [PROCTOR_EVENT_AUDIO_NOISE];
+
+/**
+ * Скрывает видеонарушения, которые сервер явно не подтвердил (ложные «2 лица» и т.п.).
+ */
+function _isReportableProctorEvent(event: {
+  kind: ProctorEventKind;
+  serverVerified: boolean | null;
+}): boolean {
+  if (event.serverVerified !== false) {
+    return true;
+  }
+  return (
+    event.kind !== PROCTOR_EVENT_MULTIPLE_FACES &&
+    event.kind !== PROCTOR_EVENT_FACE_MISSING &&
+    event.kind !== PROCTOR_EVENT_GAZE_AWAY
+  );
+}

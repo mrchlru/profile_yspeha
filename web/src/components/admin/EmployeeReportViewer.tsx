@@ -537,6 +537,25 @@ function ViolationsReportContent({
   view: Extract<ReportHtmlView, { kind: "violations_report" }>;
   folderKey: string;
 }): React.ReactElement {
+  const sessions = view.sessions;
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(
+    () => sessions[0]?.sessionId ?? ""
+  );
+
+  useEffect(() => {
+    if (sessions.length === 0) {
+      return;
+    }
+    const stillExists = sessions.some((item) => item.sessionId === selectedSessionId);
+    if (!stillExists) {
+      setSelectedSessionId(sessions[0]!.sessionId);
+    }
+  }, [sessions, selectedSessionId]);
+
+  const activeSession =
+    sessions.find((item) => item.sessionId === selectedSessionId) ?? sessions[0] ?? null;
+  const useDropdown = sessions.length > 4;
+
   return (
     <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
       <h3 className={adminPanelSectionTitleClass}>{view.title}</h3>
@@ -571,49 +590,79 @@ function ViolationsReportContent({
         </div>
       </div>
 
-      {view.testsWithViolations.length > 0 ? (
-        <section className="rounded-2xl border border-amber-200 bg-amber-50/80 px-4 py-4">
-          <h4 className="text-[14px] font-extrabold text-amber-950">
-            Нарушения зафиксированы в тестах
-          </h4>
-          <ul className="mt-2 space-y-1">
-            {view.testsWithViolations.map((item) => (
-              <li key={item.testLabel} className="text-[14px] text-amber-950">
-                {item.testLabel} — {item.totalViolations}{" "}
-                {item.totalViolations === 1 ? "нарушение" : "нарушений"}
-              </li>
-            ))}
-          </ul>
-        </section>
+      {sessions.length > 1 ? (
+        <div className="space-y-2">
+          <p className="text-[13px] font-extrabold text-[#8C8C8C]">Прохождение</p>
+          {useDropdown ? (
+            <select
+              value={activeSession?.sessionId ?? ""}
+              onChange={(event) => setSelectedSessionId(event.target.value)}
+              className="w-full max-w-xl rounded-2xl border border-black/10 bg-white/80 px-4 py-3 text-[14px] font-bold text-[#5F5E5E]"
+            >
+              {sessions.map((sessionBlock) => (
+                <option key={sessionBlock.sessionId} value={sessionBlock.sessionId}>
+                  {sessionBlock.testLabel} · {sessionBlock.summary.totalViolations} наруш. ·{" "}
+                  {sessionBlock.startedAtMsk}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {sessions.map((sessionBlock) => {
+                const selected = sessionBlock.sessionId === activeSession?.sessionId;
+                return (
+                  <button
+                    key={sessionBlock.sessionId}
+                    type="button"
+                    onClick={() => setSelectedSessionId(sessionBlock.sessionId)}
+                    className={`rounded-full px-4 py-2 text-[13px] font-bold transition ${
+                      selected
+                        ? "bg-[#00B596] text-white"
+                        : "bg-white/70 text-[#5F5E5E] hover:bg-white"
+                    }`}
+                  >
+                    {sessionBlock.testLabel}
+                    <span className={selected ? "opacity-90" : "opacity-70"}>
+                      {" "}
+                      · {sessionBlock.summary.totalViolations}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       ) : null}
 
-      {view.sessions.map((sessionBlock) => (
-        <section key={sessionBlock.sessionId} className="space-y-3">
+      {activeSession ? (
+        <section key={activeSession.sessionId} className="space-y-3">
           <div className="border-b border-black/10 pb-2">
-            <h4 className="text-[16px] font-extrabold text-[#5F5E5E]">{sessionBlock.testLabel}</h4>
+            <h4 className="text-[16px] font-extrabold text-[#5F5E5E]">
+              {activeSession.testLabel}
+            </h4>
             <p className={`text-[13px] ${adminPanelMutedTextClass}`}>
-              Старт {sessionBlock.startedAtMsk} МСК · нарушений:{" "}
-              {sessionBlock.summary.totalViolations}
+              Старт {activeSession.startedAtMsk} МСК · нарушений:{" "}
+              {activeSession.summary.totalViolations}
             </p>
           </div>
 
-          {sessionBlock.sessionRecordingId ? (
+          {activeSession.sessionRecordingId ? (
             <div className="rounded-2xl border border-black/8 bg-white/70 px-4 py-3">
               <p className="font-bold text-[#5F5E5E]">Запись звука за прохождение</p>
               <p className={`mt-1 text-[13px] ${adminPanelMutedTextClass}`}>
                 Непрерывная аудиозапись сессии прокторинга
-                {sessionBlock.sessionRecordingDurationMs
-                  ? ` · ${_formatRecordingDuration(sessionBlock.sessionRecordingDurationMs)}`
+                {activeSession.sessionRecordingDurationMs
+                  ? ` · длительность ${_formatRecordingDuration(activeSession.sessionRecordingDurationMs)}`
                   : null}
               </p>
               <audio
                 controls
                 preload="none"
                 className="mt-3 w-full max-w-md"
-                src={`/api/admin/proctor/session-audio/${encodeURIComponent(sessionBlock.sessionId)}?folderKey=${encodeURIComponent(folderKey)}`}
+                src={`/api/admin/proctor/session-audio/${encodeURIComponent(activeSession.sessionId)}?folderKey=${encodeURIComponent(folderKey)}`}
               />
               <a
-                href={`/api/admin/proctor/session-audio/${encodeURIComponent(sessionBlock.sessionId)}?folderKey=${encodeURIComponent(folderKey)}&download=1`}
+                href={`/api/admin/proctor/session-audio/${encodeURIComponent(activeSession.sessionId)}?folderKey=${encodeURIComponent(folderKey)}&download=1`}
                 className="mt-2 inline-block text-[13px] font-semibold text-[#00B596] hover:underline"
               >
                 Скачать запись (.webm)
@@ -621,11 +670,11 @@ function ViolationsReportContent({
             </div>
           ) : null}
 
-          {sessionBlock.events.length === 0 ? (
+          {activeSession.events.length === 0 ? (
             <p className={adminPanelMutedTextClass}>Нарушений в этом прохождении нет.</p>
           ) : (
             <ul className="space-y-3">
-              {sessionBlock.events.map((event) => (
+              {activeSession.events.map((event) => (
                 <li
                   key={event.id}
                   className="rounded-2xl border border-black/8 bg-white/70 px-4 py-3"
@@ -693,7 +742,9 @@ function ViolationsReportContent({
             </ul>
           )}
         </section>
-      ))}
+      ) : (
+        <p className={adminPanelMutedTextClass}>Нет сессий прокторинга.</p>
+      )}
     </div>
   );
 }

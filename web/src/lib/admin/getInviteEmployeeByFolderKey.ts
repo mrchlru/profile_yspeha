@@ -21,17 +21,17 @@ export type InviteEmployeeOption = {
 };
 
 /**
- * Список сотрудников, прошедших скрининг, для выбора при создании приглашения.
+ * Список сотрудников с любым прохождением теста для выбора при создании приглашения.
  */
 export async function listInviteEmployeeOptions(
   query?: string
 ): Promise<InviteEmployeeOption[]> {
-  const folders = await listEmployeeFolders(query, "screening");
+  const folders = await listEmployeeFolders(query, "all");
 
   return folders
     .filter(
       (folder) =>
-        folder.screeningSessions > 0 &&
+        _folderHasAnyTestSession(folder) &&
         folder.key.startsWith("candidate:") &&
         folder.lastName &&
         folder.firstName &&
@@ -52,7 +52,7 @@ export async function listInviteEmployeeOptions(
 }
 
 /**
- * Восстанавливает данные сотрудника по ключу папки из архива скрининга.
+ * Восстанавливает данные сотрудника по ключу папки из архива.
  */
 export async function getInviteEmployeeByFolderKey(
   folderKey: string,
@@ -61,7 +61,7 @@ export async function getInviteEmployeeByFolderKey(
   const options = await listInviteEmployeeOptions();
   const employee = options.find((item) => item.folderKey === folderKey);
   if (!employee) {
-    return { error: "Сотрудник не найден или не проходил скрининг" };
+    return { error: "Сотрудник не найден или ещё не проходил тестирование" };
   }
 
   const birthDate = parseCandidateBirthDate(employee.birthDate);
@@ -116,5 +116,26 @@ export function filterInviteEmployeeOptions(
         : null,
       displayName: item.displayName,
     })
+  );
+}
+
+/**
+ * Есть ли у папки хотя бы одно сохранённое прохождение любого теста.
+ */
+function _folderHasAnyTestSession(folder: {
+  screeningSessions: number;
+  auditSessions: number;
+  profSbEducationSessionCount: number;
+  burnoutSessionCount: number;
+  specialistScreeningSessionCount: number;
+  attestationSessionCount: number;
+}): boolean {
+  return (
+    folder.screeningSessions > 0 ||
+    folder.auditSessions > 0 ||
+    folder.profSbEducationSessionCount > 0 ||
+    folder.burnoutSessionCount > 0 ||
+    folder.specialistScreeningSessionCount > 0 ||
+    folder.attestationSessionCount > 0
   );
 }

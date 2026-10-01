@@ -33,7 +33,7 @@ export type AdminTestCatalogItem = {
   available: boolean;
   /** Связанный testKind для API приглашений (только если available). */
   inviteTestKind?: TestKind;
-  /** Можно выбрать сотрудника из архива скрининга или создать нового. */
+  /** Можно выбрать сотрудника из архива или создать нового. */
   supportsEmployeePick?: boolean;
 };
 
@@ -68,7 +68,7 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
     id: ADMIN_TEST_CATALOG_ID_BURNOUT,
     title: "Тест на выгорание",
     description:
-      "Приглашение для сотрудника из архива скрининга или с новыми данными. Код действует 3 суток.",
+      "Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
     available: true,
     inviteTestKind: TEST_KIND_BURNOUT,
     supportsEmployeePick: true,
@@ -77,7 +77,7 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
     id: ADMIN_TEST_CATALOG_ID_PROF_SB_EDUCATION,
     title: "ПРОФ СБ + ПРОФ образование",
     description:
-      "Комплексная анкета из двух блоков: ПРОФ СБ и ПРОФ образование. Приглашение для сотрудника из архива скрининга или с новыми данными. Код действует 3 суток.",
+      "Комплексная анкета из двух блоков: ПРОФ СБ и ПРОФ образование. Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
     available: true,
     inviteTestKind: TEST_KIND_PROF_SB_EDUCATION,
     supportsEmployeePick: true,
