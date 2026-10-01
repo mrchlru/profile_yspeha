@@ -4,6 +4,14 @@ import type SMTPTransport from "nodemailer/lib/smtp-transport";
 import type { AttestationComputedScores } from "@/lib/attestation/computeAttestationScores";
 import type { KlimovProfessionType, MiniIpipFactor } from "@/lib/attestation/attestationQuestions";
 import {
+  CBI_SCALE_LABELS,
+  KLIMOV_TYPE_LABELS,
+  MANAGEMENT_POTENTIAL_SCALE_LABELS,
+  MINI_IPIP_FACTOR_LABELS,
+  SPIELBERGER_SCALE_LABELS,
+  scoreBandLabel,
+} from "@/lib/attestation/attestationLabels";
+import {
   parseRecipientEmailsFromEnv,
   smtpErrorLogFields,
 } from "@/lib/email/sendScreeningReportEmail";
@@ -77,29 +85,11 @@ function buildTransportOptions(
   };
 }
 
-const MINI_IPIP_LABELS: Record<MiniIpipFactor, string> = {
-  Extraversion: "Экстраверсия",
-  Agreeableness: "Доброжелательность",
-  Conscientiousness: "Добросовестность",
-  Neuroticism: "Нейротизм",
-  Openness: "Открытость",
-};
+const MINI_IPIP_LABELS = MINI_IPIP_FACTOR_LABELS;
 
-const MP_SCALE_LABELS: Record<string, string> = {
-  decision_making: "Принятие решений",
-  delegation: "Делегирование",
-  stress_resilience: "Стрессоустойчивость",
-  team_leadership: "Лидерство в команде",
-  integrity: "Деловая этика",
-};
+const MP_SCALE_LABELS = MANAGEMENT_POTENTIAL_SCALE_LABELS;
 
-const KLIMOV_LABELS: Record<KlimovProfessionType, string> = {
-  human_nature: "Человек — природа",
-  human_technique: "Человек — техника",
-  human_human: "Человек — человек",
-  human_sign_system: "Человек — знаковая система",
-  human_artistic_image: "Человек — художественный образ",
-};
+const KLIMOV_LABELS = KLIMOV_TYPE_LABELS;
 
 function _topKlimovType(scores: AttestationComputedScores["klimovDdo"]): string {
   let top: KlimovProfessionType = "human_nature";
@@ -155,17 +145,17 @@ export async function sendAttestationCompletionEmail(
 
   const mpLines = scores.managementPotential.map(
     (row) =>
-      `<li>${escapeHtmlForPdf(MP_SCALE_LABELS[row.scale] ?? row.scale)}: ${String(row.sum)} (${row.band})</li>`
+      `<li>${escapeHtmlForPdf(MP_SCALE_LABELS[row.scale] ?? row.scale)}: ${String(row.sum)} (${scoreBandLabel(row.band)})</li>`
   );
 
   const cbiLines = scores.cbi.map(
     (row) =>
-      `<li>${row.scale === "personal" ? "Личное истощение" : "Рабочее истощение"}: ${row.mean.toFixed(1)} (${row.band})</li>`
+      `<li>${CBI_SCALE_LABELS[row.scale]}: ${row.mean.toFixed(1)} (${scoreBandLabel(row.band)})</li>`
   );
 
   const spLines = scores.spielberger.map(
     (row) =>
-      `<li>${row.scale === "state" ? "Ситуативная тревожность (ST)" : "Личностная тревожность (LT)"}: ${String(row.total)} (${row.band})</li>`
+      `<li>${SPIELBERGER_SCALE_LABELS[row.scale]}: ${String(row.total)} (${scoreBandLabel(row.band)})</li>`
   );
 
   const luscherLine =
@@ -204,18 +194,17 @@ export async function sendAttestationCompletionEmail(
     "",
     "Управленческий потенциал:",
     ...scores.managementPotential.map(
-      (r) => `- ${MP_SCALE_LABELS[r.scale] ?? r.scale}: ${String(r.sum)}`
+      (r) => `- ${MP_SCALE_LABELS[r.scale] ?? r.scale}: ${String(r.sum)} (${scoreBandLabel(r.band)})`
     ),
     "",
     "CBI:",
     ...scores.cbi.map(
-      (r) =>
-        `- ${r.scale === "personal" ? "личное" : "рабочее"}: ${r.mean.toFixed(1)}`
+      (r) => `- ${CBI_SCALE_LABELS[r.scale]}: ${r.mean.toFixed(1)} (${scoreBandLabel(r.band)})`
     ),
     "",
     "Шпилбергер:",
     ...scores.spielberger.map(
-      (r) => `- ${r.scale === "state" ? "ST" : "LT"}: ${String(r.total)}`
+      (r) => `- ${SPIELBERGER_SCALE_LABELS[r.scale]}: ${String(r.total)} (${scoreBandLabel(r.band)})`
     ),
     "",
     `Климов (топ): ${_topKlimovType(scores.klimovDdo)}`,

@@ -11,6 +11,16 @@ import {
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
+import {
+  CBI_SCALE_LABELS,
+  KLIMOV_TYPE_LABELS,
+  MANAGEMENT_POTENTIAL_SCALE_LABELS,
+  MINI_IPIP_FACTOR_LABELS,
+  MINI_IPIP_FACTOR_ORDER,
+  SPIELBERGER_SCALE_LABELS,
+  scoreBandBadgeClass,
+  scoreBandLabel,
+} from "@/lib/attestation/attestationLabels";
 import { ROSENZWEIG_SITUATIONS } from "@/lib/attestation/attestationQuestions";
 import type {
   RosenzweigCodingMap,
@@ -90,7 +100,10 @@ export function AttestationReportViewer(): React.ReactElement {
     patch: Partial<{ direction: RosenzweigDirection; reaction: RosenzweigReaction }>
   ): void {
     setCoding((prev) => {
-      const current = prev[situationId] ?? { direction: "E" as RosenzweigDirection, reaction: "NP" as RosenzweigReaction };
+      const current = prev[situationId] ?? {
+        direction: "E" as RosenzweigDirection,
+        reaction: "NP" as RosenzweigReaction,
+      };
       return {
         ...prev,
         [situationId]: {
@@ -102,136 +115,209 @@ export function AttestationReportViewer(): React.ReactElement {
   }
 
   if (loading) {
-    return <p className={adminPanelMutedTextClass}>Загрузка отчёта…</p>;
+    return (
+      <div className="mx-auto w-full max-w-[1100px] px-4 py-6 sm:px-6 lg:px-8">
+        <p className={adminPanelMutedTextClass}>Загрузка отчёта…</p>
+      </div>
+    );
   }
 
   if (error || !view) {
     return (
-      <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-        <p className="text-sm font-medium text-red-700/90">{error ?? "Отчёт не найден."}</p>
-        <Link
-          href={`/admin/results/${encodeURIComponent(folderKey)}`}
-          className="inline-flex rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
-        >
-          ← К папке
-        </Link>
+      <div className="mx-auto w-full max-w-[1100px] px-4 py-6 sm:px-6 lg:px-8">
+        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
+          <p className="text-sm font-medium text-red-700/90">
+            {error ?? "Отчёт не найден."}
+          </p>
+          <Link
+            href={`/admin/results/${encodeURIComponent(folderKey)}`}
+            className="inline-flex rounded-full bg-white/80 px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
+          >
+            ← К папке
+          </Link>
+        </div>
       </div>
     );
   }
 
   const { scores } = view.report;
+  const codingSummary = view.report.rosenzweigCodingSummary;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[13px] font-extrabold uppercase tracking-wide text-[#8C8C8C]">
-            Аттестация
-          </p>
-          <h2 className="text-[24px] font-extrabold text-[#5F5E5E]">{view.personName}</h2>
-          <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-            Пройден: {formatMoscowDateTime(view.createdAt)}
-            {view.computedAt ? ` · Рассчитано: ${view.computedAt}` : null}
-          </p>
+    <div className="mx-auto w-full max-w-[1100px] space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+      <header className={`px-6 py-5 sm:px-8 ${adminPanelCardClass}`}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-[#8C8C8C]">
+              Аттестация
+            </p>
+            <h2 className="mt-1 text-[26px] font-extrabold leading-tight text-[#5F5E5E] sm:text-[30px]">
+              {view.personName}
+            </h2>
+            <p className={`mt-2 ${adminPanelMutedTextClass}`}>
+              Пройден: {formatMoscowDateTime(view.createdAt)}
+              {view.computedAt ? ` · Рассчитано: ${view.computedAt}` : null}
+            </p>
+          </div>
+          <Link
+            href={`/admin/results/${encodeURIComponent(folderKey)}`}
+            className="shrink-0 rounded-full bg-white/80 px-4 py-2 text-[14px] font-bold text-[#5F5E5E] transition hover:bg-white"
+          >
+            ← К папке
+          </Link>
         </div>
-        <Link
-          href={`/admin/results/${encodeURIComponent(folderKey)}`}
-          className="rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
-        >
-          ← К папке
-        </Link>
-      </div>
+      </header>
 
-      <ScoreSection title="Mini-IPIP (Big Five)">
-        <ul className="list-inside list-disc text-[14px] text-[#5F5E5E]">
-          {Object.entries(scores.miniIpip).map(([key, value]) => (
-            <li key={key}>
-              {key}: {String(value)}
-            </li>
+      <ScoreSection
+        title="Личностный профиль (Big Five)"
+        hint="Mini-IPIP · баллы по факторам (диапазон 4–20)"
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {MINI_IPIP_FACTOR_ORDER.map((factor) => (
+            <MetricTile
+              key={factor}
+              label={MINI_IPIP_FACTOR_LABELS[factor]}
+              value={String(scores.miniIpip[factor])}
+            />
           ))}
-        </ul>
+        </div>
       </ScoreSection>
 
-      <ScoreSection title="Управленческий потенциал">
-        <table className="w-full text-left text-[14px]">
-          <thead>
-            <tr className="text-[#8C8C8C]">
-              <th className="py-2">Шкала</th>
-              <th className="py-2">Сумма</th>
-              <th className="py-2">Диапазон</th>
-            </tr>
-          </thead>
-          <tbody>
-            {scores.managementPotential.map((row) => (
-              <tr key={row.scale} className="border-t border-black/5">
-                <td className="py-2">{row.scale}</td>
-                <td className="py-2">{String(row.sum)}</td>
-                <td className="py-2">{row.band}</td>
+      <ScoreSection
+        title="Управленческий потенциал"
+        hint="Сумма по шкале 5–25 · низкий 5–11 · средний 12–18 · высокий 19–25"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-left text-[14px]">
+            <thead>
+              <tr className="border-b border-black/10 text-[#8C8C8C]">
+                <th className="pb-3 pr-3 font-bold">Шкала</th>
+                <th className="pb-3 pr-3 font-bold">Сумма</th>
+                <th className="pb-3 font-bold">Диапазон</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {scores.managementPotential.map((row) => (
+                <tr key={row.scale} className="border-t border-black/5">
+                  <td className="py-3 pr-3 font-semibold text-[#5F5E5E]">
+                    {MANAGEMENT_POTENTIAL_SCALE_LABELS[row.scale]}
+                  </td>
+                  <td className="py-3 pr-3 tabular-nums text-[#5F5E5E]">
+                    {String(row.sum)}
+                  </td>
+                  <td className="py-3">
+                    <BandBadge band={row.band} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </ScoreSection>
 
-      <ScoreSection title="CBI">
-        {scores.cbi.map((row) => (
-          <p key={row.scale} className="text-[14px] text-[#5F5E5E]">
-            {row.scale}: {row.mean.toFixed(1)} ({row.band})
-          </p>
-        ))}
-      </ScoreSection>
-
-      <ScoreSection title="Шпилбергер">
-        {scores.spielberger.map((row) => (
-          <p key={row.scale} className="text-[14px] text-[#5F5E5E]">
-            {row.scale === "state" ? "ST (ситуативная)" : "LT (личностная)"}: {String(row.total)} (
-            {row.band})
-          </p>
-        ))}
-      </ScoreSection>
-
-      <ScoreSection title="ДДО Климова">
-        <ul className="list-inside list-disc text-[14px] text-[#5F5E5E]">
-          {Object.entries(scores.klimovDdo).map(([key, value]) => (
-            <li key={key}>
-              {key}: {String(value)}
-            </li>
+      <ScoreSection
+        title="Выгорание (CBI)"
+        hint="Средний балл шкалы · низкий <50 · средний 50–74 · высокий ≥75"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {scores.cbi.map((row) => (
+            <MetricTile
+              key={row.scale}
+              label={CBI_SCALE_LABELS[row.scale]}
+              value={row.mean.toFixed(1)}
+              band={row.band}
+            />
           ))}
-        </ul>
+        </div>
       </ScoreSection>
 
-      <ScoreSection title="Люшер">
+      <ScoreSection
+        title="Тревожность (Шпилбергер–Ханин)"
+        hint="Низкая <30 · средняя 31–44 · высокая ≥45"
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          {scores.spielberger.map((row) => (
+            <MetricTile
+              key={row.scale}
+              label={SPIELBERGER_SCALE_LABELS[row.scale]}
+              value={String(row.total)}
+              band={row.band}
+            />
+          ))}
+        </div>
+      </ScoreSection>
+
+      <ScoreSection title="Профессиональная направленность (ДДО Климова)">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(Object.keys(KLIMOV_TYPE_LABELS) as Array<keyof typeof KLIMOV_TYPE_LABELS>).map(
+            (type) => (
+              <MetricTile
+                key={type}
+                label={KLIMOV_TYPE_LABELS[type]}
+                value={String(scores.klimovDdo[type] ?? 0)}
+              />
+            )
+          )}
+        </div>
+      </ScoreSection>
+
+      <ScoreSection title="Цветовой тест (Люшер)">
         {scores.luscher ? (
-          <p className="text-[14px] text-[#5F5E5E]">
-            SO: {scores.luscher.so.toFixed(1)} · VK: {scores.luscher.vk.toFixed(2)}
-          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <MetricTile
+              label="Суммарное отклонение (СО)"
+              value={scores.luscher.so.toFixed(1)}
+            />
+            <MetricTile
+              label="Вегетативный коэффициент (ВК)"
+              value={scores.luscher.vk.toFixed(2)}
+            />
+          </div>
         ) : (
           <p className={adminPanelMutedTextClass}>Нет данных по рангам цветов.</p>
         )}
       </ScoreSection>
 
-      <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-        <h3 className={adminPanelSectionTitleClass}>Розенцвейг — кодирование ответов</h3>
-        <div className="space-y-4">
-          {ROSENZWEIG_SITUATIONS.map((situation) => {
+      <div className={`space-y-5 px-6 py-6 sm:px-8 ${adminPanelCardClass}`}>
+        <div>
+          <h3 className={adminPanelSectionTitleClass}>Розенцвейг — кодирование ответов</h3>
+          <p className={`mt-1 ${adminPanelMutedTextClass}`}>
+            Направление: E — внешне, I — на себя, M — безлично. Реакция: OD — с фиксацией на
+            препятствии, ED — на самозащите, NP — на решении.
+          </p>
+          {codingSummary ? (
+            <p className="mt-2 text-[13px] font-semibold text-[#5F5E5E]">
+              Закодировано: {String(codingSummary.codedCount)} /{" "}
+              {String(codingSummary.totalSituations)}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-3">
+          {ROSENZWEIG_SITUATIONS.map((situation, index) => {
             const textAnswer = view.answers[situation.id];
             const entry = coding[situation.id];
             return (
               <div
                 key={situation.id}
-                className="rounded-2xl border border-black/8 bg-white/70 px-4 py-4"
+                className="rounded-2xl border border-black/8 bg-white/75 px-4 py-4 sm:px-5"
               >
-                <p className="text-[14px] font-bold text-[#5F5E5E]">{situation.text}</p>
-                <p className="mt-2 text-[13px] text-[#8C8C8C]">
+                <p className="text-[12px] font-bold uppercase tracking-wide text-[#8C8C8C]">
+                  Ситуация {String(index + 1)}
+                </p>
+                <p className="mt-1 text-[14px] font-bold leading-snug text-[#5F5E5E]">
+                  {situation.text}
+                </p>
+                <p className="mt-2 rounded-xl bg-[#F5F5F5] px-3 py-2 text-[13px] leading-relaxed text-[#5F5E5E]">
                   {typeof textAnswer === "string" && textAnswer.trim()
                     ? textAnswer
                     : "— ответ не заполнен —"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-4">
-                  <label className="text-[13px] text-[#5F5E5E]">
-                    Направление{" "}
+                  <label className="text-[13px] font-semibold text-[#5F5E5E]">
+                    Направление
                     <select
-                      className="ml-1 rounded-lg border border-black/10 px-2 py-1"
+                      className="ml-2 rounded-xl border border-black/10 bg-white px-3 py-1.5 font-medium"
                       value={entry?.direction ?? ""}
                       onChange={(event) =>
                         updateCoding(situation.id, {
@@ -240,15 +326,15 @@ export function AttestationReportViewer(): React.ReactElement {
                       }
                     >
                       <option value="">—</option>
-                      <option value="E">E</option>
-                      <option value="I">I</option>
-                      <option value="M">M</option>
+                      <option value="E">E — внешне</option>
+                      <option value="I">I — на себя</option>
+                      <option value="M">M — безлично</option>
                     </select>
                   </label>
-                  <label className="text-[13px] text-[#5F5E5E]">
-                    Реакция{" "}
+                  <label className="text-[13px] font-semibold text-[#5F5E5E]">
+                    Реакция
                     <select
-                      className="ml-1 rounded-lg border border-black/10 px-2 py-1"
+                      className="ml-2 rounded-xl border border-black/10 bg-white px-3 py-1.5 font-medium"
                       value={entry?.reaction ?? ""}
                       onChange={(event) =>
                         updateCoding(situation.id, {
@@ -257,9 +343,9 @@ export function AttestationReportViewer(): React.ReactElement {
                       }
                     >
                       <option value="">—</option>
-                      <option value="OD">OD</option>
-                      <option value="ED">ED</option>
-                      <option value="NP">NP</option>
+                      <option value="OD">OD — препятствие</option>
+                      <option value="ED">ED — самозащита</option>
+                      <option value="NP">NP — решение</option>
                     </select>
                   </label>
                 </div>
@@ -267,7 +353,8 @@ export function AttestationReportViewer(): React.ReactElement {
             );
           })}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+
+        <div className="flex flex-wrap items-center gap-3 border-t border-black/10 pt-4">
           <Button type="button" disabled={saving} onClick={() => void handleSaveCoding()}>
             {saving ? "Сохранение…" : "Сохранить кодирование"}
           </Button>
@@ -277,14 +364,6 @@ export function AttestationReportViewer(): React.ReactElement {
             </p>
           ) : null}
         </div>
-        {view.report.rosenzweigCodingSummary ? (
-          <div className="mt-4 text-[13px] text-[#5F5E5E]">
-            <p>
-              Закодировано: {String(view.report.rosenzweigCodingSummary.codedCount)} /{" "}
-              {String(view.report.rosenzweigCodingSummary.totalSituations)}
-            </p>
-          </div>
-        ) : null}
       </div>
     </div>
   );
@@ -292,14 +371,48 @@ export function AttestationReportViewer(): React.ReactElement {
 
 type ScoreSectionProps = {
   title: string;
+  hint?: string;
   children: React.ReactNode;
 };
 
-function ScoreSection({ title, children }: ScoreSectionProps): React.ReactElement {
+function ScoreSection({ title, hint, children }: ScoreSectionProps): React.ReactElement {
   return (
-    <div className={`px-6 py-5 ${adminPanelCardClass}`}>
-      <h3 className={`mb-3 ${adminPanelSectionTitleClass}`}>{title}</h3>
+    <section className={`px-6 py-5 sm:px-8 ${adminPanelCardClass}`}>
+      <h3 className={adminPanelSectionTitleClass}>{title}</h3>
+      {hint ? <p className={`mt-1 mb-4 ${adminPanelMutedTextClass}`}>{hint}</p> : <div className="mb-4" />}
       {children}
+    </section>
+  );
+}
+
+type MetricTileProps = {
+  label: string;
+  value: string;
+  band?: "low" | "mid" | "high";
+};
+
+function MetricTile({ label, value, band }: MetricTileProps): React.ReactElement {
+  return (
+    <div className="rounded-2xl border border-black/8 bg-white/75 px-4 py-3">
+      <p className="text-[13px] font-semibold leading-snug text-[#8C8C8C]">{label}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <p className="text-[22px] font-extrabold tabular-nums text-[#5F5E5E]">{value}</p>
+        {band ? <BandBadge band={band} /> : null}
+      </div>
     </div>
+  );
+}
+
+type BandBadgeProps = {
+  band: "low" | "mid" | "high";
+};
+
+function BandBadge({ band }: BandBadgeProps): React.ReactElement {
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-bold ${scoreBandBadgeClass(band)}`}
+    >
+      {scoreBandLabel(band)}
+    </span>
   );
 }
