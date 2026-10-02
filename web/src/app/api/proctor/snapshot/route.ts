@@ -72,7 +72,7 @@ export async function POST(
   const width = widthRaw ? Number.parseInt(widthRaw, 10) : null;
   const height = heightRaw ? Number.parseInt(heightRaw, 10) : null;
 
-  const verification = await verifyDisputedSnapshot(buffer, event.kind, event.clientFaceCount);
+  const verification = await verifyDisputedSnapshot(buffer, event.kind);
 
   const metadata = verification
     ? ({

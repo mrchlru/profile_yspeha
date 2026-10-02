@@ -30,8 +30,7 @@ let faceDetectorPromise: Promise<{
  */
 export async function verifyDisputedSnapshot(
   jpegBuffer: Buffer,
-  kind: ProctorEventKind,
-  clientFaceCount: number | null
+  kind: ProctorEventKind
 ): Promise<SnapshotVerificationResult | null> {
   try {
     const yolo = await analyzeSnapshotWithYolo(jpegBuffer);
@@ -39,7 +38,7 @@ export async function verifyDisputedSnapshot(
       serverFaceCount: yolo.personCount,
       serverPersonCount: yolo.personCount,
       serverPhoneCount: yolo.phoneCount,
-      serverVerified: _isViolationConfirmed(kind, yolo.personCount, clientFaceCount),
+      serverVerified: _isViolationConfirmed(kind, yolo.personCount),
       method: "yolov8",
       detections: yolo.detections.map((item) => ({
         label: item.label,
@@ -47,14 +46,13 @@ export async function verifyDisputedSnapshot(
       })),
     };
   } catch {
-    return _verifyWithMediaPipe(jpegBuffer, kind, clientFaceCount);
+    return _verifyWithMediaPipe(jpegBuffer, kind);
   }
 }
 
 async function _verifyWithMediaPipe(
   jpegBuffer: Buffer,
-  kind: ProctorEventKind,
-  clientFaceCount: number | null
+  kind: ProctorEventKind
 ): Promise<SnapshotVerificationResult | null> {
   try {
     const detector = await _getFaceDetector();
@@ -63,7 +61,7 @@ async function _verifyWithMediaPipe(
       serverFaceCount,
       serverPersonCount: serverFaceCount,
       serverPhoneCount: 0,
-      serverVerified: _isViolationConfirmed(kind, serverFaceCount, clientFaceCount),
+      serverVerified: _isViolationConfirmed(kind, serverFaceCount),
       method: "mediapipe_face",
     };
   } catch {
@@ -113,11 +111,7 @@ async function _loadFaceDetector(): Promise<{
   };
 }
 
-function _isViolationConfirmed(
-  kind: ProctorEventKind,
-  serverPersonCount: number,
-  _clientFaceCount: number | null
-): boolean {
+function _isViolationConfirmed(kind: ProctorEventKind, serverPersonCount: number): boolean {
   if (kind === PROCTOR_EVENT_FACE_MISSING) {
     return serverPersonCount === 0;
   }
