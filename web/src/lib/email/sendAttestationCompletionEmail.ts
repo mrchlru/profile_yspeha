@@ -15,6 +15,7 @@ import {
   parseRecipientEmailsFromEnv,
   smtpErrorLogFields,
 } from "@/lib/email/sendScreeningReportEmail";
+import { buildManagerAiConclusionText } from "@/lib/ai/renderManagerAiConclusion";
 import { escapeHtmlForPdf } from "@/lib/pdf/escapeHtml";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
@@ -23,6 +24,8 @@ export type AttestationCompletionEmailPayload = {
   sessionRef: string;
   fullName: string;
   scores: AttestationComputedScores;
+  conclusionText?: string | null;
+  managerActions?: string | null;
 };
 
 function resolveSmtpAuth(): { user: string; pass: string } | null {
@@ -163,6 +166,16 @@ export async function sendAttestationCompletionEmail(
       ? `SO ${scores.luscher.so.toFixed(1)}, VK ${scores.luscher.vk.toFixed(2)}`
       : "—";
 
+  const aiBlock =
+    payload.conclusionText || payload.managerActions
+      ? `<h2>Заключение ИИ</h2><pre style="white-space:pre-wrap;font-family:inherit;">${escapeHtmlForPdf(
+          buildManagerAiConclusionText(
+            payload.conclusionText ?? null,
+            payload.managerActions ?? null
+          )
+        )}</pre>`
+      : "";
+
   const html = `
     <h1>Аттестация завершена</h1>
     <p><strong>Сессия:</strong> ${safeSession}</p>
@@ -179,6 +192,7 @@ export async function sendAttestationCompletionEmail(
     <p>Лидирующий тип: ${escapeHtmlForPdf(_topKlimovType(scores.klimovDdo))}</p>
     <h2>Люшер</h2>
     <p>${escapeHtmlForPdf(luscherLine)}</p>
+    ${aiBlock}
     <p><em>Полный отчёт и кодирование Розенцвейга — в админ-панели «Результаты тестирования».</em></p>
   `;
 
@@ -209,6 +223,16 @@ export async function sendAttestationCompletionEmail(
     "",
     `Климов (топ): ${_topKlimovType(scores.klimovDdo)}`,
     `Люшер: ${luscherLine}`,
+    ...(payload.conclusionText || payload.managerActions
+      ? [
+          "",
+          "Заключение ИИ:",
+          buildManagerAiConclusionText(
+            payload.conclusionText ?? null,
+            payload.managerActions ?? null
+          ),
+        ]
+      : []),
   ];
 
   const sendStarted = Date.now();

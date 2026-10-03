@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
+import { AdminReportAiConclusionSection } from "@/components/admin/AdminReportAiConclusionSection";
+import { MiniIpipBigFiveSection } from "@/components/admin/MiniIpipBigFiveSection";
 import { Button } from "@/components/Button";
 import type { AttestationReportView } from "@/lib/admin/buildAttestationReportView";
 import {
@@ -15,8 +17,6 @@ import {
   CBI_SCALE_LABELS,
   KLIMOV_TYPE_LABELS,
   MANAGEMENT_POTENTIAL_SCALE_LABELS,
-  MINI_IPIP_FACTOR_LABELS,
-  MINI_IPIP_FACTOR_ORDER,
   SPIELBERGER_SCALE_LABELS,
   scoreBandBadgeClass,
   scoreBandLabel,
@@ -168,20 +168,17 @@ export function AttestationReportViewer(): React.ReactElement {
         </div>
       </header>
 
-      <ScoreSection
-        title="Личностный профиль (Big Five)"
-        hint="Mini-IPIP · баллы по факторам (диапазон 4–20)"
-      >
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {MINI_IPIP_FACTOR_ORDER.map((factor) => (
-            <MetricTile
-              key={factor}
-              label={MINI_IPIP_FACTOR_LABELS[factor]}
-              value={String(scores.miniIpip[factor])}
-            />
-          ))}
-        </div>
-      </ScoreSection>
+      <AdminReportAiConclusionSection
+        conclusionText={view.report.conclusionText}
+        managerActions={view.report.managerActions}
+        conclusionGeneratedAt={view.report.conclusionGeneratedAt}
+        folderKey={folderKey}
+        sessionId={sessionId}
+        generateApiPath="/api/admin/attestation-report/generate-ai"
+        onRegenerated={loadView}
+      />
+
+      <MiniIpipBigFiveSection scores={scores.miniIpip} />
 
       <ScoreSection
         title="Управленческий потенциал"

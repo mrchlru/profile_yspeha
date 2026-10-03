@@ -5,4 +5,7 @@ export type SpecialistScreeningReportJson = {
   scores: SpecialistScreeningScores;
   interpretation: SpecialistScreeningInterpretation | null;
   computedAt: string;
+  conclusionText: string | null;
+  managerActions: string | null;
+  conclusionGeneratedAt: string | null;
 };

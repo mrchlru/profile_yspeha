@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
+import { AdminReportAiConclusionSection } from "@/components/admin/AdminReportAiConclusionSection";
 import { Button } from "@/components/Button";
 import type { SpecialistScreeningReportView } from "@/lib/admin/buildSpecialistScreeningReportView";
 import {
@@ -24,34 +25,36 @@ export function SpecialistScreeningReportViewer(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const query = new URLSearchParams({ folderKey, sessionId });
-        const res = await fetch(
-          `/api/admin/specialist-screening-report/view?${query.toString()}`,
-          { cache: "no-store" }
-        );
-        const body = (await res.json()) as {
-          view?: SpecialistScreeningReportView;
-          error?: string;
-        };
-        if (!res.ok || !body.view) {
-          setError(body.error ?? "Не удалось загрузить отчёт.");
-          setView(null);
-          return;
-        }
-        setView(body.view);
-      } catch {
-        setError("Сеть недоступна. Попробуйте ещё раз.");
+  const loadView = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const query = new URLSearchParams({ folderKey, sessionId });
+      const res = await fetch(
+        `/api/admin/specialist-screening-report/view?${query.toString()}`,
+        { cache: "no-store" }
+      );
+      const body = (await res.json()) as {
+        view?: SpecialistScreeningReportView;
+        error?: string;
+      };
+      if (!res.ok || !body.view) {
+        setError(body.error ?? "Не удалось загрузить отчёт.");
         setView(null);
-      } finally {
-        setLoading(false);
+        return;
       }
-    })();
+      setView(body.view);
+    } catch {
+      setError("Сеть недоступна. Попробуйте ещё раз.");
+      setView(null);
+    } finally {
+      setLoading(false);
+    }
   }, [folderKey, sessionId]);
+
+  useEffect(() => {
+    void loadView();
+  }, [loadView]);
 
   if (loading) {
     return <p className={adminPanelMutedTextClass}>Загрузка отчёта…</p>;
@@ -97,6 +100,16 @@ export function SpecialistScreeningReportViewer(): React.ReactElement {
           ← К папке
         </Link>
       </div>
+
+      <AdminReportAiConclusionSection
+        conclusionText={view.conclusionText}
+        managerActions={view.managerActions}
+        conclusionGeneratedAt={view.conclusionGeneratedAt}
+        folderKey={folderKey}
+        sessionId={sessionId}
+        generateApiPath="/api/admin/specialist-screening-report/generate-ai"
+        onRegenerated={loadView}
+      />
 
       <div className={`rounded-2xl border px-6 py-5 ${verdictClass}`}>
         <h3 className="text-[18px] font-extrabold">{view.interpretation.verdictTitle}</h3>

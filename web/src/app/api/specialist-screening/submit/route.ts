@@ -14,8 +14,8 @@ import { buildSpecialistScreeningInterpretation } from "@/lib/specialistScreenin
 import type { SpecialistScreeningReportJson } from "@/lib/specialistScreening/specialistScreeningReportTypes";
 import type { SpecialistScreeningAnswers } from "@/lib/specialistScreening/specialistScreeningQuestions";
 import { formatMoscowNow } from "@/lib/datetime/moscowTime";
-import { sendSpecialistScreeningCompletionEmail } from "@/lib/email/sendSpecialistScreeningCompletionEmail";
 import { sendSpecialistScreeningUrgentAlertEmail } from "@/lib/email/sendSpecialistScreeningUrgentAlertEmail";
+import { runSpecialistScreeningSubmitAiPipeline } from "@/lib/specialistScreening/runSpecialistScreeningSubmitAiPipeline";
 import { smtpErrorLogFields } from "@/lib/email/sendScreeningReportEmail";
 import { finalizeProctorSessionIfNeeded } from "@/lib/proctor/buildProctorViolationsReport";
 import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServerLog";
@@ -99,6 +99,9 @@ export async function POST(
     scores,
     interpretation,
     computedAt: formatMoscowNow(),
+    conclusionText: null,
+    managerActions: null,
+    conclusionGeneratedAt: null,
   };
 
   const consentAt = new Date(payload.consentRecordedAt);
@@ -189,42 +192,26 @@ export async function POST(
     }
   }
 
-  const emailStarted = Date.now();
-  try {
-    if (interpretation === null) {
-      screeningServerLog("specialist_screening_submit", "email_skipped_no_interpretation", {
-        sessionRef,
-      });
-    } else {
-      const emailSent = await sendSpecialistScreeningCompletionEmail({
-        sessionId: payload.sessionId,
-        sessionRef,
-        fullName,
-        interpretation,
-      });
-      screeningServerLog("specialist_screening_submit", "email_finished", {
-        sessionRef,
-        sent: emailSent,
-        durationMs: Date.now() - emailStarted,
-      });
-    }
-  } catch (err) {
-    const smtpFields = smtpErrorLogFields(err);
-    screeningServerLog("specialist_screening_submit", "email_exception", {
-      sessionRef,
-      durationMs: Date.now() - emailStarted,
-      errorName: smtpFields.errorName,
-      errorMessage: smtpFields.errorMessage,
-      responseCode: smtpFields.responseCode ?? undefined,
-    });
-  }
-
   try {
     await finalizeProctorSessionIfNeeded(payload.sessionId, TEST_KIND_SPECIALIST_SCREENING);
   } catch (err) {
     screeningServerLog("specialist_screening_submit", "proctor_finalize_failed", {
       sessionRef,
       errorName: err instanceof Error ? err.name : "unknown",
+    });
+  }
+
+  if (interpretation !== null) {
+    void runSpecialistScreeningSubmitAiPipeline({
+      sessionId: payload.sessionId,
+      sessionRef,
+      fullName,
+      interpretation,
+      pipelineStartedAt: startedAt,
+    });
+  } else {
+    screeningServerLog("specialist_screening_submit", "pipeline_skipped_no_interpretation", {
+      sessionRef,
     });
   }
 

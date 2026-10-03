@@ -15,6 +15,9 @@ export type SpecialistScreeningReportView = {
   interpretation: SpecialistScreeningInterpretation;
   referralSuggested: boolean;
   phq9Item9Positive: boolean;
+  conclusionText: string | null;
+  managerActions: string | null;
+  conclusionGeneratedAt: string | null;
 };
 
 /**
@@ -53,6 +56,9 @@ export async function buildSpecialistScreeningReportView(
     interpretation: report.interpretation,
     referralSuggested: report.interpretation.referralSuggested,
     phq9Item9Positive: report.interpretation.phq9Item9Positive,
+    conclusionText: report.conclusionText ?? null,
+    managerActions: report.managerActions ?? null,
+    conclusionGeneratedAt: report.conclusionGeneratedAt ?? null,
   };
 }
 
@@ -77,11 +83,22 @@ function _resolveReport(
   if (stored && typeof stored === "object") {
     const report = stored as SpecialistScreeningReportJson;
     if (report.interpretation) {
-      return report;
+      return {
+        ...report,
+        conclusionText: report.conclusionText ?? null,
+        managerActions: report.managerActions ?? null,
+        conclusionGeneratedAt: report.conclusionGeneratedAt ?? null,
+      };
     }
     if (report.scores) {
       const interpretation = buildSpecialistScreeningInterpretation(report.scores);
-      return { ...report, interpretation };
+      return {
+        ...report,
+        interpretation,
+        conclusionText: report.conclusionText ?? null,
+        managerActions: report.managerActions ?? null,
+        conclusionGeneratedAt: report.conclusionGeneratedAt ?? null,
+      };
     }
   }
 
@@ -99,5 +116,8 @@ function _resolveReport(
     scores,
     interpretation,
     computedAt: formatMoscowDateTime(new Date()),
+    conclusionText: null,
+    managerActions: null,
+    conclusionGeneratedAt: null,
   };
 }
