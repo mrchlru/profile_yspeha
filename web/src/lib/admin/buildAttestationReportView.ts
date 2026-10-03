@@ -95,6 +95,9 @@ function _resolveReport(
       return {
         ...report,
         rosenzweigCodingSummary: report.rosenzweigCodingSummary ?? codingSummary,
+        conclusionText: report.conclusionText ?? null,
+        managerActions: report.managerActions ?? null,
+        conclusionGeneratedAt: report.conclusionGeneratedAt ?? null,
       };
     }
   }
@@ -104,5 +107,8 @@ function _resolveReport(
     scores,
     rosenzweigCodingSummary: codingSummary,
     computedAt: formatMoscowDateTime(new Date()),
+    conclusionText: null,
+    managerActions: null,
+    conclusionGeneratedAt: null,
   };
 }

@@ -10,8 +10,7 @@ import { computeAttestationScores } from "@/lib/attestation/computeAttestationSc
 import type { AttestationReportJson } from "@/lib/attestation/attestationReportTypes";
 import type { AttestationAnswers } from "@/lib/attestation/attestationQuestions";
 import { formatMoscowNow } from "@/lib/datetime/moscowTime";
-import { sendAttestationCompletionEmail } from "@/lib/email/sendAttestationCompletionEmail";
-import { smtpErrorLogFields } from "@/lib/email/sendScreeningReportEmail";
+import { runAttestationSubmitAiPipeline } from "@/lib/attestation/runAttestationSubmitAiPipeline";
 import { finalizeProctorSessionIfNeeded } from "@/lib/proctor/buildProctorViolationsReport";
 import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServerLog";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
@@ -89,6 +88,9 @@ export async function POST(
     scores,
     rosenzweigCodingSummary: null,
     computedAt: formatMoscowNow(),
+    conclusionText: null,
+    managerActions: null,
+    conclusionGeneratedAt: null,
   };
 
   const consentAt = new Date(payload.consentRecordedAt);
@@ -152,30 +154,6 @@ export async function POST(
 
   const fullName = `${assessee.lastNameDisplay} ${assessee.firstNameDisplay}`.trim();
 
-  const emailStarted = Date.now();
-  try {
-    const emailSent = await sendAttestationCompletionEmail({
-      sessionId: payload.sessionId,
-      sessionRef,
-      fullName,
-      scores,
-    });
-    screeningServerLog("attestation_submit", "email_finished", {
-      sessionRef,
-      sent: emailSent,
-      durationMs: Date.now() - emailStarted,
-    });
-  } catch (err) {
-    const smtpFields = smtpErrorLogFields(err);
-    screeningServerLog("attestation_submit", "email_exception", {
-      sessionRef,
-      durationMs: Date.now() - emailStarted,
-      errorName: smtpFields.errorName,
-      errorMessage: smtpFields.errorMessage,
-      responseCode: smtpFields.responseCode ?? undefined,
-    });
-  }
-
   try {
     await finalizeProctorSessionIfNeeded(payload.sessionId, TEST_KIND_ATTESTATION);
   } catch (err) {
@@ -184,6 +162,14 @@ export async function POST(
       errorName: err instanceof Error ? err.name : "unknown",
     });
   }
+
+  void runAttestationSubmitAiPipeline({
+    sessionId: payload.sessionId,
+    sessionRef,
+    fullName,
+    scores,
+    pipelineStartedAt: startedAt,
+  });
 
   screeningServerLog("attestation_submit", "success", {
     sessionRef,

@@ -6,6 +6,7 @@ import {
   parseRecipientEmailsFromEnv,
   smtpErrorLogFields,
 } from "@/lib/email/sendScreeningReportEmail";
+import { buildManagerAiConclusionText } from "@/lib/ai/renderManagerAiConclusion";
 import { escapeHtmlForPdf } from "@/lib/pdf/escapeHtml";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
@@ -14,6 +15,8 @@ export type SpecialistScreeningCompletionEmailPayload = {
   sessionRef: string;
   fullName: string;
   interpretation: SpecialistScreeningInterpretation;
+  conclusionText?: string | null;
+  managerActions?: string | null;
 };
 
 function resolveSmtpAuth(): { user: string; pass: string } | null {
@@ -114,6 +117,16 @@ export async function sendSpecialistScreeningCompletionEmail(
     .map((line) => `<li>${escapeHtmlForPdf(line)}</li>`)
     .join("");
 
+  const aiBlock =
+    payload.conclusionText || payload.managerActions
+      ? `<h2>Заключение ИИ</h2><pre style="white-space:pre-wrap;font-family:inherit;">${escapeHtmlForPdf(
+          buildManagerAiConclusionText(
+            payload.conclusionText ?? null,
+            payload.managerActions ?? null
+          )
+        )}</pre>`
+      : "";
+
   const html = `
     <h1>Новое прохождение «Скрининг депрессивных симптомов»</h1>
     <p><em>Конфиденциально.</em></p>
@@ -128,6 +141,7 @@ export async function sendSpecialistScreeningCompletionEmail(
       <li>ASRS: ${String(interpretation.asrs.score)}/6 — ${escapeHtmlForPdf(interpretation.asrs.levelLabel)}</li>
     </ul>
     ${recommendations ? `<h2>Рекомендации</h2><ul>${recommendations}</ul>` : ""}
+    ${aiBlock}
     <p><em>Полный отчёт доступен в админ-панели: «Результаты тестирования».</em></p>
   `;
 
@@ -144,6 +158,16 @@ export async function sendSpecialistScreeningCompletionEmail(
     `ASRS: ${String(interpretation.asrs.score)}/6 (${interpretation.asrs.levelLabel})`,
     "",
     ...interpretation.recommendationLines,
+    ...(payload.conclusionText || payload.managerActions
+      ? [
+          "",
+          "Заключение ИИ:",
+          buildManagerAiConclusionText(
+            payload.conclusionText ?? null,
+            payload.managerActions ?? null
+          ),
+        ]
+      : []),
   ];
 
   const sendStarted = Date.now();
