@@ -8,6 +8,7 @@ import {
   AdminBulkSelectionBar,
 } from "@/components/admin/AdminBulkSelectionBar";
 import { AdminSelectCheckbox } from "@/components/admin/AdminSelectCheckbox";
+import { AvProctorToggle } from "@/components/admin/AvProctorToggle";
 import { CandidateSearchPanel } from "@/components/admin/CandidateSearchPanel";
 import {
   INVITE_STATUS_ACTIVE,
@@ -467,7 +468,7 @@ export function InvitationsTable(): React.ReactElement {
               <th className="w-10 px-3 py-3" aria-label="Выбор" />
               <th className="px-4 py-3">Соискатель</th>
               <th className="px-4 py-3">Код</th>
-              <th className="px-4 py-3">Без камеры</th>
+              <th className="px-4 py-3">Камера</th>
               <th className="px-4 py-3">Тип теста</th>
               <th className="px-4 py-3">Уровень должности</th>
               <th className="px-4 py-3">Создан</th>
@@ -500,24 +501,23 @@ export function InvitationsTable(): React.ReactElement {
                   <td className="px-4 py-2 font-mono text-[13px] font-bold">{row.code}</td>
                   <td className="px-4 py-2 align-middle">
                     {row.canChangeAvProctor ? (
-                      <label className="inline-flex cursor-pointer items-center gap-2">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4"
-                          checked={row.avProctorDisabled}
-                          disabled={rowActionBusy}
-                          onChange={(event) => {
-                            void toggleAvProctor(row, event.target.checked);
-                          }}
-                        />
-                        <span className="text-[12px] font-medium text-[#5F5E5E]">
-                          {changingAvId === row.id ? "…" : row.avProctorDisabled ? "Да" : "Нет"}
-                        </span>
-                      </label>
+                      <AvProctorToggle
+                        compact
+                        avProctorDisabled={row.avProctorDisabled}
+                        disabled={rowActionBusy || changingAvId === row.id}
+                        aria-label={`Камера для кода ${row.code}`}
+                        onChange={(nextDisabled) => {
+                          void toggleAvProctor(row, nextDisabled);
+                        }}
+                      />
                     ) : (
-                      <span className="text-[13px] text-[#8C8C8C]">
-                        {row.avProctorDisabled ? "Да" : "Нет"}
-                      </span>
+                      <AvProctorToggle
+                        compact
+                        avProctorDisabled={row.avProctorDisabled}
+                        disabled
+                        aria-label={`Камера для кода ${row.code} (только просмотр)`}
+                        onChange={() => undefined}
+                      />
                     )}
                   </td>
                   <td className="px-4 py-2 align-middle">

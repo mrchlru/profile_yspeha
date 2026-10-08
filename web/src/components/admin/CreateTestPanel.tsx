@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/Button";
+import { AvProctorToggle } from "@/components/admin/AvProctorToggle";
 import {
   EmployeeInviteSelector,
   EMPTY_EMPLOYEE_INVITE,
@@ -450,23 +451,25 @@ export function CreateTestPanel(): React.ReactElement {
           ) : null}
 
           {isPanelUser && inviteUsesProctor ? (
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-sky-300/70 bg-sky-50 px-4 py-4">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4"
-                checked={avProctorDisabledInvite}
-                onChange={(event) => setAvProctorDisabledInvite(event.target.checked)}
+            <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-black/8 bg-white/70 px-4 py-4">
+              <AvProctorToggle
+                avProctorDisabled={avProctorDisabledInvite}
+                onChange={setAvProctorDisabledInvite}
+                aria-label="Камера и микрофон при прокторинге"
               />
-              <span>
-                <span className="block text-[14px] font-extrabold text-sky-950">
-                  Без камеры и микрофона
-                </span>
-                <span className="mt-1 block text-[13px] leading-relaxed text-sky-900">
-                  Контроль полноэкранного режима и вкладки сохраняется; видео- и аудионарушения не
-                  фиксируются.
-                </span>
-              </span>
-            </label>
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] font-extrabold text-[#5F5E5E]">
+                  {avProctorDisabledInvite
+                    ? "Камера и микрофон выключены"
+                    : "Камера и микрофон включены"}
+                </p>
+                <p className={`mt-1 ${adminPanelMutedTextClass}`}>
+                  {avProctorDisabledInvite
+                    ? "Контроль полноэкранного режима и вкладки сохраняется; видео и аудио не пишутся."
+                    : "Прокторинг с камерой и микрофоном. Переключите влево, чтобы отключить AV-защиту."}
+                </p>
+              </div>
+            </div>
           ) : null}
 
           {isFullAdmin ? (
