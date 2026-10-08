@@ -2,7 +2,7 @@
 
 import React, { useEffect } from "react";
 
-import { useProctorMonitorEnabled } from "@/hooks/useProctorIntro";
+import { useProctorSecurityEnabled } from "@/hooks/useProctorIntro";
 import { useProctorSecurity } from "@/hooks/useProctorSecurity";
 
 /**
@@ -10,7 +10,7 @@ import { useProctorSecurity } from "@/hooks/useProctorSecurity";
  * По образцу ExamSecurityGate из «Античит Код».
  */
 export function ProctorSecurityGate(): React.ReactElement | null {
-  const enabled = useProctorMonitorEnabled();
+  const enabled = useProctorSecurityEnabled();
   const { violationBanner, clearBanner, requestFullscreen, isFullscreen } =
     useProctorSecurity(enabled);
 

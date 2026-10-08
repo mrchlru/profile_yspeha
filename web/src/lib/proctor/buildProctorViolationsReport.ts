@@ -23,6 +23,8 @@ export type ProctorViolationsReportJson = {
   version: 1;
   sessionId: string;
   generatedAt: string;
+  /** Камера и микрофон прокторинга были отключены на приглашении. */
+  avProctorDisabled?: boolean;
   summary: {
     audioViolations: number;
     videoViolations: number;
@@ -54,6 +56,7 @@ export type ProctorViolationsSessionBlock = {
   testKind: string;
   testLabel: string;
   startedAtMsk: string;
+  avProctorDisabled: boolean;
   summary: ProctorViolationsReportJson["summary"];
   events: ReadonlyArray<ProctorViolationEventRow>;
   /** Полная аудиозапись прохождения (если загружена). */
@@ -67,6 +70,8 @@ export type ProctorViolationsReportView = {
   title: string;
   fullName: string;
   createdAt: string;
+  /** Хотя бы одна сессия проходила без камеры и микрофона. */
+  avProctorDisabled: boolean;
   summary: ProctorViolationsReportJson["summary"];
   /** Все нарушения по всем сессиям (плоский список). */
   events: ReadonlyArray<ProctorViolationEventRow>;
@@ -94,6 +99,8 @@ export async function buildProctorViolationsReportJson(
   if (session === null) {
     return null;
   }
+
+  const avProctorDisabled = session.avProctorDisabled === true;
 
   const events = session.events.map((event) => {
     const kind = event.kind as ProctorEventKind;
@@ -140,23 +147,18 @@ export async function buildProctorViolationsReportJson(
     sourceEventId: undefined,
   }));
 
-  const audioViolations = eventsWithSnapshots.filter((item) => item.category === "audio").length;
-  const videoViolations = eventsWithSnapshots.filter((item) => item.category === "video").length;
-  const securityViolations = eventsWithSnapshots.filter(
-    (item) => item.category === "security"
-  ).length;
+  const reportEvents = avProctorDisabled
+    ? _stripAvProctorReportEvents(eventsWithSnapshots)
+    : eventsWithSnapshots;
+  const summary = _summarizeProctorReportEvents(reportEvents);
 
   return {
     version: 1,
     sessionId,
     generatedAt: new Date().toISOString(),
-    summary: {
-      audioViolations,
-      videoViolations,
-      securityViolations,
-      totalViolations: eventsWithSnapshots.length,
-    },
-    events: eventsWithSnapshots.map((event) => ({
+    ...(avProctorDisabled ? { avProctorDisabled: true } : {}),
+    summary,
+    events: reportEvents.map((event) => ({
       id: event.id,
       kind: event.kind,
       kindLabel: event.kindLabel,
@@ -284,24 +286,21 @@ export async function buildProctorFolderViolationsReportView(
   }
 
   const sessionBlocks: ProctorViolationsSessionBlock[] = sessions.map((session) => {
-    const events = _mapSessionEvents(session.events);
-    const audioViolations = events.filter((item) => item.category === "audio").length;
-    const videoViolations = events.filter((item) => item.category === "video").length;
-    const securityViolations = events.filter((item) => item.category === "security").length;
+    const avDisabled = session.avProctorDisabled === true;
+    const rawEvents = _mapSessionEvents(session.events);
+    const events = avDisabled ? _stripAvProctorReportEvents(rawEvents) : rawEvents;
     return {
       sessionId: session.sessionId,
       testKind: session.testKind,
       testLabel: proctorTestLabel(session.testKind),
       startedAtMsk: formatMoscowDateTimeTable(session.createdAt),
-      summary: {
-        audioViolations,
-        videoViolations,
-        securityViolations,
-        totalViolations: events.length,
-      },
+      avProctorDisabled: avDisabled,
+      summary: _summarizeProctorReportEvents(events),
       events,
-      sessionRecordingId: session.sessionAudio?.id ?? null,
-      sessionRecordingDurationMs: session.sessionAudio?.durationMs ?? null,
+      sessionRecordingId: avDisabled ? null : (session.sessionAudio?.id ?? null),
+      sessionRecordingDurationMs: avDisabled
+        ? null
+        : (session.sessionAudio?.durationMs ?? null),
     };
   });
 
@@ -327,6 +326,7 @@ export async function buildProctorFolderViolationsReportView(
     title: "Отчёт по нарушениям",
     fullName,
     createdAt: (sessions.at(-1)?.endedAt ?? sessions.at(-1)?.createdAt ?? new Date()).toISOString(),
+    avProctorDisabled: sessionBlocks.some((block) => block.avProctorDisabled),
     summary,
     events: allEvents,
     sessions: sessionBlocks,
@@ -441,6 +441,7 @@ export async function buildProctorViolationsReportView(
       createdAt: true,
       endedAt: true,
       testKind: true,
+      avProctorDisabled: true,
       sessionAudio: { select: { id: true, durationMs: true } },
     },
   });
@@ -463,16 +464,26 @@ export async function buildProctorViolationsReportView(
     return null;
   }
 
-  const normalizedSummary = _normalizeViolationsSummary(report.summary);
+  const avProctorDisabled =
+    session.avProctorDisabled === true || report.avProctorDisabled === true;
+  const normalizedSummary = _normalizeViolationsSummary(
+    avProctorDisabled ? _summarizeProctorReportEvents(report.events) : report.summary
+  );
   const fullName = await _resolveProctorCandidateName("", sessionId);
-  const events = report.events.map((event) => ({ ...event, audioClipId: event.audioClipId ?? null }));
+  const rawEvents = report.events.map((event) => ({
+    ...event,
+    audioClipId: event.audioClipId ?? null,
+  }));
+  const events = avProctorDisabled ? _stripAvProctorReportEvents(rawEvents) : rawEvents;
+  const summary = avProctorDisabled ? _summarizeProctorReportEvents(events) : normalizedSummary;
 
   return {
     kind: "violations_report",
     title: "Отчёт по нарушениям",
     fullName,
     createdAt: (session.endedAt ?? session.createdAt).toISOString(),
-    summary: normalizedSummary,
+    avProctorDisabled,
+    summary,
     events,
     sessions: [
       {
@@ -480,18 +491,21 @@ export async function buildProctorViolationsReportView(
         testKind: session.testKind,
         testLabel: proctorTestLabel(session.testKind),
         startedAtMsk: formatMoscowDateTimeTable(session.createdAt),
-        summary: normalizedSummary,
+        avProctorDisabled,
+        summary,
         events,
-        sessionRecordingId: session.sessionAudio?.id ?? null,
-        sessionRecordingDurationMs: session.sessionAudio?.durationMs ?? null,
+        sessionRecordingId: avProctorDisabled ? null : (session.sessionAudio?.id ?? null),
+        sessionRecordingDurationMs: avProctorDisabled
+          ? null
+          : (session.sessionAudio?.durationMs ?? null),
       },
     ],
     testsWithViolations:
-      normalizedSummary.totalViolations > 0
+      summary.totalViolations > 0
         ? [
             {
               testLabel: proctorTestLabel(session.testKind),
-              totalViolations: normalizedSummary.totalViolations,
+              totalViolations: summary.totalViolations,
             },
           ]
         : [],
@@ -546,6 +560,41 @@ export const AUDIO_VIOLATION_KINDS: ReadonlyArray<ProctorEventKind> = [PROCTOR_E
 /**
  * Скрывает видеонарушения, которые сервер явно не подтвердил (ложные «2 лица» и т.п.).
  */
+function _stripAvProctorReportEvents(
+  events: ReadonlyArray<ProctorViolationEventRow>
+): ProctorViolationEventRow[] {
+  return events
+    .filter((event) => {
+      const category = proctorEventCategory(event.kind);
+      return category === "security" || category === "identity";
+    })
+    .map((event) => ({
+      ...event,
+      snapshotId: null,
+      audioClipId: null,
+      clientFaceCount: null,
+      serverFaceCount: null,
+      serverPersonCount: null,
+      serverPhoneCount: null,
+      serverVerified: null,
+      serverMethod: null,
+    }));
+}
+
+function _summarizeProctorReportEvents(
+  events: ReadonlyArray<ProctorViolationEventRow>
+): ProctorViolationsReportJson["summary"] {
+  const audioViolations = events.filter((item) => item.category === "audio").length;
+  const videoViolations = events.filter((item) => item.category === "video").length;
+  const securityViolations = events.filter((item) => item.category === "security").length;
+  return {
+    audioViolations,
+    videoViolations,
+    securityViolations,
+    totalViolations: events.length,
+  };
+}
+
 function _isReportableProctorEvent(event: {
   kind: ProctorEventKind;
   serverVerified: boolean | null;

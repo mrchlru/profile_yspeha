@@ -59,43 +59,45 @@ export function SpecialistScreeningScalesSection({
       </p>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
-        <div className="h-[280px] w-full rounded-2xl border border-black/8 bg-white/75 px-3 py-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              layout="vertical"
-              margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
-            >
-              <CartesianGrid
-                stroke={DASHBOARD_CHART_COLORS.grid}
-                strokeDasharray="3 3"
-                horizontal={false}
-              />
-              <XAxis
-                type="number"
-                domain={[0, 100]}
-                tick={{ fill: DASHBOARD_CHART_COLORS.textMuted, fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(value: number) => `${String(value)}%`}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                width={64}
-                tick={{ fill: DASHBOARD_CHART_COLORS.text, fontSize: 12, fontWeight: 700 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip content={<ScaleTooltip />} />
-              <Bar dataKey="percent" radius={[0, 8, 8, 0]} maxBarSize={28} isAnimationActive>
-                {chartData.map((entry) => (
-                  <Cell key={entry.name} fill={entry.fill} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-          <p className="mt-1 text-center text-[11px] font-semibold text-[#8C8C8C]">
+        <div className="flex min-h-[320px] w-full flex-col rounded-2xl border border-black/8 bg-white/75 px-3 pb-5 pt-4">
+          <div className="min-h-0 w-full flex-1" style={{ height: 248 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 8, right: 16, left: 8, bottom: 8 }}
+              >
+                <CartesianGrid
+                  stroke={DASHBOARD_CHART_COLORS.grid}
+                  strokeDasharray="3 3"
+                  horizontal={false}
+                />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  tick={{ fill: DASHBOARD_CHART_COLORS.textMuted, fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value: number) => `${String(value)}%`}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={64}
+                  tick={{ fill: DASHBOARD_CHART_COLORS.text, fontSize: 12, fontWeight: 700 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip content={<ScaleTooltip />} />
+                <Bar dataKey="percent" radius={[0, 8, 8, 0]} maxBarSize={28} isAnimationActive>
+                  {chartData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="mt-3 text-center text-[11px] font-semibold text-[#8C8C8C]">
             Доля от максимума шкалы · янтарный — выше порога внимания
           </p>
         </div>

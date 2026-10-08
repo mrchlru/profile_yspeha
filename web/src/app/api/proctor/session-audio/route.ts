@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { requireProctorAccess } from "@/lib/proctor/requireProctorAccess";
+import { upsertProctorSessionRow } from "@/lib/proctor/upsertProctorSessionRow";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -34,17 +35,16 @@ export async function POST(
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
+  if (access.avProctorDisabled) {
+    return NextResponse.json({ ok: true });
+  }
 
-  const proctorSession = await prisma.proctorSession.upsert({
-    where: { sessionId },
-    create: {
-      sessionId,
-      accessCode,
-      candidateFolderKey: access.candidateFolderKey,
-      testKind: access.testKind,
-    },
-    update: {},
-    select: { id: true },
+  const proctorSession = await upsertProctorSessionRow({
+    sessionId,
+    accessCode,
+    candidateFolderKey: access.candidateFolderKey,
+    testKind: access.testKind,
+    avProctorDisabled: access.avProctorDisabled,
   });
 
   const buffer = Buffer.from(await file.arrayBuffer());

@@ -306,6 +306,8 @@ model AccessInvite {
   auditBatteryStepOrder Json?     @map("audit_battery_step_order")
   /** Техническое приглашение: свободная навигация по шагам, dev-отчёт (только для главного админа). */
   devMode               Boolean   @default(false) @map("dev_mode")
+  /** Без камеры и микрофона: только контроль полноэкранного режима и вкладки. */
+  avProctorDisabled     Boolean   @default(false) @map("av_proctor_disabled")
 
   @@index([candidateFolderKey], map: "access_invite_candidate_folder_idx")
   @@index([interviewFolderKey], map: "access_invite_interview_folder_idx")
@@ -473,6 +475,8 @@ model ProctorSession {
   accessCode         String  @map("access_code")
   candidateFolderKey String? @map("candidate_folder_key")
   testKind           String  @map("test_kind")
+  /** Снимок флага приглашения: отчёт без видео/аудио нарушений. */
+  avProctorDisabled  Boolean @default(false) @map("av_proctor_disabled")
 
   reportJson Json? @map("report_json")
 

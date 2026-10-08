@@ -101,6 +101,8 @@ type FormStore = {
   activeTestKind: TestKind | null;
   /** DEV-режим приглашения (панель шагов, текстовый отчёт). */
   activeInviteDevMode: boolean;
+  /** На приглашении отключены камера и микрофон прокторинга. */
+  activeInviteAvProctorDisabled: boolean;
   /** Имя и фамилия из карточки приглашения (если заданы при создании кода). */
   inviteCandidateFirstName: string | null;
   inviteCandidateLastName: string | null;
@@ -138,6 +140,7 @@ type FormStore = {
     testKind: TestKind,
     options?: {
       devMode?: boolean;
+      avProctorDisabled?: boolean;
       candidateFirstName?: string | null;
       candidateLastName?: string | null;
     }
@@ -201,6 +204,7 @@ export const useFormStore = create<FormStore>()(
       validatedAccessCode: null,
       activeTestKind: null,
       activeInviteDevMode: false,
+      activeInviteAvProctorDisabled: false,
       inviteCandidateFirstName: null,
       inviteCandidateLastName: null,
 
@@ -238,6 +242,7 @@ export const useFormStore = create<FormStore>()(
           validatedAccessCode: code,
           activeTestKind: testKind,
           activeInviteDevMode: options?.devMode === true,
+          activeInviteAvProctorDisabled: options?.avProctorDisabled === true,
           inviteCandidateFirstName: options?.candidateFirstName?.trim() || null,
           inviteCandidateLastName: options?.candidateLastName?.trim() || null,
         }),
@@ -246,6 +251,7 @@ export const useFormStore = create<FormStore>()(
           validatedAccessCode: null,
           activeTestKind: null,
           activeInviteDevMode: false,
+          activeInviteAvProctorDisabled: false,
           inviteCandidateFirstName: null,
           inviteCandidateLastName: null,
         }),
@@ -306,6 +312,7 @@ export const useFormStore = create<FormStore>()(
           validatedAccessCode: null,
           activeTestKind: null,
           activeInviteDevMode: false,
+          activeInviteAvProctorDisabled: false,
           inviteCandidateFirstName: null,
           inviteCandidateLastName: null,
           proctorMediaGranted: false,
@@ -466,6 +473,7 @@ export const useFormStore = create<FormStore>()(
         validatedAccessCode: state.validatedAccessCode,
         activeTestKind: state.activeTestKind,
         activeInviteDevMode: state.activeInviteDevMode,
+        activeInviteAvProctorDisabled: state.activeInviteAvProctorDisabled,
         inviteCandidateFirstName: state.inviteCandidateFirstName,
         inviteCandidateLastName: state.inviteCandidateLastName,
         proctorMediaGranted: state.proctorMediaGranted,

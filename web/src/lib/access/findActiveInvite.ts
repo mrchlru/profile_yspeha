@@ -9,6 +9,7 @@ export type AccessInviteCheckResult =
       code: string;
       testKind: TestKind;
       devMode: boolean;
+      avProctorDisabled: boolean;
       candidateFirstName: string | null;
       candidateLastName: string | null;
       /** Код формально истёк, но прохождение уже начато — submit/sync разрешены. */
@@ -23,6 +24,7 @@ export type AccessInviteOkDetails = {
   code: string;
   testKind: TestKind;
   devMode: boolean;
+  avProctorDisabled: boolean;
   candidateFirstName: string | null;
   candidateLastName: string | null;
 };
@@ -44,6 +46,7 @@ export async function checkAccessInvite(
       code: true,
       testKind: true,
       devMode: true,
+      avProctorDisabled: true,
       candidateFirstName: true,
       candidateLastName: true,
       revokedAt: true,
@@ -73,6 +76,7 @@ export async function checkAccessInvite(
     code: row.code,
     testKind: row.testKind,
     devMode: row.devMode,
+    avProctorDisabled: row.avProctorDisabled,
     candidateFirstName: row.candidateFirstName,
     candidateLastName: row.candidateLastName,
   };
@@ -97,6 +101,7 @@ export async function checkAccessInviteForStartedAudit(
       code: true,
       testKind: true,
       devMode: true,
+      avProctorDisabled: true,
       candidateFirstName: true,
       candidateLastName: true,
       startedAt: true,
@@ -123,6 +128,7 @@ export async function checkAccessInviteForStartedAudit(
     code: row.code,
     testKind: row.testKind,
     devMode: row.devMode,
+    avProctorDisabled: row.avProctorDisabled,
     candidateFirstName: row.candidateFirstName,
     candidateLastName: row.candidateLastName,
     expiredButStarted: true,
@@ -141,6 +147,7 @@ export async function loadActiveInviteDetails(
     code: result.code,
     testKind: result.testKind,
     devMode: result.devMode,
+    avProctorDisabled: result.avProctorDisabled,
     candidateFirstName: result.candidateFirstName,
     candidateLastName: result.candidateLastName,
   };
@@ -151,7 +158,7 @@ export async function loadActiveInviteDetails(
  */
 export async function findActiveInviteByCode(
   rawCode: string
-): Promise<{ code: string; testKind: TestKind; devMode: boolean } | null> {
+): Promise<{ code: string; testKind: TestKind; devMode: boolean; avProctorDisabled: boolean } | null> {
   const result = await checkAccessInvite(rawCode);
   if (result.status !== "ok") {
     return null;
@@ -160,5 +167,6 @@ export async function findActiveInviteByCode(
     code: result.code,
     testKind: result.testKind,
     devMode: result.devMode,
+    avProctorDisabled: result.avProctorDisabled,
   };
 }

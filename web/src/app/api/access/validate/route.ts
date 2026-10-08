@@ -24,6 +24,7 @@ export async function POST(
         testKind: string;
         auditBatteryStepOrder?: number[];
         devMode?: boolean;
+        avProctorDisabled?: boolean;
         candidateFirstName?: string;
         candidateLastName?: string;
       }
@@ -94,6 +95,7 @@ export async function POST(
       testKind: invite.testKind,
       auditBatteryStepOrder,
       devMode: invite.devMode,
+      avProctorDisabled: invite.avProctorDisabled,
       ...(invite.candidateFirstName
         ? { candidateFirstName: invite.candidateFirstName }
         : {}),
@@ -104,6 +106,7 @@ export async function POST(
   return NextResponse.json({
     testKind: invite.testKind,
     devMode: invite.devMode,
+    avProctorDisabled: invite.avProctorDisabled,
     ...(invite.candidateFirstName ? { candidateFirstName: invite.candidateFirstName } : {}),
     ...(invite.candidateLastName ? { candidateLastName: invite.candidateLastName } : {}),
   });

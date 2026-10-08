@@ -40,6 +40,9 @@ export async function POST(
   if (!access.ok) {
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
+  if (access.avProctorDisabled) {
+    return NextResponse.json({ ok: true, violations: [] });
+  }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   if (buffer.length === 0 || buffer.length > MAX_SNAPSHOT_BYTES) {

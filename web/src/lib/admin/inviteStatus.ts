@@ -59,6 +59,14 @@ export function inviteCanChangeTestKind(row: {
   return row.startedAt == null && row.usedAt == null && row.revokedAt == null;
 }
 
+/** Флаг «без камеры/микрофона» можно менять, пока код не использован и не отозван. */
+export function inviteCanChangeAvProctor(row: {
+  usedAt?: Date | string | null;
+  revokedAt?: Date | string | null;
+}): boolean {
+  return row.usedAt == null && row.revokedAt == null;
+}
+
 /**
  * Человекочитаемое название типа теста для админ-панели.
  */

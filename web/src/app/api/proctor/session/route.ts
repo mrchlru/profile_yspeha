@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { normalizeAccessCode } from "@/lib/access/accessCode";
 import { proctorSessionBodySchema } from "@/lib/proctor/proctorValidation";
 import { requireProctorAccess } from "@/lib/proctor/requireProctorAccess";
-import { prisma } from "@/lib/prisma";
+import { upsertProctorSessionRow } from "@/lib/proctor/upsertProctorSessionRow";
 
 export const dynamic = "force-dynamic";
 
@@ -31,17 +30,12 @@ export async function POST(
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  await prisma.proctorSession.upsert({
-    where: { sessionId },
-    create: {
-      sessionId,
-      accessCode: normalizeAccessCode(accessCode),
-      candidateFolderKey: access.candidateFolderKey,
-      testKind: access.testKind,
-    },
-    update: {
-      candidateFolderKey: access.candidateFolderKey ?? undefined,
-    },
+  await upsertProctorSessionRow({
+    sessionId,
+    accessCode,
+    candidateFolderKey: access.candidateFolderKey,
+    testKind: access.testKind,
+    avProctorDisabled: access.avProctorDisabled,
   });
 
   return NextResponse.json({ ok: true });

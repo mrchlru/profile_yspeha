@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { Prisma } from "@/generated/prisma/client";
-import { normalizeAccessCode } from "@/lib/access/accessCode";
 import {
   PROCTOR_EVENT_FACE_MISSING,
   PROCTOR_EVENT_GAZE_AWAY,
   PROCTOR_EVENT_MULTIPLE_FACES,
+  proctorEventCategory,
   type ProctorEventKind,
 } from "@/lib/proctor/proctorEventKinds";
 import { proctorEventsBodySchema } from "@/lib/proctor/proctorValidation";
 import { requireProctorAccess } from "@/lib/proctor/requireProctorAccess";
+import { upsertProctorSessionRow } from "@/lib/proctor/upsertProctorSessionRow";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -44,16 +45,12 @@ export async function POST(
     return NextResponse.json({ error: access.error }, { status: access.status });
   }
 
-  const session = await prisma.proctorSession.upsert({
-    where: { sessionId },
-    create: {
-      sessionId,
-      accessCode: normalizeAccessCode(accessCode),
-      candidateFolderKey: access.candidateFolderKey,
-      testKind: access.testKind,
-    },
-    update: {},
-    select: { id: true },
+  const session = await upsertProctorSessionRow({
+    sessionId,
+    accessCode,
+    candidateFolderKey: access.candidateFolderKey,
+    testKind: access.testKind,
+    avProctorDisabled: access.avProctorDisabled,
   });
 
   const responses: EventResponse[] = [];
@@ -61,6 +58,9 @@ export async function POST(
   for (const event of events) {
     const occurredAt = new Date(event.occurredAt);
     const kind = event.kind as ProctorEventKind;
+    if (access.avProctorDisabled && !_eventAllowedWhenAvProctorDisabled(kind)) {
+      continue;
+    }
     const created = await prisma.proctorEvent.create({
       data: {
         proctorSessionId: session.id,
@@ -75,11 +75,16 @@ export async function POST(
     responses.push({
       clientEventId: event.clientEventId,
       serverEventId: created.id,
-      needsSnapshot: _needsSnapshot(kind),
+      needsSnapshot: !access.avProctorDisabled && _needsSnapshot(kind),
     });
   }
 
   return NextResponse.json({ ok: true, events: responses });
+}
+
+function _eventAllowedWhenAvProctorDisabled(kind: ProctorEventKind): boolean {
+  const category = proctorEventCategory(kind);
+  return category === "security" || category === "identity";
 }
 
 function _needsSnapshot(kind: ProctorEventKind): boolean {
