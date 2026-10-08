@@ -7,6 +7,7 @@ import {
 } from "@/lib/admin/candidateSearch";
 import {
   computeInviteStatus,
+  inviteCanChangeAvProctor,
   inviteCanChangeTestKind,
   inviteTestKindLabel,
   INVITE_STATUS_LABELS,
@@ -35,6 +36,8 @@ export async function GET(
           testKind: string;
           testKindLabel: string;
           canChangeTestKind: boolean;
+          avProctorDisabled: boolean;
+          canChangeAvProctor: boolean;
           candidateDisplayName: string | null;
           positionLevelLabel: string | null;
           createdAt: string;
@@ -81,6 +84,7 @@ export async function GET(
       candidateMiddleName: true,
       candidateBirthDate: true,
       candidatePositionLevel: true,
+      avProctorDisabled: true,
     },
   });
 
@@ -117,6 +121,8 @@ export async function GET(
           testKind: row.testKind,
           testKindLabel: inviteTestKindLabel(row.testKind),
           canChangeTestKind: inviteCanChangeTestKind(row),
+          avProctorDisabled: row.avProctorDisabled,
+          canChangeAvProctor: inviteCanChangeAvProctor(row),
           candidateDisplayName,
           positionLevelLabel,
           createdAt: row.createdAt.toISOString(),

@@ -15,6 +15,7 @@ import { getAuditBatteryForTestKind } from "@/lib/audit/auditBatteries";
 import { tryScheduleBurnoutReminderFromInvite } from "@/lib/burnout/tryScheduleBurnoutReminder";
 import { runDueBurnoutRemindersInBackground } from "@/lib/burnout/runDueBurnoutRemindersInBackground";
 import { requireAdminPanelSession, requireFullAdminSession } from "@/lib/admin/requireAdminApi";
+import { listChangeableInviteTestKinds } from "@/lib/admin/adminTestCatalog";
 import { prisma } from "@/lib/prisma";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
@@ -56,6 +57,16 @@ export async function POST(
     return NextResponse.json({ error: "Некорректные данные" }, { status: 400 });
   }
 
+  if (!listChangeableInviteTestKinds().includes(parsed.data.testKind)) {
+    screeningServerLog("admin_access_invite", "test_kind_disabled", {
+      testKind: parsed.data.testKind,
+    });
+    return NextResponse.json(
+      { error: "Этот тип тестирования больше недоступен для новых приглашений" },
+      { status: 400 }
+    );
+  }
+
   if (parsed.data.devMode === true) {
     const fullAdmin = await requireFullAdminSession(req);
     if (!fullAdmin.ok) {
@@ -94,6 +105,7 @@ export async function POST(
           expiresAt,
           auditBatteryStepOrder,
           devMode: parsed.data.devMode === true,
+          avProctorDisabled: parsed.data.avProctorDisabled === true,
           candidateLastName: inviteCandidate?.lastName,
           candidateFirstName: inviteCandidate?.firstName,
           candidateMiddleName: inviteCandidate?.middleName,

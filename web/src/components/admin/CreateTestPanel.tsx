@@ -17,17 +17,16 @@ import {
 } from "@/components/admin/InterviewFolderSelector";
 import { ADMIN_TEST_CATALOG_ID_SCREENING, ADMIN_TEST_CATALOG } from "@/lib/admin/adminTestCatalog";
 import {
-  adminPanelBadgeReadyClass,
-  adminPanelBadgeSoonClass,
   adminPanelCardClass,
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
 import { CANDIDATE_POSITION_LEVEL_OPTIONS } from "@/lib/admin/candidatePositionLevels";
 import type { CandidateLookupMatch } from "@/lib/admin/candidateFolderTypes";
-import { buildInviteCopyMessage, screeningEntryUrl } from "@/lib/access/inviteMessage";
+import { buildInviteCopyMessage, inviteEntryUrl } from "@/lib/access/inviteMessage";
 import { formatInviteValidThroughRu } from "@/lib/access/inviteValidity";
 import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
+import { isProctorTestKind } from "@/lib/access/testKinds";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import {
@@ -36,6 +35,7 @@ import {
   stepNavPrimaryButtonClass,
 } from "@/lib/stepPageTheme";
 
+const CREATABLE_TEST_CATALOG = ADMIN_TEST_CATALOG.filter((item) => item.available);
 type ScreeningCandidateForm = {
   lastName: string;
   firstName: string;
@@ -58,8 +58,11 @@ const EMPTY_CANDIDATE: ScreeningCandidateForm = {
 export function CreateTestPanel(): React.ReactElement {
   const { session } = useAdminSession();
   const isFullAdmin = session.status === "authenticated" && session.role === ADMIN_ROLE_ADMIN;
+  const isPanelUser = session.status === "authenticated";
   const [origin, setOrigin] = useState("");
-  const [selectedId, setSelectedId] = useState(ADMIN_TEST_CATALOG[0]?.id ?? "screening");
+  const [selectedId, setSelectedId] = useState(
+    CREATABLE_TEST_CATALOG[0]?.id ?? ADMIN_TEST_CATALOG_ID_SCREENING
+  );
   const [candidate, setCandidate] = useState<ScreeningCandidateForm>(EMPTY_CANDIDATE);
   const [employeeInvite, setEmployeeInvite] =
     useState<EmployeeInviteSelection>(EMPTY_EMPLOYEE_INVITE);
@@ -75,12 +78,15 @@ export function CreateTestPanel(): React.ReactElement {
   const [copied, setCopied] = useState(false);
   const [duplicateMatch, setDuplicateMatch] = useState<CandidateLookupMatch | null>(null);
   const [devModeInvite, setDevModeInvite] = useState(false);
+  const [avProctorDisabledInvite, setAvProctorDisabledInvite] = useState(false);
   const [issuedDevMode, setIssuedDevMode] = useState(false);
   const debouncedCandidate = useDebouncedValue(candidate, 400);
 
   const selected = ADMIN_TEST_CATALOG.find((item) => item.id === selectedId) ?? null;
   const isScreening = selectedId === ADMIN_TEST_CATALOG_ID_SCREENING;
   const supportsEmployeePick = Boolean(selected?.supportsEmployeePick);
+  const inviteUsesProctor =
+    selected?.inviteTestKind !== undefined && isProctorTestKind(selected.inviteTestKind);
 
   const screeningReady =
     candidate.lastName.trim().length > 0 &&
@@ -108,6 +114,7 @@ export function CreateTestPanel(): React.ReactElement {
     setEmployeeInvite(EMPTY_EMPLOYEE_INVITE);
     setInterviewFolder(EMPTY_INTERVIEW_FOLDER_SELECTION);
     setDevModeInvite(false);
+    setAvProctorDisabledInvite(false);
   }, [selectedId]);
 
   useEffect(() => {
@@ -118,7 +125,7 @@ export function CreateTestPanel(): React.ReactElement {
     setIssuedDevMode(false);
     setCopied(false);
     setError(null);
-  }, [candidate, employeeInvite, interviewFolder, selectedId, devModeInvite]);
+  }, [candidate, employeeInvite, interviewFolder, selectedId, devModeInvite, avProctorDisabledInvite]);
 
   useEffect(() => {
     if (!isScreening) {
@@ -159,7 +166,13 @@ export function CreateTestPanel(): React.ReactElement {
     void lookup();
   }, [debouncedCandidate, isScreening]);
 
-  const serviceLink = useMemo(() => screeningEntryUrl(origin || "https://example.com"), [origin]);
+  const serviceLink = useMemo(() => {
+    const base = origin || "https://example.com";
+    if (issuedCode) {
+      return inviteEntryUrl(base, issuedCode);
+    }
+    return inviteEntryUrl(base, "");
+  }, [origin, issuedCode]);
 
   const message = useMemo(() => {
     if (!issuedCode || !origin || !issuedExpiresAt) {
@@ -206,6 +219,9 @@ export function CreateTestPanel(): React.ReactElement {
       if (devModeInvite) {
         body.devMode = true;
       }
+      if (avProctorDisabledInvite) {
+        body.avProctorDisabled = true;
+      }
 
       return body;
     }
@@ -219,6 +235,7 @@ export function CreateTestPanel(): React.ReactElement {
             ? { positionLevelOverride: employeeInvite.candidate.positionLevel }
             : {}),
           ...(devModeInvite ? { devMode: true } : {}),
+          ...(avProctorDisabledInvite ? { avProctorDisabled: true } : {}),
         };
       }
 
@@ -231,12 +248,14 @@ export function CreateTestPanel(): React.ReactElement {
           positionLevel: employeeInvite.candidate.positionLevel,
         },
         ...(devModeInvite ? { devMode: true } : {}),
+        ...(avProctorDisabledInvite ? { avProctorDisabled: true } : {}),
       };
     }
 
     return {
       testKind: selected.inviteTestKind,
       ...(devModeInvite ? { devMode: true } : {}),
+      ...(avProctorDisabledInvite ? { avProctorDisabled: true } : {}),
     };
   }
 
@@ -302,7 +321,7 @@ export function CreateTestPanel(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div className="grid gap-4 lg:grid-cols-2">
-        {ADMIN_TEST_CATALOG.map((item) => {
+        {CREATABLE_TEST_CATALOG.map((item) => {
           const selectedCard = item.id === selectedId;
           return (
             <button
@@ -315,9 +334,6 @@ export function CreateTestPanel(): React.ReactElement {
             >
               <div className="flex items-start justify-between gap-3">
                 <h2 className={adminPanelSectionTitleClass}>{item.title}</h2>
-                <span className={item.available ? adminPanelBadgeReadyClass : adminPanelBadgeSoonClass}>
-                  {item.available ? "Доступен" : "Скоро"}
-                </span>
               </div>
               <p className={`mt-3 ${adminPanelMutedTextClass}`}>{item.description}</p>
             </button>
@@ -431,6 +447,26 @@ export function CreateTestPanel(): React.ReactElement {
 
           {supportsEmployeePick ? (
             <EmployeeInviteSelector value={employeeInvite} onChange={setEmployeeInvite} />
+          ) : null}
+
+          {isPanelUser && inviteUsesProctor ? (
+            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-sky-300/70 bg-sky-50 px-4 py-4">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={avProctorDisabledInvite}
+                onChange={(event) => setAvProctorDisabledInvite(event.target.checked)}
+              />
+              <span>
+                <span className="block text-[14px] font-extrabold text-sky-950">
+                  Без камеры и микрофона
+                </span>
+                <span className="mt-1 block text-[13px] leading-relaxed text-sky-900">
+                  Контроль полноэкранного режима и вкладки сохраняется; видео- и аудионарушения не
+                  фиксируются.
+                </span>
+              </span>
+            </label>
           ) : null}
 
           {isFullAdmin ? (

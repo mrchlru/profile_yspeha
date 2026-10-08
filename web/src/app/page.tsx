@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
 import { StepLayout } from "@/components/StepLayout";
 import {
@@ -25,8 +25,28 @@ import { useFormStore } from "@/store/useFormStore";
 import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useFormStoreHydrated } from "@/hooks/useAccessGate";
 
+/**
+ * Страница ввода кода доступа (поддерживает `/?code=…`).
+ */
 export default function AccessPage(): React.ReactElement {
+  return (
+    <Suspense
+      fallback={
+        <StepLayout>
+          <div className="flex flex-1 items-center justify-center px-4 text-[18px] text-[#5F5E5E]">
+            Загрузка…
+          </div>
+        </StepLayout>
+      }
+    >
+      <AccessPageContent />
+    </Suspense>
+  );
+}
+
+function AccessPageContent(): React.ReactElement {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const hydrated = useFormStoreHydrated();
   const sessionId = useFormStore((s) => s.sessionId);
   useScreeningStepLog("access", sessionId);
@@ -36,9 +56,17 @@ export default function AccessPage(): React.ReactElement {
   const setValidatedAccess = useFormStore((s) => s.setValidatedAccess);
   const setBatteryStepSequence = useAuditFormStore((s) => s.setBatteryStepSequence);
 
-  const [rawCode, setRawCode] = useState("");
+  const codeFromQuery = normalizeAccessCode(searchParams.get("code") ?? "");
+  const [rawCode, setRawCode] = useState(codeFromQuery);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoSubmitDoneRef = useRef(false);
+
+  useEffect(() => {
+    if (codeFromQuery.length >= 8) {
+      setRawCode(codeFromQuery);
+    }
+  }, [codeFromQuery]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -65,9 +93,9 @@ export default function AccessPage(): React.ReactElement {
     }
   }, [activeTestKind, hydrated, validatedAccessCode, router]);
 
-  async function handleSubmit(): Promise<void> {
+  async function submitCode(codeInput: string): Promise<void> {
     setError(null);
-    const code = normalizeAccessCode(rawCode);
+    const code = normalizeAccessCode(codeInput);
     if (code.length < 8) {
       setError("Введите код полностью.");
       return;
@@ -83,6 +111,7 @@ export default function AccessPage(): React.ReactElement {
         testKind?: string;
         auditBatteryStepOrder?: number[];
         devMode?: boolean;
+        avProctorDisabled?: boolean;
         candidateFirstName?: string;
         candidateLastName?: string;
         error?: string;
@@ -103,6 +132,7 @@ export default function AccessPage(): React.ReactElement {
       }
       setValidatedAccess(code, kind, {
         devMode: body.devMode === true,
+        avProctorDisabled: body.avProctorDisabled === true,
         candidateFirstName: body.candidateFirstName ?? null,
         candidateLastName: body.candidateLastName ?? null,
       });
@@ -125,6 +155,19 @@ export default function AccessPage(): React.ReactElement {
       setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!hydrated || validatedAccessCode || autoSubmitDoneRef.current) {
+      return;
+    }
+    if (codeFromQuery.length < 8) {
+      return;
+    }
+    autoSubmitDoneRef.current = true;
+    void submitCode(codeFromQuery);
+    // Автовход один раз при открытии ссылки с кодом.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- только при гидрации + code из URL
+  }, [hydrated, validatedAccessCode, codeFromQuery]);
 
   if (!hydrated) {
     return (
@@ -166,7 +209,7 @@ export default function AccessPage(): React.ReactElement {
 
           <div className="mt-8 flex flex-wrap justify-end gap-3">
             <Button
-              onClick={() => void handleSubmit()}
+              onClick={() => void submitCode(rawCode)}
               disabled={busy}
               className={`${stepNavPrimaryButtonClass} min-w-[220px]`}
             >

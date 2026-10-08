@@ -82,6 +82,7 @@ export async function finalizeIncompleteAuditSubmission(input: {
       candidateFirstName: true,
       candidateLastName: true,
       devMode: true,
+      avProctorDisabled: true,
     },
   });
   if (inviteRow === null) {
@@ -158,6 +159,7 @@ export async function finalizeIncompleteAuditSubmission(input: {
       code: inviteRow.code,
       testKind: inviteRow.testKind,
       devMode: inviteRow.devMode,
+      avProctorDisabled: inviteRow.avProctorDisabled,
       candidateFirstName: inviteRow.candidateFirstName,
       candidateLastName: inviteRow.candidateLastName,
     },

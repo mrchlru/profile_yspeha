@@ -37,6 +37,8 @@ type InvitationRow = {
   testKind: string;
   testKindLabel: string;
   canChangeTestKind: boolean;
+  avProctorDisabled: boolean;
+  canChangeAvProctor: boolean;
   candidateDisplayName: string | null;
   positionLevelLabel: string | null;
   createdAt: string;
@@ -86,12 +88,17 @@ export function InvitationsTable(): React.ReactElement {
   const [extendingId, setExtendingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [changingKindId, setChangingKindId] = useState<string | null>(null);
+  const [changingAvId, setChangingAvId] = useState<string | null>(null);
   const [extendMessage, setExtendMessage] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const canDeleteInvites = session.status === "authenticated";
   const selection = useBulkSelection(rows, (row) => row.id);
   const rowActionBusy =
-    bulkBusy || extendingId !== null || deletingId !== null || changingKindId !== null;
+    bulkBusy ||
+    extendingId !== null ||
+    deletingId !== null ||
+    changingKindId !== null ||
+    changingAvId !== null;
 
   async function loadRows(search: string, status: CandidateSearchStatusFilter): Promise<void> {
     setLoading(true);
@@ -289,6 +296,60 @@ export function InvitationsTable(): React.ReactElement {
     }
   }
 
+  async function postChangeAvProctor(
+    inviteId: string,
+    avProctorDisabled: boolean
+  ): Promise<{ avProctorDisabled: boolean }> {
+    const res = await fetch("/api/admin/invitations/change-av-proctor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inviteId, avProctorDisabled }),
+    });
+    const body = (await res.json()) as { avProctorDisabled?: boolean; error?: string };
+    if (!res.ok || body.avProctorDisabled === undefined) {
+      throw new Error(body.error ?? "Не удалось изменить режим прокторинга.");
+    }
+    return { avProctorDisabled: body.avProctorDisabled };
+  }
+
+  async function toggleAvProctor(row: InvitationRow, nextValue: boolean): Promise<void> {
+    if (!row.canChangeAvProctor || row.avProctorDisabled === nextValue) {
+      return;
+    }
+
+    setChangingAvId(row.id);
+    setError(null);
+    setExtendMessage(null);
+    setRows((current) =>
+      current.map((item) =>
+        item.id === row.id ? { ...item, avProctorDisabled: nextValue } : item
+      )
+    );
+
+    try {
+      const result = await postChangeAvProctor(row.id, nextValue);
+      setRows((current) =>
+        current.map((item) =>
+          item.id === row.id ? { ...item, avProctorDisabled: result.avProctorDisabled } : item
+        )
+      );
+      setExtendMessage(
+        nextValue
+          ? `Для ${row.code} отключены камера и микрофон.`
+          : `Для ${row.code} включены камера и микрофон.`
+      );
+    } catch (err) {
+      setRows((current) =>
+        current.map((item) =>
+          item.id === row.id ? { ...item, avProctorDisabled: row.avProctorDisabled } : item
+        )
+      );
+      setError(err instanceof Error ? err.message : "Сеть недоступна. Попробуйте ещё раз.");
+    } finally {
+      setChangingAvId(null);
+    }
+  }
+
   async function changeTestKind(row: InvitationRow, nextTestKind: string): Promise<void> {
     if (!row.canChangeTestKind || nextTestKind === row.testKind) {
       return;
@@ -400,12 +461,13 @@ export function InvitationsTable(): React.ReactElement {
       </AdminBulkSelectionBar>
 
       <div className={`overflow-x-auto ${adminPanelCardClass}`}>
-        <table className="min-w-[1240px] w-full border-collapse text-left text-[14px] text-[#4F4F4F]">
+        <table className="min-w-[1320px] w-full border-collapse text-left text-[14px] text-[#4F4F4F]">
           <thead className="bg-black/[0.03] text-[12px] font-extrabold uppercase tracking-wide text-[#5F5E5E]">
             <tr>
               <th className="w-10 px-3 py-3" aria-label="Выбор" />
               <th className="px-4 py-3">Соискатель</th>
               <th className="px-4 py-3">Код</th>
+              <th className="px-4 py-3">Без камеры</th>
               <th className="px-4 py-3">Тип теста</th>
               <th className="px-4 py-3">Уровень должности</th>
               <th className="px-4 py-3">Создан</th>
@@ -418,7 +480,7 @@ export function InvitationsTable(): React.ReactElement {
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-[#8C8C8C]">
+                <td colSpan={11} className="px-4 py-8 text-center text-[#8C8C8C]">
                   {loading ? "Загрузка…" : "Приглашений по заданным условиям не найдено."}
                 </td>
               </tr>
@@ -436,6 +498,28 @@ export function InvitationsTable(): React.ReactElement {
                   </td>
                   <td className="px-4 py-2">{row.candidateDisplayName ?? "—"}</td>
                   <td className="px-4 py-2 font-mono text-[13px] font-bold">{row.code}</td>
+                  <td className="px-4 py-2 align-middle">
+                    {row.canChangeAvProctor ? (
+                      <label className="inline-flex cursor-pointer items-center gap-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={row.avProctorDisabled}
+                          disabled={rowActionBusy}
+                          onChange={(event) => {
+                            void toggleAvProctor(row, event.target.checked);
+                          }}
+                        />
+                        <span className="text-[12px] font-medium text-[#5F5E5E]">
+                          {changingAvId === row.id ? "…" : row.avProctorDisabled ? "Да" : "Нет"}
+                        </span>
+                      </label>
+                    ) : (
+                      <span className="text-[13px] text-[#8C8C8C]">
+                        {row.avProctorDisabled ? "Да" : "Нет"}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2 align-middle">
                     {row.canChangeTestKind ? (
                       <label className="block">

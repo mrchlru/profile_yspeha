@@ -51,7 +51,7 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
     title: "ТУ, шефы и управляющие",
     description:
       "Анкета ПРОФ СБ и 12 методик: интеллект, мотивация, конфликт, выгорание и др. Порядок прохождения случайный, отчёт — фиксированный. Код действует 3 суток.",
-    available: true,
+    available: false,
     inviteTestKind: TEST_KIND_AUDIT_SENIOR,
     supportsEmployeePick: true,
   },
@@ -78,7 +78,7 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
     title: "ПРОФ СБ + ПРОФ образование",
     description:
       "Комплексная анкета из двух блоков: ПРОФ СБ и ПРОФ образование. Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
-    available: true,
+    available: false,
     inviteTestKind: TEST_KIND_PROF_SB_EDUCATION,
     supportsEmployeePick: true,
   },

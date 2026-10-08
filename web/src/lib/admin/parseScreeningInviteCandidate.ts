@@ -60,6 +60,8 @@ export const accessInviteBodySchema = z
     positionLevelOverride: z.string().trim().min(1).max(80).optional(),
     /** Техническое приглашение (только главный администратор). */
     devMode: z.boolean().optional(),
+    /** Без камеры и микрофона прокторинга. */
+    avProctorDisabled: z.boolean().optional(),
   })
   .strict();
 

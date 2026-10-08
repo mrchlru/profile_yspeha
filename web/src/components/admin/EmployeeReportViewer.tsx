@@ -563,6 +563,13 @@ function ViolationsReportContent({
         {view.fullName} · {formatMoscowDateTime(view.createdAt)} · МСК
       </p>
 
+      {view.avProctorDisabled ? (
+        <p className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-[14px] leading-relaxed text-sky-950">
+          Для этого прохождения камера и микрофон прокторинга были отключены. В отчёте учтены только
+          нарушения полноэкранного режима и вкладки; скриншоты и аудиозаписи не собирались.
+        </p>
+      ) : null}
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl bg-white/70 px-4 py-3">
           <p className="text-[13px] font-extrabold text-[#8C8C8C]">Звуковые нарушения</p>
@@ -643,10 +650,11 @@ function ViolationsReportContent({
             <p className={`text-[13px] ${adminPanelMutedTextClass}`}>
               Старт {activeSession.startedAtMsk} МСК · нарушений:{" "}
               {activeSession.summary.totalViolations}
+              {activeSession.avProctorDisabled ? " · без камеры и микрофона" : ""}
             </p>
           </div>
 
-          {activeSession.sessionRecordingId ? (
+          {activeSession.sessionRecordingId && !activeSession.avProctorDisabled ? (
             <div className="rounded-2xl border border-black/8 bg-white/70 px-4 py-3">
               <p className="font-bold text-[#5F5E5E]">Запись звука за прохождение</p>
               <p className={`mt-1 text-[13px] ${adminPanelMutedTextClass}`}>
@@ -714,14 +722,14 @@ function ViolationsReportContent({
                       )}
                     </div>
                   </div>
-                  {event.snapshotId ? (
+                  {event.snapshotId && !activeSession.avProctorDisabled ? (
                     <img
                       src={`/api/admin/proctor/snapshot/${encodeURIComponent(event.snapshotId)}?folderKey=${encodeURIComponent(folderKey)}`}
                       alt={`Снимок: ${event.kindLabel}`}
                       className="mt-3 max-h-64 rounded-xl border border-black/10 object-contain"
                     />
                   ) : null}
-                  {event.audioClipId ? (
+                  {event.audioClipId && !activeSession.avProctorDisabled ? (
                     <div className="mt-3 space-y-2">
                       <audio
                         controls

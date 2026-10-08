@@ -9,17 +9,12 @@ import { prisma } from "@/lib/prisma";
 
 
 export type ProctorAccessResult =
-
   | {
-
       ok: true;
-
       candidateFolderKey: string | null;
-
       testKind: TestKind;
-
+      avProctorDisabled: boolean;
     }
-
   | { ok: false; status: number; error: string };
 
 
@@ -55,17 +50,12 @@ export async function requireProctorAccess(
     where: { code },
 
     select: {
-
       testKind: true,
-
       candidateFolderKey: true,
-
       revokedAt: true,
-
       expiresAt: true,
-
       usedAt: true,
-
+      avProctorDisabled: true,
     },
 
   });
@@ -123,14 +113,10 @@ export async function requireProctorAccess(
 
 
   return {
-
     ok: true,
-
     candidateFolderKey: inviteRow.candidateFolderKey ?? null,
-
     testKind: inviteRow.testKind,
-
+    avProctorDisabled: inviteRow.avProctorDisabled === true,
   };
-
 }
 
