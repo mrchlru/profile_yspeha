@@ -31,6 +31,20 @@ const DIRECTION_KEYS: ReadonlyArray<RosenzweigDirection> = ["E", "I", "M"];
 const REACTION_KEYS: ReadonlyArray<RosenzweigReaction> = ["OD", "ED", "NP"];
 
 /**
+ * Считает число полностью закодированных ситуаций (direction + reaction).
+ */
+export function countRosenzweigCodedEntries(coding: RosenzweigCodingMap): number {
+  let count = 0;
+  for (const situation of ROSENZWEIG_SITUATIONS) {
+    const entry = coding[situation.id];
+    if (entry?.direction && entry?.reaction) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+/**
  * Сводит кодирование Розенцвейга: количество и доли по направлениям и типам реакции.
  */
 export function computeRosenzweigCodingSummary(

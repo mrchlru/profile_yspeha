@@ -95,6 +95,7 @@ function _resolveReport(
       return {
         ...report,
         rosenzweigCodingSummary: report.rosenzweigCodingSummary ?? codingSummary,
+        rosenzweigCodingMeta: report.rosenzweigCodingMeta ?? null,
         conclusionText: report.conclusionText ?? null,
         managerActions: report.managerActions ?? null,
         conclusionGeneratedAt: report.conclusionGeneratedAt ?? null,
@@ -106,6 +107,7 @@ function _resolveReport(
   return {
     scores,
     rosenzweigCodingSummary: codingSummary,
+    rosenzweigCodingMeta: null,
     computedAt: formatMoscowDateTime(new Date()),
     conclusionText: null,
     managerActions: null,

@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
-import { assertAttestationSessionInFolder } from "@/lib/admin/buildAttestationReportView";
+import {
+  assertAttestationSessionInFolder,
+  buildAttestationReportView,
+} from "@/lib/admin/buildAttestationReportView";
 import { requireAdminPanelSession } from "@/lib/admin/requireAdminApi";
 import type { AttestationReportJson } from "@/lib/attestation/attestationReportTypes";
+import { persistAttestationAiConclusion } from "@/lib/attestation/persistAttestationAiConclusion";
 import { computeRosenzweigCodingSummary } from "@/lib/attestation/rosenzweigCoding";
+import { formatMoscowNow } from "@/lib/datetime/moscowTime";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
+import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
 const codingEntrySchema = z.object({
   direction: z.enum(["E", "I", "M"]),
@@ -20,14 +27,22 @@ const bodySchema = z.object({
   folderKey: z.string().min(1).max(300),
   sessionId: z.string().min(1).max(120),
   coding: z.record(z.string(), codingEntrySchema),
+  /** Перегенерировать ИИ-заключение после сохранения (по умолчанию true). */
+  regenerateConclusion: z.boolean().optional(),
 });
 
 /**
- * Сохраняет кодирование ответов Розенцвейга наблюдателем.
+ * Сохраняет ручное кодирование Розенцвейга и при необходимости перегенерирует заключение.
  */
 export async function POST(
   req: NextRequest
-): Promise<NextResponse<{ ok: true } | { error: string }>> {
+): Promise<
+  NextResponse<
+    | { ok: true; view: NonNullable<Awaited<ReturnType<typeof buildAttestationReportView>>> }
+    | { ok: true }
+    | { error: string }
+  >
+> {
   const auth = await requireAdminPanelSession(req);
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -54,10 +69,11 @@ export async function POST(
   }
 
   const summary = computeRosenzweigCodingSummary(parsed.data.coding);
+  const generatedAt = formatMoscowNow();
 
   const existing = await prisma.attestationSubmission.findUnique({
     where: { sessionId: parsed.data.sessionId },
-    select: { attestationReport: true },
+    select: { attestationReport: true, firstName: true, lastName: true },
   });
 
   const prevReport =
@@ -66,7 +82,14 @@ export async function POST(
       : null;
 
   const nextReport: AttestationReportJson | null = prevReport
-    ? { ...prevReport, rosenzweigCodingSummary: summary }
+    ? {
+        ...prevReport,
+        rosenzweigCodingSummary: summary,
+        rosenzweigCodingMeta: {
+          source: "manual",
+          generatedAt,
+        },
+      }
     : null;
 
   try {
@@ -81,6 +104,7 @@ export async function POST(
     });
     screeningServerLog("admin_attestation_rosenzweig_coding", "saved", {
       sessionId: parsed.data.sessionId,
+      codedCount: summary.codedCount,
     });
   } catch (err) {
     screeningServerLog("admin_attestation_rosenzweig_coding", "failed", {
@@ -90,7 +114,32 @@ export async function POST(
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true });
+  const shouldRegen = parsed.data.regenerateConclusion !== false;
+  if (shouldRegen && existing) {
+    const sessionRef = shortSessionRef(parsed.data.sessionId);
+    const personName = `${existing.lastName} ${existing.firstName}`.trim();
+    try {
+      await persistAttestationAiConclusion({
+        sessionId: parsed.data.sessionId,
+        sessionRef,
+        personName,
+      });
+      screeningServerLog("admin_attestation_rosenzweig_coding", "conclusion_regenerated", {
+        sessionId: parsed.data.sessionId,
+      });
+    } catch (err) {
+      screeningServerLog("admin_attestation_rosenzweig_coding", "conclusion_regen_failed", {
+        sessionId: parsed.data.sessionId,
+        errorName: err instanceof Error ? err.name : "unknown",
+      });
+    }
+  }
+
+  const view = await buildAttestationReportView(parsed.data.sessionId);
+  if (!view) {
+    return NextResponse.json({ ok: true });
+  }
+  return NextResponse.json({ ok: true, view });
 }
 
 export function GET(): NextResponse<{ error: string }> {

@@ -22,15 +22,19 @@ import {
   scoreBandLabel,
 } from "@/lib/attestation/attestationLabels";
 import { ROSENZWEIG_SITUATIONS } from "@/lib/attestation/attestationQuestions";
+import type { RosenzweigCodingMeta } from "@/lib/attestation/attestationReportTypes";
 import type {
+  RosenzweigCategoryCount,
   RosenzweigCodingMap,
+  RosenzweigCodingSummary,
   RosenzweigDirection,
   RosenzweigReaction,
 } from "@/lib/attestation/rosenzweigCoding";
+import { buildRosenzweigProfileBlurb } from "@/lib/attestation/rosenzweigProfileBlurb";
 import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
 
 /**
- * Просмотр отчёта аттестации и кодирование Розенцвейга.
+ * Просмотр отчёта аттестации и кодирование Розенцвейга (ИИ + ручная правка).
  */
 export function AttestationReportViewer(): React.ReactElement {
   const params = useParams();
@@ -40,8 +44,14 @@ export function AttestationReportViewer(): React.ReactElement {
   const [coding, setCoding] = useState<RosenzweigCodingMap>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [aiCodingBusy, setAiCodingBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  const applyView = useCallback((next: AttestationReportView): void => {
+    setView(next);
+    setCoding(next.rosenzweigCoding);
+  }, []);
 
   const loadView = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -58,15 +68,14 @@ export function AttestationReportViewer(): React.ReactElement {
         setView(null);
         return;
       }
-      setView(body.view);
-      setCoding(body.view.rosenzweigCoding);
+      applyView(body.view);
     } catch {
       setError("Сеть недоступна. Попробуйте ещё раз.");
       setView(null);
     } finally {
       setLoading(false);
     }
-  }, [folderKey, sessionId]);
+  }, [applyView, folderKey, sessionId]);
 
   useEffect(() => {
     void loadView();
@@ -79,19 +88,63 @@ export function AttestationReportViewer(): React.ReactElement {
       const res = await fetch("/api/admin/attestation-rosenzweig-coding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folderKey, sessionId, coding }),
+        body: JSON.stringify({
+          folderKey,
+          sessionId,
+          coding,
+          regenerateConclusion: true,
+        }),
       });
-      const body = (await res.json()) as { ok?: boolean; error?: string };
+      const body = (await res.json()) as {
+        ok?: boolean;
+        view?: AttestationReportView;
+        error?: string;
+      };
       if (!res.ok || !body.ok) {
         setSaveMessage(body.error ?? "Не удалось сохранить кодирование.");
         return;
       }
-      setSaveMessage("Кодирование сохранено.");
-      await loadView();
+      if (body.view) {
+        applyView(body.view);
+      } else {
+        await loadView();
+      }
+      setSaveMessage("Кодирование сохранено, заключение обновлено.");
     } catch {
       setSaveMessage("Сеть недоступна.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleAiCoding(): Promise<void> {
+    setAiCodingBusy(true);
+    setSaveMessage(null);
+    try {
+      const res = await fetch("/api/admin/attestation-report/generate-rosenzweig-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folderKey, sessionId, force: true }),
+      });
+      const body = (await res.json()) as {
+        ok?: boolean;
+        view?: AttestationReportView;
+        error?: string;
+      };
+      if (!res.ok || !body.ok) {
+        setSaveMessage(body.error ?? "Не удалось выполнить ИИ-кодирование.");
+        return;
+      }
+      if (body.view) {
+        applyView(body.view);
+      } else {
+        await loadView();
+      }
+      setSaveMessage("ИИ-кодирование выполнено, заключение обновлено.");
+    } catch {
+      setSaveMessage("Сеть недоступна.");
+    } finally {
+      setAiCodingBusy(false);
     }
   }
 
@@ -142,6 +195,8 @@ export function AttestationReportViewer(): React.ReactElement {
 
   const { scores } = view.report;
   const codingSummary = view.report.rosenzweigCodingSummary;
+  const codingMeta = view.report.rosenzweigCodingMeta ?? null;
+  const profileBlurb = buildRosenzweigProfileBlurb(codingSummary);
 
   return (
     <div className="mx-auto w-full max-w-[1100px] space-y-5 px-4 py-6 sm:px-6 lg:px-8">
@@ -276,19 +331,28 @@ export function AttestationReportViewer(): React.ReactElement {
       </ScoreSection>
 
       <div className={`space-y-5 px-6 py-6 sm:px-8 ${adminPanelCardClass}`}>
-        <div>
-          <h3 className={adminPanelSectionTitleClass}>Розенцвейг — кодирование ответов</h3>
-          <p className={`mt-1 ${adminPanelMutedTextClass}`}>
-            Направление: E — внешне, I — на себя, M — безлично. Реакция: OD — с фиксацией на
-            препятствии, ED — на самозащите, NP — на решении.
-          </p>
-          {codingSummary ? (
-            <p className="mt-2 text-[13px] font-semibold text-[#5F5E5E]">
-              Закодировано: {String(codingSummary.codedCount)} /{" "}
-              {String(codingSummary.totalSituations)}
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className={adminPanelSectionTitleClass}>Розенцвейг — кодирование ответов</h3>
+              <CodingSourceBadge meta={codingMeta} />
+            </div>
+            <p className={`mt-1 ${adminPanelMutedTextClass}`}>
+              После прохождения теста коды проставляет ИИ. Вы можете поправить любую ситуацию и
+              сохранить — заключение пересчитается. Направление: E — внешне, I — на себя, M —
+              безлично. Реакция: OD — препятствие, ED — самозащита, NP — решение.
             </p>
-          ) : null}
+          </div>
+          <Button
+            type="button"
+            disabled={aiCodingBusy || saving}
+            onClick={() => void handleAiCoding()}
+          >
+            {aiCodingBusy ? "ИИ кодирует…" : "Перекодировать ИИ"}
+          </Button>
         </div>
+
+        <RosenzweigCodingDashboard summary={codingSummary} blurb={profileBlurb} />
 
         <div className="space-y-3">
           {ROSENZWEIG_SITUATIONS.map((situation, index) => {
@@ -352,7 +416,7 @@ export function AttestationReportViewer(): React.ReactElement {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 border-t border-black/10 pt-4">
-          <Button type="button" disabled={saving} onClick={() => void handleSaveCoding()}>
+          <Button type="button" disabled={saving || aiCodingBusy} onClick={() => void handleSaveCoding()}>
             {saving ? "Сохранение…" : "Сохранить кодирование"}
           </Button>
           {saveMessage ? (
@@ -362,6 +426,117 @@ export function AttestationReportViewer(): React.ReactElement {
           ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+type CodingSourceBadgeProps = {
+  meta: RosenzweigCodingMeta | null;
+};
+
+function CodingSourceBadge({ meta }: CodingSourceBadgeProps): React.ReactElement | null {
+  if (!meta?.source) {
+    return null;
+  }
+  const isAi = meta.source === "ai";
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-0.5 text-[12px] font-bold ${
+        isAi ? "bg-sky-100 text-sky-800" : "bg-amber-100 text-amber-900"
+      }`}
+      title={meta.generatedAt ? `Обновлено: ${meta.generatedAt}` : undefined}
+    >
+      {isAi ? "ИИ" : "Вручную"}
+      {meta.generatedAt ? ` · ${meta.generatedAt}` : ""}
+    </span>
+  );
+}
+
+type RosenzweigCodingDashboardProps = {
+  summary: RosenzweigCodingSummary | null | undefined;
+  blurb: string | null;
+};
+
+function RosenzweigCodingDashboard({
+  summary,
+  blurb,
+}: RosenzweigCodingDashboardProps): React.ReactElement {
+  if (!summary || summary.codedCount === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-black/15 bg-white/50 px-4 py-4">
+        <p className={adminPanelMutedTextClass}>
+          Сводка появится после ИИ-кодирования или ручного сохранения кодов.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-black/8 bg-white/80 px-4 py-4 sm:px-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-[14px] font-extrabold text-[#5F5E5E]">Сводка кодирования</p>
+        <p className="text-[13px] font-semibold tabular-nums text-[#8C8C8C]">
+          {String(summary.codedCount)} / {String(summary.totalSituations)} ситуаций
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ShareBars
+          title="Направление"
+          rows={summary.directions}
+          labels={{ E: "E — вовне", I: "I — на себя", M: "M — безлично" }}
+        />
+        <ShareBars
+          title="Тип реакции"
+          rows={summary.reactions}
+          labels={{
+            OD: "OD — препятствие",
+            ED: "ED — самозащита",
+            NP: "NP — решение",
+          }}
+        />
+      </div>
+      {blurb ? (
+        <p className="rounded-xl bg-[#F5F5F5] px-3 py-3 text-[13px] leading-relaxed text-[#5F5E5E]">
+          {blurb}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+type ShareBarsProps = {
+  title: string;
+  rows: ReadonlyArray<RosenzweigCategoryCount>;
+  labels: Record<string, string>;
+};
+
+function ShareBars({ title, rows, labels }: ShareBarsProps): React.ReactElement {
+  return (
+    <div>
+      <p className="mb-2 text-[12px] font-bold uppercase tracking-wide text-[#8C8C8C]">{title}</p>
+      <ul className="space-y-2">
+        {rows.map((row) => {
+          const pct = Math.round(row.share * 100);
+          return (
+            <li key={row.key}>
+              <div className="mb-1 flex items-center justify-between gap-2 text-[13px]">
+                <span className="font-semibold text-[#5F5E5E]">
+                  {labels[row.key] ?? row.key}
+                </span>
+                <span className="tabular-nums text-[#8C8C8C]">
+                  {String(row.count)} · {String(pct)}%
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-black/8">
+                <div
+                  className="h-full rounded-full bg-[#5F5E5E]/70 transition-[width]"
+                  style={{ width: `${String(pct)}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

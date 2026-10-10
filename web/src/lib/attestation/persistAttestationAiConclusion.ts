@@ -58,8 +58,9 @@ export async function persistAttestationAiConclusion(input: {
       ? (row.rosenzweigCoding as RosenzweigCodingMap)
       : {};
   const codingSummary =
-    report.rosenzweigCodingSummary ??
-    (Object.keys(coding).length > 0 ? computeRosenzweigCodingSummary(coding) : null);
+    Object.keys(coding).length > 0
+      ? computeRosenzweigCodingSummary(coding)
+      : report.rosenzweigCodingSummary ?? null;
 
   const attestationContext = buildAttestationConclusionContext({
     personName: input.personName,
@@ -86,6 +87,7 @@ export async function persistAttestationAiConclusion(input: {
   const nextReport: AttestationReportJson = {
     ...report,
     rosenzweigCodingSummary: codingSummary,
+    rosenzweigCodingMeta: report.rosenzweigCodingMeta ?? null,
     conclusionText: aiResult.conclusionText,
     managerActions: aiResult.managerActions,
     conclusionGeneratedAt,
