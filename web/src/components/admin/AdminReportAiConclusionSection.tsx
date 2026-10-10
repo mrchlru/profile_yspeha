@@ -8,6 +8,7 @@ import {
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
+import { stripManagerActionsHeading } from "@/lib/ai/clampAiPlainText";
 
 type AdminReportAiConclusionSectionProps = {
   conclusionText: string | null;
@@ -90,7 +91,7 @@ export function AdminReportAiConclusionSection({
                 Кратко для руководителя
               </p>
               <p className="mt-2 whitespace-pre-wrap text-[14px] leading-relaxed text-[#5F5E5E]">
-                {managerActions}
+                {stripManagerActionsHeading(managerActions)}
               </p>
             </div>
           ) : null}

@@ -1,4 +1,8 @@
 import {
+  clampAiPlainText,
+  stripManagerActionsHeading,
+} from "@/lib/ai/clampAiPlainText";
+import {
   OPENAI_JSON_RESPONSE_FORMAT,
   OPENAI_SYSTEM_PROMPT_ATTESTATION_CONCLUSION,
 } from "@/lib/ai/openaiPromptPolicy";
@@ -10,6 +14,9 @@ import {
   resolveOpenAiChatModel,
 } from "@/lib/ai/openaiHttp";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
+
+const CONCLUSION_MAX_CHARS = 12000;
+const MANAGER_ACTIONS_MAX_CHARS = 2500;
 
 type AttestationConclusionJson = {
   conclusion: string;
@@ -117,19 +124,25 @@ export async function generateAttestationConclusion(input: {
 
   const managerActions =
     typeof parsed.managerActions === "string" && parsed.managerActions.length > 0
-      ? parsed.managerActions.slice(0, 1500)
+      ? clampAiPlainText(
+          stripManagerActionsHeading(parsed.managerActions),
+          MANAGER_ACTIONS_MAX_CHARS
+        )
       : null;
+
+  const conclusionText = clampAiPlainText(parsed.conclusion, CONCLUSION_MAX_CHARS);
 
   screeningServerLog("openai_attestation", "success", {
     sessionRef: input.sessionRef,
     model,
-    conclusionChars: parsed.conclusion.length,
+    conclusionChars: conclusionText.length,
+    rawConclusionChars: parsed.conclusion.length,
     managerActionsChars: managerActions?.length ?? 0,
     durationMs: Date.now() - fetchStarted,
   });
 
   return {
-    conclusionText: parsed.conclusion.slice(0, 8000),
+    conclusionText,
     managerActions,
   };
 }
