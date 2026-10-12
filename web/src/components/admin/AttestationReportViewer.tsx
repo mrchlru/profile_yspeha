@@ -334,7 +334,9 @@ export function AttestationReportViewer(): React.ReactElement {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className={adminPanelSectionTitleClass}>Розенцвейг — кодирование ответов</h3>
+              <h3 className={adminPanelSectionTitleClass}>
+                Розенцвейг — как реагирует на препятствия
+              </h3>
               <CodingSourceBadge meta={codingMeta} />
             </div>
             <p className={`mt-1 ${adminPanelMutedTextClass}`}>
@@ -387,9 +389,9 @@ export function AttestationReportViewer(): React.ReactElement {
                       }
                     >
                       <option value="">—</option>
-                      <option value="E">E — внешне</option>
-                      <option value="I">I — на себя</option>
-                      <option value="M">M — безлично</option>
+                      <option value="E">Вовне (винит/смотрит на других)</option>
+                      <option value="I">На себя (берёт/винит себя)</option>
+                      <option value="M">Безлично («так вышло»)</option>
                     </select>
                   </label>
                   <label className="text-[13px] font-semibold text-[#5F5E5E]">
@@ -404,9 +406,9 @@ export function AttestationReportViewer(): React.ReactElement {
                       }
                     >
                       <option value="">—</option>
-                      <option value="OD">OD — препятствие</option>
-                      <option value="ED">ED — самозащита</option>
-                      <option value="NP">NP — решение</option>
+                      <option value="OD">Фиксация на препятствии</option>
+                      <option value="ED">Самозащита / оправдание</option>
+                      <option value="NP">Ориентация на решение</option>
                     </select>
                   </label>
                 </div>
@@ -474,24 +476,30 @@ function RosenzweigCodingDashboard({
   return (
     <div className="space-y-4 rounded-2xl border border-black/8 bg-white/80 px-4 py-4 sm:px-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-[14px] font-extrabold text-[#5F5E5E]">Сводка кодирования</p>
+        <p className="text-[14px] font-extrabold text-[#5F5E5E]">
+          Что видно руководителю
+        </p>
         <p className="text-[13px] font-semibold tabular-nums text-[#8C8C8C]">
           {String(summary.codedCount)} / {String(summary.totalSituations)} ситуаций
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <ShareBars
-          title="Направление"
+          title="Кого «винит» при сбое"
           rows={summary.directions}
-          labels={{ E: "E — вовне", I: "I — на себя", M: "M — безлично" }}
+          labels={{
+            E: "Вовне — другие / система",
+            I: "На себя",
+            M: "Безлично — «так вышло»",
+          }}
         />
         <ShareBars
-          title="Тип реакции"
+          title="Куда уходит внимание"
           rows={summary.reactions}
           labels={{
-            OD: "OD — препятствие",
-            ED: "ED — самозащита",
-            NP: "NP — решение",
+            OD: "Застревает на препятствии",
+            ED: "Самозащита / оправдание",
+            NP: "Идёт к решению",
           }}
         />
       </div>

@@ -15,8 +15,8 @@ import {
 } from "@/lib/ai/openaiHttp";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
-const CONCLUSION_MAX_CHARS = 12000;
-const MANAGER_ACTIONS_MAX_CHARS = 2500;
+const CONCLUSION_MAX_CHARS = 14000;
+const MANAGER_ACTIONS_MAX_CHARS = 2800;
 
 type AttestationConclusionJson = {
   conclusion: string;
@@ -58,7 +58,7 @@ export async function generateAttestationConclusion(input: {
           model,
           temperature: 0.3,
           reasoningEffort: "low",
-          maxCompletionTokens: 8000,
+          maxCompletionTokens: 10000,
           responseFormat: OPENAI_JSON_RESPONSE_FORMAT,
           messages: [
             { role: "system", content: OPENAI_SYSTEM_PROMPT_ATTESTATION_CONCLUSION },

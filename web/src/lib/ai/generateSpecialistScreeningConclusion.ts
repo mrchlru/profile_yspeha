@@ -16,8 +16,8 @@ import {
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
 /** Запас под полный бриф со всеми разделами, включая «ОГРАНИЧЕНИЯ ИНСТРУМЕНТА». */
-const CONCLUSION_MAX_CHARS = 12000;
-const MANAGER_ACTIONS_MAX_CHARS = 2500;
+const CONCLUSION_MAX_CHARS = 14000;
+const MANAGER_ACTIONS_MAX_CHARS = 2800;
 
 type SpecialistScreeningConclusionJson = {
   conclusion: string;
@@ -62,7 +62,7 @@ export async function generateSpecialistScreeningConclusion(input: {
           model,
           temperature: 0.3,
           reasoningEffort: "low",
-          maxCompletionTokens: 7000,
+          maxCompletionTokens: 10000,
           responseFormat: OPENAI_JSON_RESPONSE_FORMAT,
           messages: [
             { role: "system", content: OPENAI_SYSTEM_PROMPT_SPECIALIST_SCREENING_CONCLUSION },

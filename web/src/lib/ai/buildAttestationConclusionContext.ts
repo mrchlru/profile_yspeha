@@ -13,17 +13,18 @@ import {
   buildMiniIpipInterpretations,
 } from "@/lib/attestation/miniIpipInterpretation";
 import type { RosenzweigCodingSummary } from "@/lib/attestation/rosenzweigCoding";
+import { buildRosenzweigManagerHints } from "@/lib/attestation/rosenzweigProfileBlurb";
 
 const ROSENZWEIG_DIRECTION_LABELS: Record<string, string> = {
-  E: "E — внешне (экстрапунитивная)",
-  I: "I — на себя (интропунитивная)",
-  M: "M — безлично (импунитивная)",
+  E: "вовне — смотрит на внешнюю причину",
+  I: "на себя — берёт на себя / винит себя",
+  M: "безлично — сглаживает («так вышло»)",
 };
 
 const ROSENZWEIG_REACTION_LABELS: Record<string, string> = {
-  OD: "OD — фиксация на препятствии",
-  ED: "ED — эго-защита",
-  NP: "NP — решение задачи",
+  OD: "фиксация на препятствии",
+  ED: "самозащита / оправдание",
+  NP: "ориентация на решение",
 };
 
 /**
@@ -85,6 +86,7 @@ export function buildAttestationConclusionContext(input: {
       : null;
 
   const rosenzweigFilled = scores.rosenzweigTexts.filter((item) => item.hasText).length;
+  const rosenzweigHints = buildRosenzweigManagerHints(input.rosenzweigCodingSummary);
   const rosenzweigSummary = input.rosenzweigCodingSummary
     ? {
         codedCount: input.rosenzweigCodingSummary.codedCount,
@@ -101,12 +103,22 @@ export function buildAttestationConclusionContext(input: {
           count: row.count,
           sharePercent: Math.round(row.share * 100),
         })),
+        plainLanguage: {
+          dominantDirection: rosenzweigHints.dominantDirectionPlain,
+          dominantReaction: rosenzweigHints.dominantReactionPlain,
+          managerQuestions: rosenzweigHints.managerQuestions,
+        },
       }
     : null;
 
   const payload = {
     participantName: safeName,
     testName: "Аттестация управляющего / шеф-повара",
+    readerRole:
+      "HRD / генеральный директор / линейный руководитель. Нужен живой портрет сотрудника для бизнеса, а не учебник по методикам.",
+    goal:
+      "Связать Big Five, управленческий потенциал, выгорание, тревожность, ДДО, Люшер и Розенцвейг в один понятный вывод: " +
+      "кто это за человек на работе, в какой среде раскроется, чего нельзя давать, на что опираться, какие риски для команды и результата.",
     bigFive,
     managementPotential,
     cbiBurnout: cbi,
@@ -117,7 +129,9 @@ export function buildAttestationConclusionContext(input: {
       freeTextAnswersProvided: rosenzweigFilled,
       freeTextAnswersTotal: scores.rosenzweigTexts.length,
       observerCodingSummary: rosenzweigSummary,
-      note: "Свободные тексты ответов не передаются в модель — только сводка кодирования наблюдателя.",
+      note:
+        "Свободные тексты ответов не передаются в модель — только сводка кодирования. " +
+        "Объясняй Розенцвейг простым языком руководителя (вовне / на себя / безлично; препятствие / самозащита / решение), без жаргона «экстрапунитивный».",
     },
   };
 
