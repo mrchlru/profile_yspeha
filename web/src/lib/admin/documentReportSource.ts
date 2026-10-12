@@ -18,11 +18,13 @@ export function documentReportSourceCandidates(
   switch (documentId) {
     case "short_report":
     case "full_report":
-      return parsed.kind === "candidate" ? ["screening", "audit"] : ["audit"];
+      // Скрининг кандидата пишет auditSubmission (батарея с методиками); stub
+      // screeningSubmission от sync не должен перекрывать полный отчёт.
+      return parsed.kind === "candidate" ? ["audit", "screening"] : ["audit"];
     case "manager_report":
       return ["audit"];
     case "executive_manager_report":
-      return parsed.kind === "candidate" ? ["screening", "audit"] : ["audit"];
+      return parsed.kind === "candidate" ? ["audit", "screening"] : ["audit"];
     case "violations_report":
       return parsed.kind === "candidate" || parsed.kind === "audit" ? ["audit"] : [];
     case "dashboard":

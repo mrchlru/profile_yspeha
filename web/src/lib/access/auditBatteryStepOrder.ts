@@ -1,5 +1,5 @@
 import type { TestKind } from "@/lib/access/testKinds";
-import { TEST_KIND_AUDIT_MIDDLE } from "@/lib/access/testKinds";
+import { TEST_KIND_AUDIT_MIDDLE, TEST_KIND_SCREENING } from "@/lib/access/testKinds";
 import { getAuditBatteryForTestKind } from "@/lib/audit/auditBatteries";
 import { OD_RESERVE_SECTARIANISM_STEP_INDEX } from "@/lib/audit/odReserveSectarianism";
 
@@ -41,6 +41,15 @@ export function parseAuditBatteryStepOrder(
   if (_isLegacyOdReserveSequenceWithoutSectarianism(testKind, sequence, seen, allowedStepIndexes)) {
     return sequence;
   }
+  const repaired = _repairLegacyScreeningSequenceWithoutSectarianism(
+    testKind,
+    sequence,
+    seen,
+    allowedStepIndexes
+  );
+  if (repaired !== null) {
+    return repaired;
+  }
   return null;
 }
 
@@ -65,6 +74,35 @@ function _isLegacyOdReserveSequenceWithoutSectarianism(
     }
   }
   return true;
+}
+
+/**
+ * Старые коды скрининга без шага 26: дописываем тест на сектантство в конец.
+ */
+function _repairLegacyScreeningSequenceWithoutSectarianism(
+  testKind: TestKind,
+  sequence: number[],
+  seen: Set<number>,
+  allowedStepIndexes: Set<number>
+): number[] | null {
+  if (testKind !== TEST_KIND_SCREENING) {
+    return null;
+  }
+  if (seen.has(OD_RESERVE_SECTARIANISM_STEP_INDEX)) {
+    return null;
+  }
+  const legacyAllowed = new Set(
+    [...allowedStepIndexes].filter((step) => step !== OD_RESERVE_SECTARIANISM_STEP_INDEX)
+  );
+  if (sequence.length !== legacyAllowed.size || seen.size !== legacyAllowed.size) {
+    return null;
+  }
+  for (const step of legacyAllowed) {
+    if (!seen.has(step)) {
+      return null;
+    }
+  }
+  return [...sequence, OD_RESERVE_SECTARIANISM_STEP_INDEX];
 }
 
 /**

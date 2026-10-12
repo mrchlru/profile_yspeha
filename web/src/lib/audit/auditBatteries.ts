@@ -139,7 +139,7 @@ export const OD_RESERVE_BATTERY: AuditBattery = {
   blocks: [...OD_RESERVE_METHODOLOGY_BLOCKS, OD_RESERVE_SECTARIANISM_BLOCK],
 };
 
-/** 7 блоков для скрининга кандидата: анкета ПРОФ СБ + 5 методик + тест на сектантство. */
+/** 6 блоков для скрининга кандидата: анкета ПРОФ СБ + 5 методик (в т.ч. сектантство). */
 export const CANDIDATE_SCREENING_BATTERY: AuditBattery = {
   id: "candidate_screening",
   blockCount: 6,

@@ -1,13 +1,13 @@
+import type { AuditAnswersMap } from "@/lib/audit/auditAnswers";
 import type { AuditInternalKey } from "@/lib/audit/auditTypes";
+import { hasSectarianismAnswers } from "@/lib/audit/odReserveSectarianism";
 import type { AuditTestBlockSpec } from "@/lib/audit/report/auditTestBlockMeta";
 import { BATTERY_PROF_SB_STEP_MARKER } from "@/lib/audit/batteryStepMarkers";
 
 const EMPTY_INTERNAL_KEYS: ReadonlyArray<AuditInternalKey> = [];
 
-/**
- * Фиксированный порядок блоков отчёта для батареи скрининга кандидата.
- */
-export const CANDIDATE_SCREENING_TEST_BLOCK_SPECS: ReadonlyArray<AuditTestBlockSpec> = [
+/** Базовые блоки скрининга без теста на сектантство. */
+const CANDIDATE_SCREENING_CORE_TEST_BLOCK_SPECS: ReadonlyArray<AuditTestBlockSpec> = [
   {
     blockIndex: 0,
     title: "Анкета ПРОФ СБ",
@@ -54,11 +54,33 @@ export const CANDIDATE_SCREENING_TEST_BLOCK_SPECS: ReadonlyArray<AuditTestBlockS
     stepIndexes: [19],
     internalKeys: ["maslach_burnout"],
   },
-  {
-    blockIndex: 5,
-    title: "Тест на выявление сектантства",
-    methodology: "Опросник из 38 вопросов с вариантами ответа (ключ — отдельная задача)",
-    stepIndexes: [26],
-    internalKeys: ["sectarianism_screening"],
-  },
 ];
+
+/** Блок теста на сектантство — в отчёт только при наличии ответов. */
+export const CANDIDATE_SCREENING_SECTARIANISM_TEST_BLOCK_SPEC: AuditTestBlockSpec = {
+  blockIndex: 5,
+  title: "Тест на выявление сектантства",
+  methodology: "Опросник из 38 вопросов с вариантами ответа",
+  stepIndexes: [26],
+  internalKeys: ["sectarianism_screening"],
+};
+
+/**
+ * Полный фиксированный порядок блоков (включая сектантство) — для сигнатур профиля.
+ */
+export const CANDIDATE_SCREENING_TEST_BLOCK_SPECS: ReadonlyArray<AuditTestBlockSpec> = [
+  ...CANDIDATE_SCREENING_CORE_TEST_BLOCK_SPECS,
+  CANDIDATE_SCREENING_SECTARIANISM_TEST_BLOCK_SPEC,
+];
+
+/**
+ * Блоки отчёта скрининга: сектантство только если есть ответы.
+ */
+export function getCandidateScreeningTestBlockSpecs(
+  answers?: AuditAnswersMap
+): ReadonlyArray<AuditTestBlockSpec> {
+  if (hasSectarianismAnswers(answers)) {
+    return CANDIDATE_SCREENING_TEST_BLOCK_SPECS;
+  }
+  return CANDIDATE_SCREENING_CORE_TEST_BLOCK_SPECS;
+}

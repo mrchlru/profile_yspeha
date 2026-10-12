@@ -10,6 +10,7 @@ import {
   getAuditTestBlockSpecsForProfile,
   type AuditReportProfile,
 } from "@/lib/audit/report/auditReportProfile";
+import { getCandidateScreeningTestBlockSpecs } from "@/lib/audit/report/candidateScreeningTestBlockMeta";
 import { getOdReserveTestBlockSpecs } from "@/lib/audit/report/odReserveTestBlockMeta";
 import {
   buildInterpretationLayout,
@@ -91,7 +92,9 @@ export function buildAuditTestBlocks(
   const specs =
     profile === "od_reserve"
       ? getOdReserveTestBlockSpecs(answers)
-      : getAuditTestBlockSpecsForProfile(profile);
+      : profile === "candidate_screening"
+        ? getCandidateScreeningTestBlockSpecs(answers)
+        : getAuditTestBlockSpecsForProfile(profile);
   return specs.map((spec) => {
     if (
       (profile === "tu_management_chef" || profile === "candidate_screening") &&

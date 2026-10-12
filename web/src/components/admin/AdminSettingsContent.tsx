@@ -11,6 +11,7 @@ import {
 import { DataMigrationPanel } from "@/components/admin/DataMigrationPanel";
 import { RegenerateManagerBriefPanel } from "@/components/admin/RegenerateManagerBriefPanel";
 import { RegenerateReportsPanel } from "@/components/admin/RegenerateReportsPanel";
+import { RegenerateScreeningAiPanel } from "@/components/admin/RegenerateScreeningAiPanel";
 import { CommissionEvalLogsPanel } from "@/components/admin/CommissionEvalLogsPanel";
 import { CommissionQuestionsPanel } from "@/components/admin/CommissionQuestionsPanel";
 import { HrdSettingsForm } from "@/components/admin/HrdSettingsForm";
@@ -64,6 +65,7 @@ export function AdminSettingsContent(): React.ReactElement {
           {session.role === ADMIN_ROLE_ADMIN ? <NotificationSettingsForm /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <OpenAiTestPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <GoogleSheetsTestPanel /> : null}
+          {session.role === ADMIN_ROLE_ADMIN ? <RegenerateScreeningAiPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <RegenerateManagerBriefPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <RegenerateReportsPanel /> : null}
           {session.role === ADMIN_ROLE_ADMIN ? <DataMigrationPanel /> : null}

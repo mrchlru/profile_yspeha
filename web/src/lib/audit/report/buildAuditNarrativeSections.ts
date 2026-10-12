@@ -717,12 +717,17 @@ function _buildCandidateScreeningNarrativeSections(
     _buildConflictSection(answers),
     _buildMotivationSection(answers),
     _buildBurnoutSection(answers),
-    _buildSectarianismSection(answers),
-  ].map((section, index) => ({
-    ...section,
-    sectionIndex: index + 1,
-  }));
-  return [profSbSection, ...methodologySections];
+  ];
+  if (hasSectarianismAnswers(answers)) {
+    methodologySections.push(_buildSectarianismSection(answers));
+  }
+  return [
+    profSbSection,
+    ...methodologySections.map((section, index) => ({
+      ...section,
+      sectionIndex: index + 1,
+    })),
+  ];
 }
 
 function _buildSectarianismSection(answers: AuditAnswersMap): AuditReportNarrativeSection {
