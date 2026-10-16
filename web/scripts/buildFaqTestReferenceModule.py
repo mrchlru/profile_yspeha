@@ -61,6 +61,68 @@ def _parse_test_sheet(rows: list[tuple]) -> list[dict[str, str]]:
     return parsed
 
 
+_SECTION_HEADINGS = frozenset(
+    {
+        "Практическое применение",
+        "Ключевые характеристики, определяемые тестом",
+        "Интерпретация результатов в контексте многозадачности",
+        "Практическое применение",
+        "Сравнительная таблица",
+        "Практическое значение",
+        "Что именно измеряет тест?",
+    }
+)
+
+
+def _lines_to_content_blocks(lines: list[str]) -> list[dict[str, object]]:
+    """Разбивает текст листа xlsx на блоки для UI (заголовки, списки, абзацы)."""
+    blocks: list[dict[str, object]] = []
+    numbered: list[str] = []
+
+    def flush_numbered() -> None:
+        if numbered:
+            blocks.append({"kind": "numbered", "items": list(numbered)})
+            numbered.clear()
+
+    for raw in lines:
+        text = raw.strip()
+        if not text:
+            continue
+
+        numbered_match = re.match(r"^\d+\.\s*(.+)$", text)
+        if numbered_match:
+            numbered.append(numbered_match.group(1).strip())
+            continue
+
+        flush_numbered()
+
+        if text.startswith("Итог:"):
+            body = text[5:].strip().lstrip(":").strip()
+            blocks.append({"kind": "summary", "body": body})
+            continue
+
+        colon = text.find(":")
+        if 0 < colon <= 80:
+            label = text[:colon].strip()
+            body = text[colon + 1 :].strip()
+            if body and not label.lower().startswith("http"):
+                blocks.append({"kind": "labeled", "label": label, "body": body})
+                continue
+
+        if text.endswith("?") or text in _SECTION_HEADINGS:
+            blocks.append({"kind": "heading", "text": text.rstrip(":")})
+            continue
+
+        if text.endswith(":") and len(text) <= 120:
+            blocks.append({"kind": "heading", "text": text.rstrip(":")})
+            continue
+
+        blocks.append({"kind": "paragraph", "text": text})
+
+    flush_numbered()
+    return blocks
+
+
 def _parse_detail_sheet(rows: list[tuple]) -> list[str]:
     lines: list[str] = []
     for row in rows:
@@ -134,6 +196,51 @@ def build_module(xlsx_path: Path) -> str:
     )
     for info_id, sheet in DASHBOARD_DETAIL_SHEET.items():
         lines.append(f"  {_ts_string(info_id)}: {_ts_string(sheet)},")
+    lines.append("};")
+    lines.append("")
+    lines.append("export type DashboardMethodologyContentBlock =")
+    lines.append('  | { kind: "heading"; text: string }')
+    lines.append('  | { kind: "paragraph"; text: string }')
+    lines.append('  | { kind: "numbered"; items: ReadonlyArray<string> }')
+    lines.append('  | { kind: "labeled"; label: string; body: string }')
+    lines.append('  | { kind: "summary"; body: string };')
+    lines.append("")
+    lines.append(
+        "export const DASHBOARD_METHODOLOGY_CONTENT_BLOCKS: Readonly<"
+        "Partial<Record<string, ReadonlyArray<DashboardMethodologyContentBlock>>>"
+        "> = {"
+    )
+    for info_id, sheet_name in DASHBOARD_DETAIL_SHEET.items():
+        sheet_lines = detail_sheets.get(sheet_name, [])
+        blocks = _lines_to_content_blocks(sheet_lines)
+        lines.append(f"  {_ts_string(info_id)}: [")
+        for block in blocks:
+            kind = block["kind"]
+            if kind == "numbered":
+                items = block["items"]
+                lines.append('    { kind: "numbered", items: [')
+                for item in items:
+                    lines.append(f"      {_ts_string(str(item))},")
+                lines.append("    ]},")
+            elif kind == "labeled":
+                lines.append(
+                    "    { kind: \"labeled\", "
+                    f"label: {_ts_string(str(block['label']))}, "
+                    f"body: {_ts_string(str(block['body']))} }},"
+                )
+            elif kind == "summary":
+                lines.append(
+                    f"    {{ kind: \"summary\", body: {_ts_string(str(block['body']))} }},"
+                )
+            elif kind == "heading":
+                lines.append(
+                    f"    {{ kind: \"heading\", text: {_ts_string(str(block['text']))} }},"
+                )
+            else:
+                lines.append(
+                    f"    {{ kind: \"paragraph\", text: {_ts_string(str(block['text']))} }},"
+                )
+        lines.append("  ],")
     lines.append("};")
     lines.append("")
     return "\n".join(lines) + "\n"

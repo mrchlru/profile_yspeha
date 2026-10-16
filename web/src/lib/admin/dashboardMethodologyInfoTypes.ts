@@ -1,3 +1,7 @@
+import type { DashboardMethodologyContentBlock } from "@/lib/support/faqTestReferenceData";
+
+export type { DashboardMethodologyContentBlock };
+
 /** Идентификатор справочного описания методики для дашборда. */
 export type DashboardMethodologyInfoId =
   | "cfit"
@@ -29,7 +33,9 @@ export type DashboardMethodologyInfoTableRow = {
 export type DashboardMethodologyInfo = {
   title: string;
   paragraphs: ReadonlyArray<string>;
-  /** Строки сводной таблицы заказчика (свойства / значения). */
+  /** Структурированный текст листа xlsx (карточка «i» на дашборде). */
+  blocks?: ReadonlyArray<DashboardMethodologyContentBlock>;
+  /** @deprecated Только для legacy; сводная таблица — в FAQ, не в «i». */
   tableRows?: ReadonlyArray<DashboardMethodologyInfoTableRow>;
   sections?: ReadonlyArray<DashboardMethodologyInfoSection>;
 };

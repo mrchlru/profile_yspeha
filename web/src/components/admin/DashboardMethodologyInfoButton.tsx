@@ -8,6 +8,7 @@ import {
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
+import { DashboardMethodologyInfoBody } from "@/components/admin/DashboardMethodologyInfoBody";
 import { getDashboardMethodologyInfo } from "@/lib/admin/dashboardMethodologyInfo";
 import type { DashboardMethodologyInfoId } from "@/lib/admin/dashboardMethodologyInfoTypes";
 
@@ -97,32 +98,16 @@ export function DashboardMethodologyInfoButton({
                     </button>
                   </div>
                 </div>
-                <div className={`flex-1 space-y-4 overflow-y-auto px-5 py-4 ${adminPanelMutedTextClass}`}>
-                  {info.paragraphs.map((paragraph) => (
-                    <p key={paragraph.slice(0, 48)} className="text-[14px] leading-relaxed text-[#5F5E5E]">
-                      {paragraph}
-                    </p>
-                  ))}
-                  {info.tableRows && info.tableRows.length > 0 ? (
-                    <div className="overflow-x-auto rounded-xl border border-black/10 bg-white/80">
-                      <table className="min-w-full text-left text-[13px] text-[#5F5E5E]">
-                        <thead>
-                          <tr className="border-b border-black/10 bg-[#F4F6F5] text-[11px] font-bold uppercase text-[#8C8C8C]">
-                            <th className="px-3 py-2 align-top">Свойства</th>
-                            <th className="px-3 py-2 align-top">Возможные значения</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {info.tableRows.map((row) => (
-                            <tr key={`${row.propertyDescription.slice(0, 32)}-${row.possibleValues.slice(0, 32)}`} className="border-t border-black/5 align-top">
-                              <td className="px-3 py-2 whitespace-pre-wrap">{row.propertyDescription || "—"}</td>
-                              <td className="px-3 py-2 whitespace-pre-wrap">{row.possibleValues}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : null}
+                <div className={`flex-1 space-y-4 overflow-y-auto px-5 py-5 ${adminPanelMutedTextClass}`}>
+                  {info.blocks && info.blocks.length > 0 ? (
+                    <DashboardMethodologyInfoBody blocks={info.blocks} />
+                  ) : (
+                    info.paragraphs.map((paragraph) => (
+                      <p key={paragraph.slice(0, 48)} className="text-[14px] leading-relaxed text-[#5F5E5E]">
+                        {paragraph}
+                      </p>
+                    ))
+                  )}
                   {info.sections?.map((section) => (
                     <div key={section.title}>
                       <p className="text-[13px] font-bold text-[#5F5E5E]">{section.title}</p>
