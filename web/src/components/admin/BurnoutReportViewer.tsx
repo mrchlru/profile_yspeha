@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
+
+import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import type { BurnoutReportView } from "@/lib/admin/buildBurnoutReportView";
 import {
   adminPanelCardClass,
@@ -24,30 +26,32 @@ export function BurnoutReportViewer(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const query = new URLSearchParams({ folderKey, sessionId });
-        const res = await fetch(`/api/admin/burnout-report/view?${query.toString()}`, {
-          cache: "no-store",
-        });
-        const body = (await res.json()) as { view?: BurnoutReportView; error?: string };
-        if (!res.ok || !body.view) {
-          setError(body.error ?? "Не удалось загрузить отчёт.");
-          setView(null);
-          return;
-        }
-        setView(body.view);
-      } catch {
-        setError("Сеть недоступна. Попробуйте ещё раз.");
+  const loadView = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const query = new URLSearchParams({ folderKey, sessionId });
+      const res = await fetch(`/api/admin/burnout-report/view?${query.toString()}`, {
+        cache: "no-store",
+      });
+      const body = (await res.json()) as { view?: BurnoutReportView; error?: string };
+      if (!res.ok || !body.view) {
+        setError(body.error ?? "Не удалось загрузить отчёт.");
         setView(null);
-      } finally {
-        setLoading(false);
+        return;
       }
-    })();
+      setView(body.view);
+    } catch {
+      setError("Сеть недоступна. Попробуйте ещё раз.");
+      setView(null);
+    } finally {
+      setLoading(false);
+    }
   }, [folderKey, sessionId]);
+
+  useEffect(() => {
+    void loadView();
+  }, [loadView]);
 
   if (loading) {
     return <p className={adminPanelMutedTextClass}>Загрузка отчёта…</p>;
@@ -88,12 +92,21 @@ export function BurnoutReportViewer(): React.ReactElement {
             {view.computedAt ? ` · Рассчитано: ${view.computedAt}` : null}
           </p>
         </div>
-        <Link
-          href={`/admin/results/${encodeURIComponent(folderKey)}`}
-          className="rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
-        >
-          ← К папке
-        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <RegenerateDocumentReportButton
+            folderKey={folderKey}
+            sessionId={sessionId}
+            kind="burnout"
+            regenerateAi={false}
+            onSuccess={loadView}
+          />
+          <Link
+            href={`/admin/results/${encodeURIComponent(folderKey)}`}
+            className="rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
+          >
+            ← К папке
+          </Link>
+        </div>
       </div>
 
       <div className={`rounded-2xl border px-6 py-5 ${verdictClass}`}>

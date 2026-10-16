@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { EmployeeDashboardCharts } from "@/components/admin/EmployeeDashboardCharts";
+import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import { CandidateLifecycleButtons } from "@/components/admin/CandidateLifecycleButtons";
 import { Button } from "@/components/Button";
 import { EmployeeFolderAdminActions } from "@/components/admin/EmployeeFolderAdminActions";
@@ -215,6 +216,7 @@ export function EmployeeFolderView(): React.ReactElement {
               folderKey={folderKey}
               reportSessions={folder.reportSessions}
               attestationSessions={folder.attestationSessions}
+              onRegenerated={loadFolder}
             />
           ))
         )}
@@ -358,7 +360,12 @@ export function EmployeeFolderView(): React.ReactElement {
       ) : null}
 
       {dashboardDoc ? (
-        <EmployeeDashboardPanel doc={dashboardDoc} visual={folder.dashboardVisual} />
+        <EmployeeDashboardPanel
+          doc={dashboardDoc}
+          visual={folder.dashboardVisual}
+          folderKey={folderKey}
+          onRegenerated={loadFolder}
+        />
       ) : null}
     </div>
   );
@@ -367,17 +374,34 @@ export function EmployeeFolderView(): React.ReactElement {
 function EmployeeDashboardPanel({
   doc,
   visual,
+  folderKey,
+  onRegenerated,
 }: {
   doc: EmployeeDocumentSlot;
   visual: EmployeeFolderDetail["dashboardVisual"];
+  folderKey: string;
+  onRegenerated: () => void | Promise<void>;
 }): React.ReactElement {
+  const dashboardSessionId = visual.sessionId ?? "";
   return (
     <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <h3 className={adminPanelSectionTitleClass}>{doc.title}</h3>
-        <span className="rounded-full bg-emerald-100 px-3 py-1 text-[12px] font-bold text-emerald-800">
-          Есть данные
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {dashboardSessionId ? (
+            <RegenerateDocumentReportButton
+              folderKey={folderKey}
+              sessionId={dashboardSessionId}
+              kind="folder_document"
+              documentId="dashboard"
+              label="Перегенерировать дашборд"
+              onSuccess={onRegenerated}
+            />
+          ) : null}
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[12px] font-bold text-emerald-800">
+            Есть данные
+          </span>
+        </div>
       </div>
       <EmployeeDashboardCharts visual={visual} />
     </div>
@@ -389,13 +413,21 @@ function DocumentCard({
   folderKey,
   reportSessions,
   attestationSessions,
+  onRegenerated,
 }: {
   doc: EmployeeDocumentSlot;
   folderKey: string;
   reportSessions: EmployeeFolderDetail["reportSessions"];
   attestationSessions: EmployeeFolderDetail["attestationSessions"];
+  onRegenerated: () => void | Promise<void>;
 }): React.ReactElement {
   const reportHref = _buildDocumentReportHref(
+    doc,
+    folderKey,
+    reportSessions,
+    attestationSessions
+  );
+  const regenerateTarget = _resolveDocumentRegenerateTarget(
     doc,
     folderKey,
     reportSessions,
@@ -411,16 +443,74 @@ function DocumentCard({
         </span>
       </div>
       <p className={`mt-2 ${adminPanelMutedTextClass}`}>{doc.description}</p>
-      {reportHref ? (
-        <Link
-          href={reportHref}
-          className="mt-4 inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-        >
-          Открыть отчёт
-        </Link>
-      ) : null}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        {reportHref ? (
+          <Link
+            href={reportHref}
+            className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
+          >
+            Открыть отчёт
+          </Link>
+        ) : null}
+        {regenerateTarget ? (
+          <RegenerateDocumentReportButton
+            folderKey={folderKey}
+            sessionId={regenerateTarget.sessionId}
+            kind={regenerateTarget.kind}
+            documentId={regenerateTarget.documentId}
+            className="rounded-full bg-white/80 px-4 py-2 text-[13px] font-bold text-[#5F5E5E] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.12)] disabled:opacity-50"
+            onSuccess={onRegenerated}
+          />
+        ) : null}
+      </div>
     </div>
   );
+}
+
+function _resolveDocumentRegenerateTarget(
+  doc: EmployeeDocumentSlot,
+  folderKey: string,
+  reportSessions: EmployeeFolderDetail["reportSessions"],
+  attestationSessions: EmployeeFolderDetail["attestationSessions"]
+):
+  | {
+      sessionId: string;
+      kind: "folder_document" | "attestation";
+      documentId?: EmployeeDocumentSlot["id"];
+    }
+  | null {
+  if (!doc.available || doc.viewKind === "none") {
+    return null;
+  }
+  if (doc.id === "resume" || doc.id === "commission_reports") {
+    return null;
+  }
+  if (doc.id === "attestation_report") {
+    const latest = attestationSessions[0];
+    if (!latest) {
+      return null;
+    }
+    return { sessionId: latest.sessionId, kind: "attestation" };
+  }
+  if (doc.id === "violations_report") {
+    return {
+      sessionId: "folder",
+      kind: "folder_document",
+      documentId: "violations_report",
+    };
+  }
+  const sources = documentReportSourceCandidates(doc.id, folderKey);
+  const session = sources
+    .map((source) => reportSessions.find((item) => item.source === source))
+    .find((item): item is NonNullable<typeof item> => Boolean(item));
+  if (!session) {
+    return null;
+  }
+  return {
+    sessionId: session.sessionId,
+    kind: "folder_document",
+    documentId: doc.id,
+  };
 }
 
 function _buildDocumentReportHref(

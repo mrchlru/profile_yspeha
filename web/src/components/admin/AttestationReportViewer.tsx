@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { AdminReportAiConclusionSection } from "@/components/admin/AdminReportAiConclusionSection";
+import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import { MiniIpipBigFiveSection } from "@/components/admin/MiniIpipBigFiveSection";
 import { Button } from "@/components/Button";
 import type { AttestationReportView } from "@/lib/admin/buildAttestationReportView";
@@ -214,12 +215,20 @@ export function AttestationReportViewer(): React.ReactElement {
               {view.computedAt ? ` · Рассчитано: ${view.computedAt}` : null}
             </p>
           </div>
-          <Link
-            href={`/admin/results/${encodeURIComponent(folderKey)}`}
-            className="shrink-0 rounded-full bg-white/80 px-4 py-2 text-[14px] font-bold text-[#5F5E5E] transition hover:bg-white"
-          >
-            ← К папке
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <RegenerateDocumentReportButton
+              folderKey={folderKey}
+              sessionId={sessionId}
+              kind="attestation"
+              onSuccess={loadView}
+            />
+            <Link
+              href={`/admin/results/${encodeURIComponent(folderKey)}`}
+              className="shrink-0 rounded-full bg-white/80 px-4 py-2 text-[14px] font-bold text-[#5F5E5E] transition hover:bg-white"
+            >
+              ← К папке
+            </Link>
+          </div>
         </div>
       </header>
 

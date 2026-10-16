@@ -76,7 +76,7 @@ export function DashboardMethodologyInfoButton({
             <div className="fixed inset-0 z-[200] flex items-end justify-center p-4 sm:items-center">
               <div className="absolute inset-0 bg-black/35" role="presentation" onClick={close} />
               <div
-                className={`relative z-10 flex max-h-[85vh] w-full max-w-xl flex-col overflow-hidden ${adminPanelCardClass}`}
+                className={`relative z-10 flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden ${adminPanelCardClass}`}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby={titleId}
@@ -103,6 +103,26 @@ export function DashboardMethodologyInfoButton({
                       {paragraph}
                     </p>
                   ))}
+                  {info.tableRows && info.tableRows.length > 0 ? (
+                    <div className="overflow-x-auto rounded-xl border border-black/10 bg-white/80">
+                      <table className="min-w-full text-left text-[13px] text-[#5F5E5E]">
+                        <thead>
+                          <tr className="border-b border-black/10 bg-[#F4F6F5] text-[11px] font-bold uppercase text-[#8C8C8C]">
+                            <th className="px-3 py-2 align-top">Свойства</th>
+                            <th className="px-3 py-2 align-top">Возможные значения</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {info.tableRows.map((row) => (
+                            <tr key={`${row.propertyDescription.slice(0, 32)}-${row.possibleValues.slice(0, 32)}`} className="border-t border-black/5 align-top">
+                              <td className="px-3 py-2 whitespace-pre-wrap">{row.propertyDescription || "—"}</td>
+                              <td className="px-3 py-2 whitespace-pre-wrap">{row.possibleValues}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
                   {info.sections?.map((section) => (
                     <div key={section.title}>
                       <p className="text-[13px] font-bold text-[#5F5E5E]">{section.title}</p>

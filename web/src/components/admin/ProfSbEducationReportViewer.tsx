@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -9,6 +9,7 @@ import {
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
+import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import type { ProfSbEducationReportView } from "@/lib/profSbEducation/profSbEducationTypes";
 import type { Step4ReportSection } from "@/lib/step4/step4Labels";
 
@@ -24,40 +25,31 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const query = new URLSearchParams({ folderKey, sessionId });
-        const res = await fetch(`/api/admin/prof-sb-education-report/view?${query.toString()}`, {
-          cache: "no-store",
-        });
-        const body = (await res.json()) as { view?: ProfSbEducationReportView; error?: string };
-        if (cancelled) {
-          return;
-        }
-        if (!res.ok || !body.view) {
-          setError(body.error ?? "Не удалось загрузить результат.");
-          setView(null);
-          return;
-        }
-        setView(body.view);
-      } catch {
-        if (!cancelled) {
-          setError("Сеть недоступна.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+  const loadView = useCallback(async (): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const query = new URLSearchParams({ folderKey, sessionId });
+      const res = await fetch(`/api/admin/prof-sb-education-report/view?${query.toString()}`, {
+        cache: "no-store",
+      });
+      const body = (await res.json()) as { view?: ProfSbEducationReportView; error?: string };
+      if (!res.ok || !body.view) {
+        setError(body.error ?? "Не удалось загрузить результат.");
+        setView(null);
+        return;
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      setView(body.view);
+    } catch {
+      setError("Сеть недоступна.");
+    } finally {
+      setLoading(false);
+    }
   }, [folderKey, sessionId]);
+
+  useEffect(() => {
+    void loadView();
+  }, [loadView]);
 
   if (loading) {
     return <p className={adminPanelMutedTextClass}>Загрузка…</p>;
@@ -82,12 +74,21 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
   return (
     <div className="space-y-6">
       <div className={`space-y-3 px-6 py-6 ${adminPanelCardClass}`}>
-        <Link
-          href={`/admin/results/${encodeURIComponent(folderKey)}`}
-          className="text-[14px] font-bold text-[#007A68] underline-offset-2 hover:underline"
-        >
-          ← К папке сотрудника
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={`/admin/results/${encodeURIComponent(folderKey)}`}
+            className="text-[14px] font-bold text-[#007A68] underline-offset-2 hover:underline"
+          >
+            ← К папке сотрудника
+          </Link>
+          <RegenerateDocumentReportButton
+            folderKey={folderKey}
+            sessionId={sessionId}
+            kind="prof_sb_education"
+            regenerateAi={false}
+            onSuccess={loadView}
+          />
+        </div>
         <h1 className={adminPanelSectionTitleClass}>ПРОФ СБ + ПРОФ образование</h1>
         <p className={adminPanelMutedTextClass}>
           {view.personName} · {view.createdAt}

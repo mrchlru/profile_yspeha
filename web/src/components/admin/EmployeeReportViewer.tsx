@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import { DocumentViewerActionBar } from "@/components/admin/DocumentViewerActionBar";
 import { EmployeeDashboardCharts } from "@/components/admin/EmployeeDashboardCharts";
+import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 
 import type { EmployeeDocumentSlotId } from "@/lib/admin/employeeFolderTypes";
 import type { ReportHtmlView } from "@/lib/admin/buildReportHtmlView";
@@ -42,6 +43,10 @@ function isDocumentId(value: string): value is EmployeeDocumentSlotId {
   return value in DOCUMENT_TITLES;
 }
 
+function canRegenerateFolderDocument(documentId: EmployeeDocumentSlotId): boolean {
+  return documentId !== "resume" && documentId !== "commission_reports";
+}
+
 /**
  * Просмотр отчёта сотрудника в админ-панели (HTML или PDF).
  */
@@ -61,7 +66,6 @@ export function EmployeeReportViewer(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pdfCacheBust, setPdfCacheBust] = useState(0);
-  const [forceRegenerate, setForceRegenerate] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
 
   const documentId = isDocumentId(documentParam) ? documentParam : null;
@@ -91,14 +95,11 @@ export function EmployeeReportViewer(): React.ReactElement {
       documentId,
       sessionId,
     });
-    if (forceRegenerate && isExecutivePdf) {
-      query.set("regenerate", "1");
-    }
     if (pdfCacheBust > 0) {
       query.set("_", String(pdfCacheBust));
     }
     return `/api/admin/reports/pdf?${query.toString()}`;
-  }, [documentId, folderKey, forceRegenerate, isExecutivePdf, isPdf, pdfCacheBust, sessionId]);
+  }, [documentId, folderKey, isPdf, pdfCacheBust, sessionId]);
 
   const pdfDownloadUrl = useMemo(() => {
     if (!pdfUrl) {
@@ -140,14 +141,37 @@ export function EmployeeReportViewer(): React.ReactElement {
     downloadHtmlFile(reportFileName, DOCUMENT_TITLES[documentId], html);
   }
 
-  function handleRegenerateExecutive(): void {
-    if (!isExecutivePdf || regenerating) {
+  const reloadReportContent = useCallback(async (): Promise<void> => {
+    if (!folderKey || !documentId || !sessionId) {
       return;
     }
-    setRegenerating(true);
-    setForceRegenerate(true);
-    setPdfCacheBust((value) => value + 1);
-  }
+    if (isDashboard) {
+      const folderRes = await fetch(
+        `/api/admin/results?folderKey=${encodeURIComponent(folderKey)}`,
+        { cache: "no-store" }
+      );
+      const folderBody = (await folderRes.json()) as {
+        folder?: { dashboardVisual?: EmployeeDashboardVisual };
+      };
+      if (folderRes.ok && folderBody.folder) {
+        setDashboardVisual(folderBody.folder.dashboardVisual ?? null);
+      }
+      return;
+    }
+    if (isPdf) {
+      setPdfCacheBust((value) => value + 1);
+      return;
+    }
+    const viewRes = await fetch(
+      `/api/admin/reports/view?folderKey=${encodeURIComponent(folderKey)}&documentId=${encodeURIComponent(documentId)}&sessionId=${encodeURIComponent(sessionId)}`,
+      { cache: "no-store" }
+    );
+    const viewBody = (await viewRes.json()) as { view?: ReportHtmlView; error?: string };
+    if (viewRes.ok && viewBody.view) {
+      setHtmlView(viewBody.view);
+      setError(null);
+    }
+  }, [documentId, folderKey, isDashboard, isPdf, sessionId]);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -259,15 +283,33 @@ export function EmployeeReportViewer(): React.ReactElement {
           {!loading && !error && !isPdf && !isDashboard ? (
             <DocumentViewerActionBar onPrint={handlePrint} onDownload={handleDownload} />
           ) : null}
-          {isExecutivePdf && !loading ? (
-            <button
-              type="button"
+          {documentId &&
+          canRegenerateFolderDocument(documentId) &&
+          sessionId &&
+          !loading &&
+          !error ? (
+            <RegenerateDocumentReportButton
+              folderKey={folderKey}
+              sessionId={sessionId}
+              kind="folder_document"
+              documentId={documentId}
               disabled={regenerating}
-              onClick={handleRegenerateExecutive}
-              className="rounded-full bg-white/80 px-4 py-2 text-[13px] font-bold text-[#5F5E5E] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.12)] disabled:opacity-50"
-            >
-              {regenerating ? "Пересобираю…" : "Пересобрать экспертный отчёт"}
-            </button>
+              label={
+                isExecutivePdf
+                  ? "Перегенерировать экспертный отчёт"
+                  : isDashboard
+                    ? "Перегенерировать дашборд"
+                    : "Перегенерировать отчёт"
+              }
+              onSuccess={async () => {
+                setRegenerating(true);
+                try {
+                  await reloadReportContent();
+                } finally {
+                  setRegenerating(false);
+                }
+              }}
+            />
           ) : null}
           <Link
             href={`/admin/results/${encodeURIComponent(folderKey)}`}
@@ -322,7 +364,6 @@ export function EmployeeReportViewer(): React.ReactElement {
             className="h-[80vh] w-full border-0 bg-white"
             onLoad={() => {
               setRegenerating(false);
-              setForceRegenerate(false);
             }}
           />
         </div>

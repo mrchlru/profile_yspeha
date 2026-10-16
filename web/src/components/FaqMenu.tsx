@@ -5,6 +5,7 @@ import Link from "next/link";
 import React, { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { FaqTestReferenceModal } from "@/components/FaqTestReferenceModal";
 import { buildFaqMenuItems, type FaqMenuItem } from "@/lib/support/faqSupportConfig";
 
 type MenuPosition = {
@@ -22,6 +23,7 @@ export function FaqMenu(): React.ReactElement {
   const [open, setOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [referenceOpen, setReferenceOpen] = useState(false);
   const items = buildFaqMenuItems();
 
   useEffect(() => {
@@ -92,6 +94,9 @@ export function FaqMenu(): React.ReactElement {
             showDivider={index === items.length - 2}
             onSelect={() => {
               setOpen(false);
+              if (item.kind === "reference") {
+                setReferenceOpen(true);
+              }
             }}
           />
         ))}
@@ -123,6 +128,7 @@ export function FaqMenu(): React.ReactElement {
       </button>
 
       {mounted && menuPanel !== null ? createPortal(menuPanel, document.body) : null}
+      <FaqTestReferenceModal open={referenceOpen} onClose={() => setReferenceOpen(false)} />
     </div>
   );
 }
@@ -138,7 +144,11 @@ function FaqMenuRow({ item, showDivider, onSelect }: FaqMenuRowProps): React.Rea
     "block w-full px-4 py-3 text-left text-[15px] font-normal leading-snug text-[#4F4F4F] transition hover:bg-white/70 focus-visible:bg-white/70 focus-visible:outline-none";
 
   const content =
-    item.kind === "link" ? (
+    item.kind === "reference" ? (
+      <button type="button" role="menuitem" className={rowClass} onClick={onSelect}>
+        {item.label}
+      </button>
+    ) : item.kind === "link" ? (
       <Link href={item.href} role="menuitem" className={rowClass} onClick={onSelect}>
         {item.label}
       </Link>

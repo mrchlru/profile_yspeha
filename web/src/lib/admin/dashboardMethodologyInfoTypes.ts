@@ -21,8 +21,15 @@ export type DashboardMethodologyInfoSection = {
   items: ReadonlyArray<string>;
 };
 
+export type DashboardMethodologyInfoTableRow = {
+  propertyDescription: string;
+  possibleValues: string;
+};
+
 export type DashboardMethodologyInfo = {
   title: string;
   paragraphs: ReadonlyArray<string>;
+  /** Строки сводной таблицы заказчика (свойства / значения). */
+  tableRows?: ReadonlyArray<DashboardMethodologyInfoTableRow>;
   sections?: ReadonlyArray<DashboardMethodologyInfoSection>;
 };

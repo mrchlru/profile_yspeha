@@ -8,6 +8,10 @@ export type FaqMenuItem =
       kind: "link";
       label: string;
       href: string;
+    }
+  | {
+      kind: "reference";
+      label: string;
     };
 
 /** Общая поддержка: ошибки в тестах, технические проблемы. */
@@ -48,6 +52,10 @@ export function buildFaqMenuItems(): ReadonlyArray<FaqMenuItem> {
   }
 
   items.push(
+    {
+      kind: "reference",
+      label: "Справочник по тестам (таблица и описания)",
+    },
     {
       kind: "mailto",
       label: "Технические проблемы",

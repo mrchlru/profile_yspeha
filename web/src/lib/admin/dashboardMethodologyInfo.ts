@@ -1,4 +1,6 @@
 import { buildDashboardSectarianismInfo } from "@/lib/admin/buildDashboardSectarianismInfo";
+import { getFaqTableRowsForMethodology } from "@/lib/support/faqMethodologyTableRows";
+import { getDashboardMethodologyDetailLines } from "@/lib/support/faqTestReference";
 export type {
   DashboardMethodologyInfo,
   DashboardMethodologyInfoId,
@@ -9,7 +11,7 @@ import type {
   DashboardMethodologyInfoId,
 } from "@/lib/admin/dashboardMethodologyInfoTypes";
 
-/** Тексты из справочной таблицы методик (сокращённо для UI дашборда). */
+/** Краткие заголовки методик; полные тексты подставляются из справочника xlsx. */
 const DASHBOARD_METHODOLOGY_INFO: Readonly<
   Record<Exclude<DashboardMethodologyInfoId, "sectarianism">, DashboardMethodologyInfo>
 > = {
@@ -129,7 +131,27 @@ export function getDashboardMethodologyInfo(
   if (id === "sectarianism") {
     return buildDashboardSectarianismInfo();
   }
-  return DASHBOARD_METHODOLOGY_INFO[id];
+  const base = DASHBOARD_METHODOLOGY_INFO[id];
+  const tableRows = getFaqTableRowsForMethodology(id).map((row) => ({
+    propertyDescription: row.propertyDescription,
+    possibleValues: row.possibleValues,
+  }));
+  const detailLines = getDashboardMethodologyDetailLines(id);
+  const sections =
+    detailLines && detailLines.length > 0
+      ? [
+          ...(base.sections ?? []),
+          {
+            title: "Полное описание",
+            items: detailLines,
+          },
+        ]
+      : base.sections;
+  return {
+    ...base,
+    tableRows: tableRows.length > 0 ? tableRows : undefined,
+    sections,
+  };
 }
 
 /**
