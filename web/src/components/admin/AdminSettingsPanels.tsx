@@ -303,6 +303,18 @@ type OpenAiTestResponse = {
 /**
  * Проверка OpenAI / Railway relay: короткий запрос и ответ модели.
  */
+function _openAiTestHintLabel(hint: string): string {
+  const map: Record<string, string> = {
+    empty_reply:
+      "HTTP 200, но пустой текст — часто лимит токенов у gpt-5 или временный сбой; реальные отчёты могут работать (см. логи openai_*).",
+    quota_exhausted: "Закончились кредиты на platform.openai.com — пополните баланс.",
+    invalid_model: "Модель недоступна для этого ключа — проверьте OPENAI_MODEL.",
+    network_error: "Сеть до relay или api.openai.com недоступна.",
+    missing_api_key: "Не задан OPENAI_API_KEY.",
+  };
+  return map[hint] ?? hint;
+}
+
 export function OpenAiTestPanel(): React.ReactElement {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<OpenAiTestResponse | null>(null);
@@ -381,7 +393,9 @@ export function OpenAiTestPanel(): React.ReactElement {
             {result.httpStatus != null ? <li>{`HTTP: ${result.httpStatus}`}</li> : null}
             {result.durationMs != null ? <li>{`Время: ${result.durationMs} мс`}</li> : null}
             {result.endpoint ? <li>{`Endpoint: ${result.endpoint}`}</li> : null}
-            {result.hint ? <li>{`Подсказка: ${result.hint}`}</li> : null}
+            {result.hint ? (
+              <li>{`Подсказка: ${_openAiTestHintLabel(result.hint)}`}</li>
+            ) : null}
           </ul>
         </div>
       ) : null}

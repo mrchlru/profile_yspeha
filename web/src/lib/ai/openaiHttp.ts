@@ -176,6 +176,64 @@ export type OpenAiHttpErrorHint =
   | "rate_limit"
   | "unknown";
 
+export type ParsedOpenAiChatCompletion = {
+  text: string | null;
+  finishReason: string | null;
+  refusal: string | null;
+};
+
+/**
+ * Извлекает текст assistant из JSON Chat Completions (строка, части, refusal).
+ */
+export function parseOpenAiChatCompletionJson(json: unknown): ParsedOpenAiChatCompletion | null {
+  if (!json || typeof json !== "object") {
+    return null;
+  }
+  const choices = (json as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) {
+    return null;
+  }
+  const choice = choices[0] as {
+    message?: { content?: unknown; refusal?: string | null };
+    finish_reason?: string | null;
+  };
+  const refusal =
+    typeof choice.message?.refusal === "string" && choice.message.refusal.trim().length > 0
+      ? choice.message.refusal.trim()
+      : null;
+  const text = _messageContentToText(choice.message?.content);
+  return {
+    text,
+    finishReason:
+      typeof choice.finish_reason === "string" ? choice.finish_reason : null,
+    refusal,
+  };
+}
+
+function _messageContentToText(content: unknown): string | null {
+  if (typeof content === "string") {
+    const trimmed = content.trim();
+    return trimmed.length > 0 ? trimmed : null;
+  }
+  if (!Array.isArray(content)) {
+    return null;
+  }
+  const parts: string[] = [];
+  for (const part of content) {
+    if (!part || typeof part !== "object") {
+      continue;
+    }
+    const row = part as { type?: string; text?: string };
+    if (row.type === "text" && typeof row.text === "string" && row.text.trim().length > 0) {
+      parts.push(row.text.trim());
+    }
+  }
+  if (parts.length === 0) {
+    return null;
+  }
+  return parts.join("\n").trim();
+}
+
 /**
  * Краткая классификация HTTP-ошибки OpenAI для логов (без повторного чтения тела).
  */
