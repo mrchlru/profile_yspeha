@@ -107,10 +107,10 @@ export async function regenerateFolderDocumentReport(
   }
 
   if (sessionSource === "screening") {
-    return regenerateScreeningSubmissionBySession(sessionId);
+    return regenerateScreeningSubmissionBySession(sessionId, { regenerateAi });
   }
 
-  const withManagerBriefAi =
+  const withAuditAi =
     regenerateAi &&
     (documentId === "short_report" ||
       documentId === "manager_report" ||
@@ -118,7 +118,8 @@ export async function regenerateFolderDocumentReport(
       documentId === "dashboard");
 
   const auditResult = await regenerateAuditSubmissionBySession(sessionId, {
-    withManagerBriefAi,
+    withAuditHrAi: withAuditAi,
+    withManagerBriefAi: withAuditAi,
     withFullPdf: documentId === "full_report",
     withManagerPdf: documentId === "manager_report",
   });
