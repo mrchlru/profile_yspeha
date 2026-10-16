@@ -19,7 +19,10 @@ import {
   YAxis,
 } from "recharts";
 
+import { DashboardMethodologyInfoButton } from "@/components/admin/DashboardMethodologyInfoButton";
 import { adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
+import { dashboardMethodologyInfoIdFromKey } from "@/lib/admin/dashboardMethodologyInfo";
+import type { DashboardMethodologyInfoId } from "@/lib/admin/dashboardMethodologyInfoTypes";
 import { formatDashboardSectarianPercent } from "@/lib/admin/formatDashboardSectarianPercent";
 import {
   DASHBOARD_CHART_COLORS,
@@ -87,6 +90,7 @@ export function EmployeeDashboardCharts({
       <div className="grid gap-4 xl:grid-cols-12">
         <DashboardCard
           title="Мотивация (Герчиков)"
+          infoId="gerchikov"
           subtitle={
             visual.radar
               ? visual.hasPrevious
@@ -125,7 +129,7 @@ export function EmployeeDashboardCharts({
       ) : null}
 
       {visual.intelligence ? (
-        <DashboardCard title="Интеллект (Кэттелл, CFIT)">
+        <DashboardCard title="Интеллект (Кэттелл, CFIT)" infoId="cfit">
           <IntelligenceStat
             iq={visual.intelligence.iq}
             previousIq={visual.intelligence.previousIq}
@@ -146,6 +150,7 @@ export function EmployeeDashboardCharts({
       {visual.sectarianSection ? (
         <DashboardCard
           title="Сектантство"
+          infoId="sectarianism"
           subtitle="Тест 18 · скрининг деструктивных групп"
           className={visual.sectarianSection.anyDetected ? "ring-[#C71F1F]/20" : undefined}
         >
@@ -274,12 +279,15 @@ function KpiCardsRow({ cards }: { cards: ReadonlyArray<DashboardKpiCard> }): Rea
           <p className="text-[12px] font-bold uppercase tracking-wide text-[#8C8C8C]">
             {card.label}
           </p>
-          <p
-            className="mt-2 text-[22px] font-extrabold leading-tight"
-            style={{ color: ACCENT_HEX[card.accent] }}
-          >
-            {card.valueText}
-          </p>
+          <div className="mt-2 flex items-center gap-1.5">
+            <p
+              className="text-[22px] font-extrabold leading-tight"
+              style={{ color: ACCENT_HEX[card.accent] }}
+            >
+              {card.valueText}
+            </p>
+            {card.infoId ? <DashboardMethodologyInfoButton infoId={card.infoId} /> : null}
+          </div>
           <div className="mt-1 flex items-center justify-between gap-2">
             <p className="text-[12px] text-[#8C8C8C]">{card.sublabel}</p>
             {card.deltaPercent !== null ? (
@@ -326,17 +334,20 @@ function DashboardAlertsRow({
                 : "bg-white/75 ring-1 ring-[#00B596]/20"
           }`}
         >
-          <p
-            className={`text-[14px] font-extrabold ${
-              alert.severity === "danger"
-                ? "text-[#C71F1F]"
-                : alert.severity === "warning"
-                  ? "text-[#B45309]"
-                  : "text-[#007A68]"
-            }`}
-          >
-            {alert.title}
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p
+              className={`text-[14px] font-extrabold ${
+                alert.severity === "danger"
+                  ? "text-[#C71F1F]"
+                  : alert.severity === "warning"
+                    ? "text-[#B45309]"
+                    : "text-[#007A68]"
+              }`}
+            >
+              {alert.title}
+            </p>
+            {alert.infoId ? <DashboardMethodologyInfoButton infoId={alert.infoId} /> : null}
+          </div>
           <p className={`mt-1 text-[13px] ${adminPanelMutedTextClass}`}>{alert.detail}</p>
         </div>
       ))}
@@ -351,12 +362,14 @@ function DashboardAlertsRow({
 function DashboardCard({
   title,
   subtitle,
+  infoId,
   accent = "default",
   className,
   children,
 }: {
   title: string;
   subtitle?: string;
+  infoId?: DashboardMethodologyInfoId;
   accent?: "default" | "danger";
   className?: string;
   children: React.ReactNode;
@@ -367,7 +380,10 @@ function DashboardCard({
         accent === "danger" ? "ring-[#C71F1F]/20" : "ring-black/6"
       } ${className ?? ""}`}
     >
-      <h4 className="text-[14px] font-extrabold text-[#5F5E5E]">{title}</h4>
+      <div className="flex items-center gap-1.5">
+        <h4 className="text-[14px] font-extrabold text-[#5F5E5E]">{title}</h4>
+        {infoId ? <DashboardMethodologyInfoButton infoId={infoId} /> : null}
+      </div>
       {subtitle ? <p className="mt-1 text-[12px] font-semibold text-[#8C8C8C]">{subtitle}</p> : null}
       <div className="mt-3">{children}</div>
     </div>
@@ -491,9 +507,14 @@ function GaugeRing({ gauge }: { gauge: DashboardGauge }): React.ReactElement {
         </text>
       </svg>
       <div className="mt-2 w-full min-w-0 px-0.5">
-        <p className="text-[11px] font-bold leading-snug text-[#5F5E5E] [overflow-wrap:anywhere]">
-          {title}
-        </p>
+        <div className="flex items-center justify-center gap-1">
+          <p className="text-[11px] font-bold leading-snug text-[#5F5E5E] [overflow-wrap:anywhere]">
+            {title}
+          </p>
+          {gauge.infoId ? (
+            <DashboardMethodologyInfoButton infoId={gauge.infoId} className="h-[16px] w-[16px] text-[10px]" />
+          ) : null}
+        </div>
         {suffix !== null ? (
           <p className="mt-0.5 text-[10px] font-semibold leading-snug text-[#8C8C8C]">{suffix}</p>
         ) : null}
@@ -532,16 +553,22 @@ function ProfileMetricCard({
   const color = dashboardLevelColor(higherIsBetter ? metric.value : 100 - metric.value);
   const deltaGood =
     metric.delta === null ? null : higherIsBetter ? metric.delta >= 0 : metric.delta <= 0;
+  const infoId = dashboardMethodologyInfoIdFromKey(metric.key);
   return (
     <div className="rounded-2xl bg-white/80 px-4 py-3 ring-1 ring-black/6">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[13px] font-bold leading-snug text-[#5F5E5E]">{metric.label}</p>
-        <span
-          className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
-          style={{ background: color }}
-        >
-          {String(metric.value)}
-        </span>
+        <div className="flex shrink-0 items-center gap-1">
+          <span
+            className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
+            style={{ background: color }}
+          >
+            {String(metric.value)}
+          </span>
+          {infoId ? (
+            <DashboardMethodologyInfoButton infoId={infoId} className="h-[16px] w-[16px] text-[10px]" />
+          ) : null}
+        </div>
       </div>
       <p className="mt-1 text-[11px] text-[#8C8C8C]">
         {metric.rawText} · {metric.levelLabel}
@@ -596,13 +623,16 @@ function SectarianSectionView({
           section.anyDetected ? "bg-[#FDE8E8] ring-1 ring-[#C71F1F]/20" : "bg-[#F4F6F5] ring-1 ring-black/6"
         }`}
       >
-        <p
-          className={`text-[14px] font-bold ${
-            section.anyDetected ? "text-[#C71F1F]" : "text-[#007A68]"
-          }`}
-        >
-          {section.resultText}
-        </p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p
+            className={`text-[14px] font-bold ${
+              section.anyDetected ? "text-[#C71F1F]" : "text-[#007A68]"
+            }`}
+          >
+            {section.resultText}
+          </p>
+          <DashboardMethodologyInfoButton infoId="sectarianism" className="h-[16px] w-[16px] text-[10px]" />
+        </div>
         {hasPrevious && section.previousResultText ? (
           <p className="mt-1 text-[12px] font-semibold text-[#8C8C8C]">
             Прошлый период: {section.previousResultText}
@@ -670,6 +700,7 @@ function TestCardView({
   hasPrevious: boolean;
 }): React.ReactElement {
   const hasChart = (card.slices && card.slices.length > 0) || (card.bars && card.bars.length > 0);
+  const infoId = dashboardMethodologyInfoIdFromKey(card.key);
   return (
     <div
       className={`flex flex-col rounded-2xl bg-white/80 px-4 py-4 ring-1 ${
@@ -694,7 +725,10 @@ function TestCardView({
       </div>
 
       <div className="mt-3">
-        <p className="text-[13px] font-bold text-[#5F5E5E]">{card.resultText}</p>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <p className="text-[13px] font-bold text-[#5F5E5E]">{card.resultText}</p>
+          {infoId ? <DashboardMethodologyInfoButton infoId={infoId} /> : null}
+        </div>
         {card.levelLabel ? (
           <p className="text-[11px] text-[#8C8C8C]">Уровень: {card.levelLabel}</p>
         ) : null}

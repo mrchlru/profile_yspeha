@@ -8,6 +8,7 @@ import {
   DASHBOARD_CHART_COLORS,
   dashboardSeriesColor,
 } from "@/lib/admin/employeeDashboardTheme";
+import { dashboardMethodologyInfoIdFromKey } from "@/lib/admin/dashboardMethodologyInfo";
 import type {
   DashboardAlertItem,
   DashboardChartSlice,
@@ -62,6 +63,7 @@ import {
   type BurnoutScores,
 } from "@/lib/audit/report/computeMbiStep19";
 import { extractMetricsFromStoredAuditReport } from "@/lib/audit/report/extractAuditReportMetrics";
+import { SECTARIANISM_MANAGER_ALERT_HEADLINE } from "@/lib/audit/report/buildAuditManagerBrief";
 import {
   computeRukavishnikovWorkerLoadFromSums,
   RUKAVISHNIKOV_IPV_SUM_MAX,
@@ -720,6 +722,7 @@ function _buildGauges(
     .filter((metric) => gaugeKeys.includes(metric.key))
     .map((metric, index) => {
       const higherIsBetter = metric.higherIsBetter !== false;
+      const infoId = dashboardMethodologyInfoIdFromKey(metric.key) ?? undefined;
       return {
         label: gaugeLabels[metric.key] ?? metric.label,
         percent: metric.value,
@@ -731,6 +734,7 @@ function _buildGauges(
           .filter((part) => part.trim().length > 0)
           .join(" · "),
         deltaPercent: metric.delta,
+        infoId,
       };
     });
 }
@@ -760,6 +764,7 @@ function _buildKpiCards(
       deltaPercent: prevIq !== null ? current.cfit.iq - prevIq : null,
       deltaGood: prevIq !== null ? current.cfit.iq >= prevIq : null,
       accent: "brand",
+      infoId: "cfit",
     });
   }
 
@@ -773,6 +778,7 @@ function _buildKpiCards(
       deltaPercent: prev !== null ? value - Math.round(prev * 100) : null,
       deltaGood: prev !== null ? value >= Math.round(prev * 100) : null,
       accent: "blue",
+      infoId: "kos",
     });
   }
 
@@ -797,6 +803,7 @@ function _buildKpiCards(
       deltaPercent: prevValue !== null ? value - prevValue : null,
       deltaGood: prevValue !== null ? value >= prevValue : null,
       accent: "coral",
+      infoId: "thomas",
     });
   }
 
@@ -815,6 +822,7 @@ function _buildKpiCards(
       deltaPercent: prev !== null ? current.burnout.workerLoad - prev : null,
       deltaGood: prev !== null ? current.burnout.workerLoad <= prev : null,
       accent: critical ? "danger" : "amber",
+      infoId: "burnout",
     });
   }
 
@@ -837,6 +845,7 @@ function _buildKpiCards(
       deltaPercent: prevMax !== null ? value - (100 - prevMax) : null,
       deltaGood: prevMax !== null ? value >= 100 - prevMax : null,
       accent: current.sectarian.anyDetected ? "danger" : "brand",
+      infoId: "sectarianism",
     });
   }
 
@@ -864,6 +873,10 @@ function _buildCriticalAlerts(report: AuditReportJson | null): ReadonlyArray<Das
         title: line.alertHeadline,
         detail: line.alertFootnote ?? line.briefAnswer,
         severity: "danger",
+        infoId:
+          line.alertHeadline === SECTARIANISM_MANAGER_ALERT_HEADLINE
+            ? "sectarianism"
+            : undefined,
       });
       continue;
     }

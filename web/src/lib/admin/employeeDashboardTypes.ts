@@ -1,9 +1,12 @@
+import type { DashboardMethodologyInfoId } from "@/lib/admin/dashboardMethodologyInfoTypes";
+
 export type DashboardAlertSeverity = "danger" | "warning" | "info";
 
 export type DashboardAlertItem = {
   title: string;
   detail: string;
   severity: DashboardAlertSeverity;
+  infoId?: DashboardMethodologyInfoId;
 };
 
 export type DashboardChartSlice = {
@@ -49,6 +52,8 @@ export type DashboardKpiCard = {
   deltaPercent: number | null;
   deltaGood: boolean | null;
   accent: "brand" | "blue" | "amber" | "coral" | "danger";
+  /** Справка о методике рядом с показателем. */
+  infoId?: DashboardMethodologyInfoId;
 };
 
 /** Кольцевой датчик среднего уровня по шкале. */
@@ -58,6 +63,7 @@ export type DashboardGauge = {
   color: string;
   caption: string;
   deltaPercent: number | null;
+  infoId?: DashboardMethodologyInfoId;
 };
 
 /** Серия диаграммы-паутины: текущий vs предыдущий период. */

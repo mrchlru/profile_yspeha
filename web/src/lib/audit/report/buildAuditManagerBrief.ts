@@ -26,7 +26,7 @@ import { computeSectarianismEvaluation } from "@/lib/audit/report/computeSectari
 import { computeMaslachMbiFromAuditStep } from "@/lib/audit/report/computeMaslachMbiFromAuditStep";
 import type { AuditReportManagerMaslachBrief } from "@/lib/audit/report/auditReportTypes";
 
-const SECTARIANISM_MANAGER_ALERT_HEADLINE = "ВЫЯВЛЕНЫ ПРИЗНАКИ НАХОЖДЕНИЯ В СЕКТЕ";
+export const SECTARIANISM_MANAGER_ALERT_HEADLINE = "ВЫЯВЛЕНЫ ПРИЗНАКИ НАХОЖДЕНИЯ В СЕКТЕ";
 const SECTARIANISM_MANAGER_ALERT_FOOTNOTE =
   "за подробностями обратитесь к HR-директору";
 
