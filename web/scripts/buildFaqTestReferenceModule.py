@@ -13,8 +13,10 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_XLSX = Path.home() / "Downloads" / "ТАБЛИЦА ТЕСТОВ справочно.xlsx"
 OUT_PATH = ROOT / "src" / "lib" / "support" / "faqTestReferenceData.ts"
 
+IQ_DOP_SHEET_TITLE = "IQ Доп"
+
 DASHBOARD_DETAIL_SHEET: dict[str, str] = {
-    "cfit": "IQ Доп",
+    "cfit": IQ_DOP_SHEET_TITLE,
     "gerchikov": "Герчиков",
     "goal": "Целеустремленность",
     "paperwork": "Стиль работы с док",
@@ -123,6 +125,31 @@ def _lines_to_content_blocks(lines: list[str]) -> list[dict[str, object]]:
     return blocks
 
 
+def _parse_iq_kettell_table(rows: list[tuple]) -> list[tuple[str, str]]:
+    """Строки таблицы IQ: только «Критерий» и «Тест Кеттелла», без Амтхауэра."""
+    parsed: list[tuple[str, str]] = []
+    for row in rows:
+        if len(row) < 4:
+            continue
+        criterion = _cell_str(row[2])
+        kettell = _cell_str(row[3])
+        if not criterion or criterion in ("Сравнительная таблица", "Критерий"):
+            continue
+        if not kettell:
+            continue
+        parsed.append((criterion, kettell))
+    return parsed
+
+
+def _iq_kettell_table_block(table: list[tuple[str, str]]) -> dict[str, object]:
+    return {
+        "kind": "twoColumnTable",
+        "leftHeader": "Критерий",
+        "rightHeader": "Тест Кеттелла",
+        "rows": [{"left": left, "right": right} for left, right in table],
+    }
+
+
 def _parse_detail_sheet(rows: list[tuple]) -> list[str]:
     lines: list[str] = []
     for row in rows:
@@ -140,17 +167,57 @@ def _ts_string(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
+def _append_content_block_lines(out: list[str], block: dict[str, object]) -> None:
+    kind = block["kind"]
+    if kind == "numbered":
+        out.append('    { kind: "numbered", items: [')
+        for item in block["items"]:
+            out.append(f"      {_ts_string(str(item))},")
+        out.append("    ]},")
+    elif kind == "labeled":
+        out.append(
+            "    { kind: \"labeled\", "
+            f"label: {_ts_string(str(block['label']))}, "
+            f"body: {_ts_string(str(block['body']))} }},"
+        )
+    elif kind == "summary":
+        out.append(f"    {{ kind: \"summary\", body: {_ts_string(str(block['body']))} }},")
+    elif kind == "heading":
+        out.append(f"    {{ kind: \"heading\", text: {_ts_string(str(block['text']))} }},")
+    elif kind == "twoColumnTable":
+        out.append(
+            "    { kind: \"twoColumnTable\", "
+            f"leftHeader: {_ts_string(str(block['leftHeader']))}, "
+            f"rightHeader: {_ts_string(str(block['rightHeader']))}, "
+            "rows: ["
+        )
+        for row in block["rows"]:
+            out.append(
+                "      { "
+                f"left: {_ts_string(str(row['left']))}, "
+                f"right: {_ts_string(str(row['right']))} "
+                "},"
+            )
+        out.append("    ]},")
+    else:
+        out.append(f"    {{ kind: \"paragraph\", text: {_ts_string(str(block['text']))} }},")
+
+
 def build_module(xlsx_path: Path) -> str:
     wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
     test_rows = _parse_test_sheet(list(wb["ТЕСТ"].iter_rows(values_only=True)))
 
     detail_sheets: dict[str, list[str]] = {}
+    iq_kettell_table: list[tuple[str, str]] = []
     for sheet_name in wb.sheetnames:
         if sheet_name == "ТЕСТ":
             continue
-        detail_sheets[sheet_name] = _parse_detail_sheet(
-            list(wb[sheet_name].iter_rows(values_only=True))
-        )
+        sheet_rows = list(wb[sheet_name].iter_rows(values_only=True))
+        if sheet_name == IQ_DOP_SHEET_TITLE:
+            iq_kettell_table = _parse_iq_kettell_table(sheet_rows)
+            detail_sheets[sheet_name] = []
+        else:
+            detail_sheets[sheet_name] = _parse_detail_sheet(sheet_rows)
     wb.close()
 
     lines: list[str] = [
@@ -189,6 +256,18 @@ def build_module(xlsx_path: Path) -> str:
         lines.append("  ]},")
     lines.append("];")
     lines.append("")
+    lines.append("export type FaqIqKettellTableRow = {")
+    lines.append("  criterion: string;")
+    lines.append("  kettell: string;")
+    lines.append("};")
+    lines.append("")
+    lines.append("export const FAQ_IQ_KETTELL_TABLE: ReadonlyArray<FaqIqKettellTableRow> = [")
+    for criterion, kettell in iq_kettell_table:
+        lines.append(
+            f"  {{ criterion: {_ts_string(criterion)}, kettell: {_ts_string(kettell)} }},"
+        )
+    lines.append("];")
+    lines.append("")
     lines.append(
         "export const FAQ_DASHBOARD_METHODOLOGY_DETAIL_SHEET: Readonly<"
         "Partial<Record<string, string>>"
@@ -203,7 +282,11 @@ def build_module(xlsx_path: Path) -> str:
     lines.append('  | { kind: "paragraph"; text: string }')
     lines.append('  | { kind: "numbered"; items: ReadonlyArray<string> }')
     lines.append('  | { kind: "labeled"; label: string; body: string }')
-    lines.append('  | { kind: "summary"; body: string };')
+    lines.append('  | { kind: "summary"; body: string }')
+    lines.append(
+        '  | { kind: "twoColumnTable"; leftHeader: string; rightHeader: string; '
+        "rows: ReadonlyArray<{ left: string; right: string }> };"
+    )
     lines.append("")
     lines.append(
         "export const DASHBOARD_METHODOLOGY_CONTENT_BLOCKS: Readonly<"
@@ -211,35 +294,14 @@ def build_module(xlsx_path: Path) -> str:
         "> = {"
     )
     for info_id, sheet_name in DASHBOARD_DETAIL_SHEET.items():
-        sheet_lines = detail_sheets.get(sheet_name, [])
-        blocks = _lines_to_content_blocks(sheet_lines)
+        if info_id == "cfit" and iq_kettell_table:
+            blocks: list[dict[str, object]] = [_iq_kettell_table_block(iq_kettell_table)]
+        else:
+            sheet_lines = detail_sheets.get(sheet_name, [])
+            blocks = _lines_to_content_blocks(sheet_lines)
         lines.append(f"  {_ts_string(info_id)}: [")
         for block in blocks:
-            kind = block["kind"]
-            if kind == "numbered":
-                items = block["items"]
-                lines.append('    { kind: "numbered", items: [')
-                for item in items:
-                    lines.append(f"      {_ts_string(str(item))},")
-                lines.append("    ]},")
-            elif kind == "labeled":
-                lines.append(
-                    "    { kind: \"labeled\", "
-                    f"label: {_ts_string(str(block['label']))}, "
-                    f"body: {_ts_string(str(block['body']))} }},"
-                )
-            elif kind == "summary":
-                lines.append(
-                    f"    {{ kind: \"summary\", body: {_ts_string(str(block['body']))} }},"
-                )
-            elif kind == "heading":
-                lines.append(
-                    f"    {{ kind: \"heading\", text: {_ts_string(str(block['text']))} }},"
-                )
-            else:
-                lines.append(
-                    f"    {{ kind: \"paragraph\", text: {_ts_string(str(block['text']))} }},"
-                )
+            _append_content_block_lines(lines, block)
         lines.append("  ],")
     lines.append("};")
     lines.append("")

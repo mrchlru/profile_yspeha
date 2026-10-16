@@ -2,16 +2,23 @@ import type { DashboardMethodologyInfoId } from "@/lib/admin/dashboardMethodolog
 import {
   DASHBOARD_METHODOLOGY_CONTENT_BLOCKS,
   FAQ_DASHBOARD_METHODOLOGY_DETAIL_SHEET,
+  FAQ_IQ_KETTELL_TABLE,
   FAQ_TEST_REFERENCE_DETAILS,
   FAQ_TEST_REFERENCE_TABLE,
   type DashboardMethodologyContentBlock,
+  type FaqIqKettellTableRow,
   type FaqTestReferenceDetailSheet,
   type FaqTestReferenceTableRow,
 } from "@/lib/support/faqTestReferenceData";
 
 export type { DashboardMethodologyContentBlock };
 
-export type { FaqTestReferenceDetailSheet, FaqTestReferenceTableRow };
+export type { FaqIqKettellTableRow, FaqTestReferenceDetailSheet, FaqTestReferenceTableRow };
+
+/** Таблица «Критерий — Тест Кеттелла» для IQ (без Амтхауэра). */
+export function getFaqIqKettellTable(): ReadonlyArray<FaqIqKettellTableRow> {
+  return FAQ_IQ_KETTELL_TABLE;
+}
 
 /** Строки сводной таблицы «ТЕСТ» из справочника заказчика. */
 export function getFaqTestReferenceTable(): ReadonlyArray<FaqTestReferenceTableRow> {

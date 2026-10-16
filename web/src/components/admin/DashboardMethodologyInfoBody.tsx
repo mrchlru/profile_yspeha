@@ -1,5 +1,6 @@
 import React from "react";
 
+import { MethodologyCriteriaTable } from "@/components/support/MethodologyCriteriaTable";
 import type { DashboardMethodologyContentBlock } from "@/lib/admin/dashboardMethodologyInfoTypes";
 
 export type DashboardMethodologyInfoBodyProps = {
@@ -33,6 +34,8 @@ function blockKey(block: DashboardMethodologyContentBlock, index: number): strin
       return `l-${block.label.slice(0, 24)}-${String(index)}`;
     case "summary":
       return `s-${String(index)}`;
+    case "twoColumnTable":
+      return `t-${String(index)}`;
     default:
       return `x-${String(index)}`;
   }
@@ -69,6 +72,14 @@ function DashboardMethodologyContentBlockView({
         <p className="mt-4 border-t border-black/8 pt-4 text-[14px] leading-[1.65]">
           <span className="font-bold text-[#3A3A3A]">Итог:</span> {block.body}
         </p>
+      );
+    case "twoColumnTable":
+      return (
+        <MethodologyCriteriaTable
+          leftHeader={block.leftHeader}
+          rightHeader={block.rightHeader}
+          rows={block.rows.map((row) => ({ criterion: row.left, value: row.right }))}
+        />
       );
     default:
       return <></>;

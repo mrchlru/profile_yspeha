@@ -3,10 +3,14 @@
 import React, { useCallback, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { MethodologyCriteriaTable } from "@/components/support/MethodologyCriteriaTable";
 import {
+  getFaqIqKettellTable,
   getFaqTestReferenceDetails,
   getFaqTestReferenceTable,
 } from "@/lib/support/faqTestReference";
+
+const FAQ_IQ_SHEET_TITLE = "IQ Доп";
 
 type FaqTestReferenceModalProps = {
   open: boolean;
@@ -24,6 +28,7 @@ export function FaqTestReferenceModal({
   const [mounted, setMounted] = useState(false);
   const tableRows = getFaqTestReferenceTable();
   const detailSheets = getFaqTestReferenceDetails();
+  const iqKettellTable = getFaqIqKettellTable();
 
   useEffect(() => {
     setMounted(true);
@@ -124,12 +129,25 @@ export function FaqTestReferenceModal({
                     {sheet.sheetTitle}
                   </span>
                 </summary>
-                <div className="mt-3 space-y-2 border-t border-black/5 pt-3 text-[14px] leading-relaxed text-[#4F4F4F]">
-                  {sheet.lines.map((line) => (
-                    <p key={line.slice(0, 80)} className="whitespace-pre-wrap">
-                      {line}
-                    </p>
-                  ))}
+                <div className="mt-3 border-t border-black/5 pt-3 text-[14px] leading-relaxed text-[#4F4F4F]">
+                  {sheet.sheetTitle === FAQ_IQ_SHEET_TITLE ? (
+                    <MethodologyCriteriaTable
+                      leftHeader="Критерий"
+                      rightHeader="Тест Кеттелла"
+                      rows={iqKettellTable.map((row) => ({
+                        criterion: row.criterion,
+                        value: row.kettell,
+                      }))}
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      {sheet.lines.map((line) => (
+                        <p key={line.slice(0, 80)} className="whitespace-pre-wrap">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </details>
             ))}
