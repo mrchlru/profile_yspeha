@@ -13,9 +13,11 @@ import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDoc
 import type { ProfSbEducationReportView } from "@/lib/profSbEducation/profSbEducationTypes";
 import type { Step4ReportSection } from "@/lib/step4/step4Labels";
 
+const ADMIN_REPORT_PAGE_CLASS =
+  "mx-auto w-full max-w-[1100px] space-y-5 px-4 py-6 sm:px-6 lg:px-8";
+
 /**
  * Просмотр результата анкеты «ПРОФ СБ + ПРОФ образование» в админке.
- * Формат как у анкетных данных в отчёте скрининга: блоки с парами ключ–значение.
  */
 export function ProfSbEducationReportViewer(): React.ReactElement {
   const params = useParams();
@@ -52,52 +54,65 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
   }, [loadView]);
 
   if (loading) {
-    return <p className={adminPanelMutedTextClass}>Загрузка…</p>;
+    return (
+      <div className={ADMIN_REPORT_PAGE_CLASS}>
+        <p className={adminPanelMutedTextClass}>Загрузка…</p>
+      </div>
+    );
   }
 
   if (error || !view) {
     return (
-      <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-        <p className="text-sm font-medium text-red-700/90" role="alert">
-          {error ?? "Данные не найдены."}
-        </p>
-        <Link
-          href={`/admin/results/${encodeURIComponent(folderKey)}`}
-          className="text-[14px] font-bold text-[#007A68] underline-offset-2 hover:underline"
-        >
-          ← К папке сотрудника
-        </Link>
+      <div className={ADMIN_REPORT_PAGE_CLASS}>
+        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
+          <p className="text-sm font-medium text-red-700/90" role="alert">
+            {error ?? "Данные не найдены."}
+          </p>
+          <Link
+            href={`/admin/results/${encodeURIComponent(folderKey)}`}
+            className="inline-flex rounded-full bg-white/80 px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
+          >
+            ← К папке сотрудника
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className={`space-y-3 px-6 py-6 ${adminPanelCardClass}`}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href={`/admin/results/${encodeURIComponent(folderKey)}`}
-            className="text-[14px] font-bold text-[#007A68] underline-offset-2 hover:underline"
-          >
-            ← К папке сотрудника
-          </Link>
-          <RegenerateDocumentReportButton
-            folderKey={folderKey}
-            sessionId={sessionId}
-            kind="prof_sb_education"
-            regenerateAi={false}
-            onSuccess={loadView}
-          />
+    <div className={ADMIN_REPORT_PAGE_CLASS}>
+      <header className={`px-6 py-5 sm:px-8 ${adminPanelCardClass}`}>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-[#8C8C8C]">
+              ПРОФ СБ + ПРОФ образование
+            </p>
+            <h2 className="mt-1 text-[26px] font-extrabold leading-tight text-[#5F5E5E] sm:text-[30px]">
+              {view.personName}
+            </h2>
+            <p className={`mt-2 ${adminPanelMutedTextClass}`}>Пройден: {view.createdAt}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <RegenerateDocumentReportButton
+              folderKey={folderKey}
+              sessionId={sessionId}
+              kind="prof_sb_education"
+              regenerateAi={false}
+              onSuccess={loadView}
+            />
+            <Link
+              href={`/admin/results/${encodeURIComponent(folderKey)}`}
+              className="shrink-0 rounded-full bg-white/80 px-4 py-2 text-[14px] font-bold text-[#5F5E5E] transition hover:bg-white"
+            >
+              ← К папке
+            </Link>
+          </div>
         </div>
-        <h1 className={adminPanelSectionTitleClass}>ПРОФ СБ + ПРОФ образование</h1>
-        <p className={adminPanelMutedTextClass}>
-          {view.personName} · {view.createdAt}
-        </p>
-      </div>
+      </header>
 
       {view.questionnaireBlocks.map((block) => (
-        <div key={block.title} className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-          <h2 className={adminPanelSectionTitleClass}>{block.title}</h2>
+        <section key={block.title} className={`space-y-4 px-6 py-6 sm:px-8 ${adminPanelCardClass}`}>
+          <h3 className={adminPanelSectionTitleClass}>{block.title}</h3>
           {block.sections.length === 0 ? (
             <p className={adminPanelMutedTextClass}>Раздел не заполнен.</p>
           ) : (
@@ -107,7 +122,7 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
               ))}
             </div>
           )}
-        </div>
+        </section>
       ))}
     </div>
   );
@@ -122,13 +137,13 @@ function QuestionnaireSection({
 
   return (
     <div className="space-y-2">
-      <h3
+      <h4
         className={`text-[15px] font-bold ${
           isEducationConclusion ? "text-[#007A68]" : "text-[#5F5E5E]"
         }`}
       >
         {section.title}
-      </h3>
+      </h4>
       {section.rows.map((row) =>
         isEducationConclusion ? (
           <p key={row.key} className="whitespace-pre-wrap text-[14px] leading-relaxed text-[#5F5E5E]">
