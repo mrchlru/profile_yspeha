@@ -1,15 +1,15 @@
 # Рабочий прод-образ для Timeweb: полный node_modules после prune.
 # Без standalone/отдельного prisma-cli — там ломался migrate (valibot/studio/dotenv).
 
-FROM node:20-bookworm-slim AS builder
-
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# Полный bookworm в builder — openssl/ca без apt (экономия ~2 мин на лимите Timeweb).
+FROM node:20-bookworm AS builder
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci
+COPY package*.json .npmrc ./
+# Кэш npm + без audit/fund — быстрее укладываемся в buildctl ~1680s.
+RUN --mount=type=cache,target=/root/.npm \
+  npm ci --no-audit --no-fund --prefer-offline
 
 COPY . .
 
