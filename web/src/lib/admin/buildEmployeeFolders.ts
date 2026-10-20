@@ -1000,6 +1000,9 @@ export async function getEmployeeFolderDetail(
       case "attestation_report":
         available = attestationSessions.length > 0;
         break;
+      case "attestation_brief_report":
+        available = attestationSessions.some((session) => session.hasBriefReport);
+        break;
     }
 
     return {

@@ -445,12 +445,21 @@ function DocumentCard({
       <p className={`mt-2 ${adminPanelMutedTextClass}`}>{doc.description}</p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {reportHref ? (
-          <Link
-            href={reportHref}
-            className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-          >
-            Открыть отчёт
-          </Link>
+          reportHref.startsWith("/api/") ? (
+            <a
+              href={reportHref}
+              className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
+            >
+              Скачать Word
+            </a>
+          ) : (
+            <Link
+              href={reportHref}
+              className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
+            >
+              Открыть отчёт
+            </Link>
+          )
         ) : null}
         {regenerateTarget ? (
           <RegenerateDocumentReportButton
@@ -485,7 +494,7 @@ function _resolveDocumentRegenerateTarget(
   if (doc.id === "resume" || doc.id === "commission_reports") {
     return null;
   }
-  if (doc.id === "attestation_report") {
+  if (doc.id === "attestation_report" || doc.id === "attestation_brief_report") {
     const latest = attestationSessions[0];
     if (!latest) {
       return null;
@@ -529,6 +538,15 @@ function _buildDocumentReportHref(
       return null;
     }
     return `/admin/results/${encodeURIComponent(folderKey)}/attestation/${encodeURIComponent(latest.sessionId)}`;
+  }
+
+  if (doc.id === "attestation_brief_report") {
+    const latest = attestationSessions.find((session) => session.hasBriefReport) ?? attestationSessions[0];
+    if (!latest) {
+      return null;
+    }
+    const query = new URLSearchParams({ folderKey, sessionId: latest.sessionId });
+    return `/api/admin/attestation-report/brief-docx?${query.toString()}`;
   }
 
   // Отчёт по нарушениям строится по всей папке (proctor), а не по audit/screening-сессии.

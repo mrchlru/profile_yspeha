@@ -10,7 +10,8 @@ export type EmployeeDocumentSlotId =
   | "violations_report"
   | "commission_reports"
   | "dashboard"
-  | "attestation_report";
+  | "attestation_report"
+  | "attestation_brief_report";
 
 export type EmployeeDocumentSlot = {
   id: EmployeeDocumentSlotId;
@@ -109,6 +110,7 @@ export type EmployeeFolderDetail = EmployeeFolderSummary & {
     label: string;
     createdAt: string;
     hasReport: boolean;
+    hasBriefReport: boolean;
   }>;
   /** Прохождения анкеты ПРОФ СБ + ПРОФ образование. */
   profSbEducationSessions: ReadonlyArray<{
@@ -190,6 +192,12 @@ export const EMPLOYEE_DOCUMENT_SLOTS: ReadonlyArray<{
     id: "attestation_report",
     title: "Отчёт по аттестации",
     description: "Сводные баллы по блокам аттестации и кодирование Розенцвейга.",
+  },
+  {
+    id: "attestation_brief_report",
+    title: "Отчёт по аттестации — краткая версия",
+    description:
+      "Конфиденциальный отчёт для непосредственного руководителя: главное, таблица показателей, плюсы/минусы, действия.",
   },
 ];
 

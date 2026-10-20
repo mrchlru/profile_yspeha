@@ -37,6 +37,7 @@ const DOCUMENT_TITLES: Record<EmployeeDocumentSlotId, string> = {
   commission_reports: "Отчёты комиссии",
   dashboard: "Дашборд по сотруднику",
   attestation_report: "Отчёт по аттестации",
+  attestation_brief_report: "Отчёт по аттестации — краткая версия",
 };
 
 function isDocumentId(value: string): value is EmployeeDocumentSlotId {

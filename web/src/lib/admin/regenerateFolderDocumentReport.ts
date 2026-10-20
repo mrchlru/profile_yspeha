@@ -205,6 +205,7 @@ async function regenerateAttestationReportInFolder(
     conclusionText: stored?.conclusionText ?? null,
     managerActions: stored?.managerActions ?? null,
     conclusionGeneratedAt: stored?.conclusionGeneratedAt ?? null,
+    briefReport: stored?.briefReport ?? null,
   };
 
   await prisma.attestationSubmission.update({
@@ -228,7 +229,21 @@ async function regenerateAttestationReportInFolder(
         message: "Баллы пересчитаны; ИИ-заключение не удалось сгенерировать",
       };
     }
-    return { ok: true, message: "Отчёт аттестации и ИИ-заключение обновлены" };
+    const { persistAttestationBriefReport } = await import(
+      "@/lib/attestation/persistAttestationBriefReport"
+    );
+    const briefResult = await persistAttestationBriefReport({
+      sessionId,
+      sessionRef: shortSessionRef(sessionId),
+      personName: fullName,
+    });
+    if (!briefResult.aiGenerated) {
+      return {
+        ok: true,
+        message: "Заключение обновлено; краткий отчёт не удалось сгенерировать",
+      };
+    }
+    return { ok: true, message: "Отчёт аттестации, заключение и краткая версия обновлены" };
   }
 
   return { ok: true, message: "Баллы аттестации пересчитаны" };

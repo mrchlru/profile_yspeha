@@ -5,7 +5,9 @@ import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { AdminReportAiConclusionSection } from "@/components/admin/AdminReportAiConclusionSection";
+import { AttestationBriefReportControls } from "@/components/admin/AttestationBriefReportControls";
 import { DownloadDocumentReportButton } from "@/components/admin/DownloadDocumentReportButton";
+import { isAttestationBriefReportJson } from "@/lib/attestation/attestationBriefReportTypes";
 import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import { MiniIpipBigFiveSection } from "@/components/admin/MiniIpipBigFiveSection";
 import { Button } from "@/components/Button";
@@ -217,6 +219,12 @@ export function AttestationReportViewer(): React.ReactElement {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <AttestationBriefReportControls
+              folderKey={folderKey}
+              sessionId={sessionId}
+              hasBriefReport={isAttestationBriefReportJson(view.report.briefReport)}
+              onBriefGenerated={loadView}
+            />
             <DownloadDocumentReportButton
               folderKey={folderKey}
               sessionId={sessionId}

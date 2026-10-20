@@ -1,3 +1,4 @@
+import type { AttestationBriefReportJson } from "@/lib/attestation/attestationBriefReportTypes";
 import type { AttestationComputedScores } from "@/lib/attestation/computeAttestationScores";
 import type { RosenzweigCodingSummary } from "@/lib/attestation/rosenzweigCoding";
 
@@ -21,4 +22,6 @@ export type AttestationReportJson = {
   /** Краткие управленческие шаги для HRD / CEO. */
   managerActions: string | null;
   conclusionGeneratedAt: string | null;
+  /** Отчёт по аттестации — краткая версия (для непосредственного руководителя). */
+  briefReport?: AttestationBriefReportJson | null;
 };

@@ -7,6 +7,7 @@ export type FolderAttestationSessionRef = {
   label: string;
   createdAt: string;
   hasReport: boolean;
+  hasBriefReport: boolean;
 };
 
 /**
@@ -34,6 +35,7 @@ export async function listFolderAttestationSessions(
       label: `${row.lastName} ${row.firstName} — ${formatMoscowDateTime(row.createdAt)}`,
       createdAt: row.createdAt.toISOString(),
       hasReport: report !== null && report.scores !== undefined,
+      hasBriefReport: Boolean(report?.briefReport && report.briefReport.version === 1),
     };
   });
 }

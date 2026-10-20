@@ -2,6 +2,7 @@ import { sendAttestationCompletionEmail } from "@/lib/email/sendAttestationCompl
 import { smtpErrorLogFields } from "@/lib/email/sendScreeningReportEmail";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 import { persistAttestationAiConclusion } from "@/lib/attestation/persistAttestationAiConclusion";
+import { persistAttestationBriefReport } from "@/lib/attestation/persistAttestationBriefReport";
 import { persistRosenzweigAiCoding } from "@/lib/attestation/persistRosenzweigAiCoding";
 import type { AttestationComputedScores } from "@/lib/attestation/computeAttestationScores";
 
@@ -61,6 +62,26 @@ export async function runAttestationSubmitAiPipeline(
       ok: conclusionText !== null,
       durationMs: Date.now() - aiStarted,
     });
+    if (conclusionText !== null) {
+      const briefStarted = Date.now();
+      try {
+        const briefResult = await persistAttestationBriefReport({
+          sessionId,
+          sessionRef,
+          personName: fullName,
+        });
+        screeningServerLog("attestation_submit", "ai_brief_finished", {
+          sessionRef,
+          ok: briefResult.aiGenerated,
+          durationMs: Date.now() - briefStarted,
+        });
+      } catch (briefErr) {
+        screeningServerLog("attestation_submit", "ai_brief_exception", {
+          sessionRef,
+          errorName: briefErr instanceof Error ? briefErr.name : "unknown",
+        });
+      }
+    }
   } catch (err) {
     screeningServerLog("attestation_submit", "ai_conclusion_exception", {
       sessionRef,
