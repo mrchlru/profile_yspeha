@@ -34,6 +34,12 @@ export async function listReportExportCandidates(
   if (testKind === "burnout") {
     return _listBurnoutCandidates();
   }
+  if (testKind === "attestation") {
+    return _listAttestationCandidates();
+  }
+  if (testKind === "specialist_screening") {
+    return _listSpecialistScreeningCandidates();
+  }
   return _listProfSbEducationCandidates();
 }
 
@@ -166,6 +172,82 @@ async function _listBurnoutCandidates(): Promise<ReportExportCandidate[]> {
       continue;
     }
     if (!row.burnoutReport) {
+      continue;
+    }
+    seen.add(row.assesseeKey);
+    out.push({
+      sessionId: row.sessionId,
+      folderKey: row.candidateFolderKey,
+      lastName: row.lastName,
+      firstName: row.firstName,
+      displayName: `${row.lastName} ${row.firstName}`.trim(),
+      completedAt: row.createdAt.toISOString(),
+    });
+  }
+
+  return out;
+}
+
+async function _listAttestationCandidates(): Promise<ReportExportCandidate[]> {
+  const rows = await prisma.attestationSubmission.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      sessionId: true,
+      assesseeKey: true,
+      firstName: true,
+      lastName: true,
+      createdAt: true,
+      candidateFolderKey: true,
+      attestationReport: true,
+    },
+  });
+
+  const seen = new Set<string>();
+  const out: ReportExportCandidate[] = [];
+
+  for (const row of rows) {
+    if (seen.has(row.assesseeKey)) {
+      continue;
+    }
+    if (!row.attestationReport) {
+      continue;
+    }
+    seen.add(row.assesseeKey);
+    out.push({
+      sessionId: row.sessionId,
+      folderKey: row.candidateFolderKey,
+      lastName: row.lastName,
+      firstName: row.firstName,
+      displayName: `${row.lastName} ${row.firstName}`.trim(),
+      completedAt: row.createdAt.toISOString(),
+    });
+  }
+
+  return out;
+}
+
+async function _listSpecialistScreeningCandidates(): Promise<ReportExportCandidate[]> {
+  const rows = await prisma.specialistScreeningSubmission.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      sessionId: true,
+      assesseeKey: true,
+      firstName: true,
+      lastName: true,
+      createdAt: true,
+      candidateFolderKey: true,
+      specialistScreeningReport: true,
+    },
+  });
+
+  const seen = new Set<string>();
+  const out: ReportExportCandidate[] = [];
+
+  for (const row of rows) {
+    if (seen.has(row.assesseeKey)) {
+      continue;
+    }
+    if (!row.specialistScreeningReport) {
       continue;
     }
     seen.add(row.assesseeKey);

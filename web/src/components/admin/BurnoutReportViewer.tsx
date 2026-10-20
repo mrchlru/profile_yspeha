@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
 
+import { DownloadDocumentReportButton } from "@/components/admin/DownloadDocumentReportButton";
 import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import type { BurnoutReportView } from "@/lib/admin/buildBurnoutReportView";
 import {
@@ -93,6 +94,11 @@ export function BurnoutReportViewer(): React.ReactElement {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <DownloadDocumentReportButton
+            folderKey={folderKey}
+            sessionId={sessionId}
+            kind="burnout"
+          />
           <RegenerateDocumentReportButton
             folderKey={folderKey}
             sessionId={sessionId}

@@ -1,7 +1,3 @@
-import { buildBurnoutReportView } from "@/lib/admin/buildBurnoutReportView";
-
-import { buildProfSbEducationReportView } from "@/lib/admin/buildProfSbEducationReportView";
-
 import {
 
   dedupeReportExportFileNames,
@@ -12,6 +8,8 @@ import {
 
 import {
 
+  generateAttestationReportDocxBySession,
+
   generateAuditReportDocxBySession,
 
   generateBurnoutReportDocxBySession,
@@ -19,6 +17,8 @@ import {
   generateProfSbEducationReportDocxBySession,
 
   generateScreeningReportDocxBySession,
+
+  generateSpecialistScreeningReportDocxBySession,
 
 } from "@/lib/admin/generateReportExportDocxBySession";
 
@@ -50,9 +50,8 @@ import type {
 
 } from "@/lib/admin/reportExportKinds";
 
+import { reportExportSupportsPdf } from "@/lib/admin/reportExportKinds";
 import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
-
-
 
 export type ReportExportRequest = {
 
@@ -336,9 +335,11 @@ async function _buildExportFilesForTarget(
 
   );
 
-  const wantPdf = fileFormat === "pdf" || fileFormat === "both";
+  const supportsPdf = reportExportSupportsPdf(testKind);
 
-  const wantDocx = fileFormat === "docx" || fileFormat === "both";
+  const wantPdf = supportsPdf && (fileFormat === "pdf" || fileFormat === "both");
+
+  const wantDocx = fileFormat === "docx" || fileFormat === "both" || !supportsPdf;
 
   const files: BuiltExportFile[] = [];
 
@@ -434,39 +435,23 @@ async function _buildExportFilesForTarget(
 
 
 
-  if (testKind === "burnout") {
+  if (testKind === "attestation" && wantDocx) {
 
-    if (wantPdf) {
+    const buffer = await generateAttestationReportDocxBySession(target.sessionId);
 
-      const htmlFile = await _buildBurnoutExportHtmlFile(target.sessionId, stem);
+    if (buffer && buffer.length > 0) {
 
-      if (htmlFile) {
+      files.push({
 
-        files.push(htmlFile);
+        fileName: `${stem}.docx`,
 
-      }
+        buffer,
 
-    }
+        contentType:
 
-    if (wantDocx) {
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 
-      const buffer = await generateBurnoutReportDocxBySession(target.sessionId);
-
-      if (buffer && buffer.length > 0) {
-
-        files.push({
-
-          fileName: `${stem}.docx`,
-
-          buffer,
-
-          contentType:
-
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-
-        });
-
-      }
+      });
 
     }
 
@@ -476,19 +461,59 @@ async function _buildExportFilesForTarget(
 
 
 
-  if (wantPdf) {
+  if (testKind === "specialist_screening" && wantDocx) {
 
-    const htmlFile = await _buildProfSbExportHtmlFile(target.sessionId, stem);
+    const buffer = await generateSpecialistScreeningReportDocxBySession(target.sessionId);
 
-    if (htmlFile) {
+    if (buffer && buffer.length > 0) {
 
-      files.push(htmlFile);
+      files.push({
+
+        fileName: `${stem}.docx`,
+
+        buffer,
+
+        contentType:
+
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+      });
 
     }
 
+    return files;
+
   }
 
-  if (wantDocx) {
+
+
+  if (testKind === "burnout" && wantDocx) {
+
+    const buffer = await generateBurnoutReportDocxBySession(target.sessionId);
+
+    if (buffer && buffer.length > 0) {
+
+      files.push({
+
+        fileName: `${stem}.docx`,
+
+        buffer,
+
+        contentType:
+
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+      });
+
+    }
+
+    return files;
+
+  }
+
+
+
+  if (testKind === "prof_sb_education" && wantDocx) {
 
     const buffer = await generateProfSbEducationReportDocxBySession(target.sessionId);
 
@@ -513,169 +538,4 @@ async function _buildExportFilesForTarget(
   return files;
 
 }
-
-
-
-async function _buildBurnoutExportHtmlFile(
-
-  sessionId: string,
-
-  stem: string
-
-): Promise<BuiltExportFile | null> {
-
-  const view = await buildBurnoutReportView(sessionId);
-
-  if (!view) {
-
-    return null;
-
-  }
-
-  const html = _buildBurnoutExportHtml(view);
-
-  return {
-
-    fileName: `${stem}.html`,
-
-    buffer: Buffer.from(html, "utf-8"),
-
-    contentType: "text/html; charset=utf-8",
-
-  };
-
-}
-
-
-
-async function _buildProfSbExportHtmlFile(
-
-  sessionId: string,
-
-  stem: string
-
-): Promise<BuiltExportFile | null> {
-
-  const view = await buildProfSbEducationReportView(sessionId);
-
-  if (!view) {
-
-    return null;
-
-  }
-
-  const html = _buildProfSbExportHtml(view);
-
-  return {
-
-    fileName: `${stem}.html`,
-
-    buffer: Buffer.from(html, "utf-8"),
-
-    contentType: "text/html; charset=utf-8",
-
-  };
-
-}
-
-
-
-function _buildBurnoutExportHtml(view: NonNullable<Awaited<ReturnType<typeof buildBurnoutReportView>>>): string {
-
-  const rows = [view.interpretation.ee, view.interpretation.dp, view.interpretation.pa]
-
-    .map(
-
-      (row) =>
-
-        `<tr><td>${_escapeHtml(row.title)}</td><td>${String(row.score)}</td><td>${_escapeHtml(row.levelLabel)}</td></tr>`
-
-    )
-
-    .join("");
-
-  const recommendations = view.interpretation.recommendationLines
-
-    .map((line) => `<li>${_escapeHtml(line)}</li>`)
-
-    .join("");
-
-
-
-  return `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8" /><title>Тест на выгорание — ${_escapeHtml(view.personName)}</title></head><body>
-
-<h1>Тест на выгорание (Маслач)</h1>
-
-<p><strong>${_escapeHtml(view.personName)}</strong></p>
-
-<p>Пройден: ${_escapeHtml(formatMoscowDateTime(view.createdAt))}</p>
-
-<h2>${_escapeHtml(view.interpretation.verdictTitle)}</h2>
-
-<p>${_escapeHtml(view.interpretation.verdictText)}</p>
-
-<table border="1" cellpadding="6"><thead><tr><th>Шкала</th><th>Балл</th><th>Уровень</th></tr></thead><tbody>${rows}</tbody></table>
-
-<h3>Рекомендации</h3><ul>${recommendations}</ul>
-
-</body></html>`;
-
-}
-
-
-
-function _buildProfSbExportHtml(
-  view: NonNullable<Awaited<ReturnType<typeof buildProfSbEducationReportView>>>
-): string {
-  const blocksHtml = view.questionnaireBlocks
-    .map((block) => {
-      const sectionsHtml =
-        block.sections.length === 0
-          ? "<p>Раздел не заполнен.</p>"
-          : block.sections
-              .map((section) => {
-                const rows = section.rows
-                  .map((row) => `<p><strong>${_escapeHtml(row.key)}:</strong> ${_escapeHtml(row.value)}</p>`)
-                  .join("");
-                const groups = (section.groups ?? [])
-                  .map((group) => {
-                    const groupRows = group.rows
-                      .map(
-                        (row) =>
-                          `<p><strong>${_escapeHtml(row.key)}:</strong> ${_escapeHtml(row.value)}</p>`
-                      )
-                      .join("");
-                    return `<h4>${_escapeHtml(group.heading)}</h4>${groupRows}`;
-                  })
-                  .join("");
-                return `<h3>${_escapeHtml(section.title)}</h3>${rows}${groups}`;
-              })
-              .join("");
-      return `<h2>${_escapeHtml(block.title)}</h2>${sectionsHtml}`;
-    })
-    .join("");
-
-  return `<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8" /><title>ПРОФ СБ — ${_escapeHtml(view.personName)}</title></head><body>
-<h1>ПРОФ СБ + ПРОФ образование</h1>
-<p><strong>${_escapeHtml(view.personName)}</strong> · ${_escapeHtml(view.createdAt)}</p>
-${blocksHtml}
-</body></html>`;
-}
-
-
-
-function _escapeHtml(value: string): string {
-
-  return value
-
-    .replaceAll("&", "&amp;")
-
-    .replaceAll("<", "&lt;")
-
-    .replaceAll(">", "&gt;")
-
-    .replaceAll('"', "&quot;");
-
-}
-
 

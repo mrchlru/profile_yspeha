@@ -9,6 +9,7 @@ import {
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
+import { DownloadDocumentReportButton } from "@/components/admin/DownloadDocumentReportButton";
 import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import type { ProfSbEducationReportView } from "@/lib/profSbEducation/profSbEducationTypes";
 import type { Step4ReportSection } from "@/lib/step4/step4Labels";
@@ -93,6 +94,11 @@ export function ProfSbEducationReportViewer(): React.ReactElement {
             <p className={`mt-2 ${adminPanelMutedTextClass}`}>Пройден: {view.createdAt}</p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <DownloadDocumentReportButton
+              folderKey={folderKey}
+              sessionId={sessionId}
+              kind="prof_sb_education"
+            />
             <RegenerateDocumentReportButton
               folderKey={folderKey}
               sessionId={sessionId}

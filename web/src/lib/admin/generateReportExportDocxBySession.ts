@@ -1,7 +1,10 @@
 import { HeadingLevel, Paragraph } from "docx";
 
+import { buildAttestationReportDocxParagraphs } from "@/lib/admin/buildAttestationReportDocxParagraphs";
+import { buildAttestationReportView } from "@/lib/admin/buildAttestationReportView";
 import { buildBurnoutReportView } from "@/lib/admin/buildBurnoutReportView";
 import { buildProfSbEducationReportView } from "@/lib/admin/buildProfSbEducationReportView";
+import { buildSpecialistScreeningReportView } from "@/lib/admin/buildSpecialistScreeningReportView";
 import {
   packReportExportDocx,
   reportDocxBoldLead,
@@ -150,6 +153,71 @@ export async function generateScreeningReportDocxBySession(sessionId: string): P
   if (recommendations.length > 0) {
     paragraphs.push(reportDocxHeading("Рекомендации по найму", HeadingLevel.HEADING_2));
     for (const line of recommendations) {
+      paragraphs.push(reportDocxParagraph(`• ${line}`));
+    }
+  }
+
+  return packReportExportDocx(title, paragraphs);
+}
+
+/**
+ * Word-версия отчёта аттестации.
+ */
+export async function generateAttestationReportDocxBySession(
+  sessionId: string
+): Promise<Buffer | null> {
+  const view = await buildAttestationReportView(sessionId);
+  if (!view) {
+    return null;
+  }
+  const title = `Аттестация — ${view.personName}`;
+  return packReportExportDocx(title, buildAttestationReportDocxParagraphs(view));
+}
+
+/**
+ * Word-версия скрининга депрессивных симптомов.
+ */
+export async function generateSpecialistScreeningReportDocxBySession(
+  sessionId: string
+): Promise<Buffer | null> {
+  const view = await buildSpecialistScreeningReportView(sessionId);
+  if (!view) {
+    return null;
+  }
+
+  const title = `Скрининг депрессивных симптомов — ${view.personName}`;
+  const paragraphs: Paragraph[] = [
+    reportDocxParagraph(`Пройден: ${formatMoscowDateTime(view.createdAt)}`),
+    reportDocxHeading(view.interpretation.verdictTitle, HeadingLevel.HEADING_2),
+    reportDocxParagraph(view.interpretation.verdictText),
+    reportDocxHeading("Шкалы", HeadingLevel.HEADING_2),
+  ];
+
+  for (const scale of [
+    view.interpretation.phq9,
+    view.interpretation.gad7,
+    view.interpretation.asrs,
+  ]) {
+    paragraphs.push(
+      reportDocxParagraph(
+        `${scale.title}: ${String(scale.score)} / ${String(scale.maxScore)} — ${scale.levelLabel}. ${scale.note}`
+      )
+    );
+  }
+
+  if (view.conclusionText?.trim()) {
+    paragraphs.push(reportDocxHeading("Заключение", HeadingLevel.HEADING_2));
+    paragraphs.push(reportDocxParagraph(view.conclusionText.trim()));
+  }
+
+  if (view.managerActions?.trim()) {
+    paragraphs.push(reportDocxHeading("Рекомендации для HRD", HeadingLevel.HEADING_2));
+    paragraphs.push(reportDocxParagraph(view.managerActions.trim()));
+  }
+
+  if (view.interpretation.recommendationLines.length > 0) {
+    paragraphs.push(reportDocxHeading("Практические шаги", HeadingLevel.HEADING_2));
+    for (const line of view.interpretation.recommendationLines) {
       paragraphs.push(reportDocxParagraph(`• ${line}`));
     }
   }

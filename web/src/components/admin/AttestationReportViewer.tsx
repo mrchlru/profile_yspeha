@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { AdminReportAiConclusionSection } from "@/components/admin/AdminReportAiConclusionSection";
+import { DownloadDocumentReportButton } from "@/components/admin/DownloadDocumentReportButton";
 import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import { MiniIpipBigFiveSection } from "@/components/admin/MiniIpipBigFiveSection";
 import { Button } from "@/components/Button";
@@ -216,6 +217,11 @@ export function AttestationReportViewer(): React.ReactElement {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <DownloadDocumentReportButton
+              folderKey={folderKey}
+              sessionId={sessionId}
+              kind="attestation"
+            />
             <RegenerateDocumentReportButton
               folderKey={folderKey}
               sessionId={sessionId}

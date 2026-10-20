@@ -5,7 +5,9 @@ export const REPORT_EXPORT_TEST_KINDS = [
   "screening",
   "audit_middle",
   "audit_senior",
+  "attestation",
   "burnout",
+  "specialist_screening",
   "prof_sb_education",
 ] as const;
 
@@ -26,7 +28,9 @@ export const REPORT_EXPORT_TEST_KIND_LABELS: Record<ReportExportTestKind, string
   screening: TEST_KIND_LABELS.screening,
   audit_middle: TEST_KIND_LABELS.audit_middle,
   audit_senior: TEST_KIND_LABELS.audit_senior,
+  attestation: TEST_KIND_LABELS.attestation,
   burnout: TEST_KIND_LABELS.burnout,
+  specialist_screening: TEST_KIND_LABELS.specialist_screening,
   prof_sb_education: TEST_KIND_LABELS.prof_sb_education,
 };
 
@@ -44,6 +48,21 @@ export type ReportExportCandidate = {
 /** Полный PDF HrD или отдельный PDF для руководителя (только ОД / ТУ). */
 export function reportExportSupportsManagerVariant(testKind: ReportExportTestKind): boolean {
   return testKind === "audit_middle" || testKind === "audit_senior";
+}
+
+/** PDF по фирменному шаблону; остальные типы — только Word. */
+export function reportExportSupportsPdf(testKind: ReportExportTestKind): boolean {
+  return (
+    testKind === "screening" ||
+    testKind === "audit_middle" ||
+    testKind === "audit_senior"
+  );
+}
+
+export function reportExportDefaultFileFormat(
+  testKind: ReportExportTestKind
+): ReportExportFileFormat {
+  return reportExportSupportsPdf(testKind) ? "pdf" : "docx";
 }
 
 export function isReportExportTestKind(value: string): value is ReportExportTestKind {

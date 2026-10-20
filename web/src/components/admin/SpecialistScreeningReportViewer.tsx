@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useState } from "react";
 
 import { AdminReportAiConclusionSection } from "@/components/admin/AdminReportAiConclusionSection";
 import { SpecialistScreeningScalesSection } from "@/components/admin/SpecialistScreeningScalesSection";
+import { DownloadDocumentReportButton } from "@/components/admin/DownloadDocumentReportButton";
 import { RegenerateDocumentReportButton } from "@/components/admin/RegenerateDocumentReportButton";
 import { Button } from "@/components/Button";
 import type { SpecialistScreeningReportView } from "@/lib/admin/buildSpecialistScreeningReportView";
@@ -107,6 +108,11 @@ export function SpecialistScreeningReportViewer(): React.ReactElement {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <DownloadDocumentReportButton
+              folderKey={folderKey}
+              sessionId={sessionId}
+              kind="specialist_screening"
+            />
             <RegenerateDocumentReportButton
               folderKey={folderKey}
               sessionId={sessionId}

@@ -14,7 +14,9 @@ import {
   REPORT_EXPORT_FILE_FORMAT_LABELS,
   REPORT_EXPORT_TEST_KIND_LABELS,
   REPORT_EXPORT_TEST_KINDS,
+  reportExportDefaultFileFormat,
   reportExportSupportsManagerVariant,
+  reportExportSupportsPdf,
   type ReportExportFileFormat,
   type ReportExportTestKind,
   type ReportExportVariant,
@@ -70,7 +72,10 @@ export function ReportExportDialog({
     if (!reportExportSupportsManagerVariant(testKind)) {
       setReportVariant("full");
     }
+    setFileFormat(reportExportDefaultFileFormat(testKind));
   }, [open, testKind]);
+
+  const supportsPdfExport = reportExportSupportsPdf(testKind);
 
   const loadCandidates = useCallback(async (kind: ReportExportTestKind): Promise<void> => {
     setLoadingCandidates(true);
@@ -247,7 +252,7 @@ export function ReportExportDialog({
                 Выгрузка отчётов
               </h2>
               <p className={`mt-1 ${adminPanelMutedTextClass}`}>
-                Файлы: «Фамилия_Имя_дата прохождения». Скрининг и ОД/ТУ — PDF и/или Word; выгорание и ПРОФ СБ — Word или HTML вместо PDF.
+                Файлы: «Фамилия_Имя_дата прохождения». Скрининг и ОД/ТУ — PDF и/или Word; аттестация, выгорание, скрининг и ПРОФ СБ — Word (.docx).
               </p>
             </div>
             <button
@@ -330,8 +335,9 @@ export function ReportExportDialog({
 
           <fieldset className="space-y-2">
             <legend className={stepLabelClass}>Формат файла</legend>
-            {(Object.keys(REPORT_EXPORT_FILE_FORMAT_LABELS) as ReportExportFileFormat[]).map(
-              (format) => (
+            {(Object.keys(REPORT_EXPORT_FILE_FORMAT_LABELS) as ReportExportFileFormat[])
+              .filter((format) => supportsPdfExport || format === "docx")
+              .map((format) => (
                 <label key={format} className="flex cursor-pointer items-center gap-2 text-[14px]">
                   <input
                     type="radio"
@@ -341,8 +347,7 @@ export function ReportExportDialog({
                   />
                   {REPORT_EXPORT_FILE_FORMAT_LABELS[format]}
                 </label>
-              )
-            )}
+              ))}
           </fieldset>
 
           {scope === "selected" ? (
