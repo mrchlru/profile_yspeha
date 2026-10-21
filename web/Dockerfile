@@ -1,28 +1,28 @@
 # Рабочий прод-образ для Timeweb: полный node_modules после prune.
-# Без standalone/отдельного prisma-cli — там ломался migrate (valibot/studio/dotenv).
+# Лимит buildctl ~1680s — кэш npm/node_modules, без apt в runner, YOLO при старте.
 
-# Полный bookworm в builder — openssl/ca без apt (экономия ~2 мин на лимите Timeweb).
 FROM node:20-bookworm AS builder
 
 WORKDIR /app
 
+ENV NPM_CONFIG_JOBS=1 \
+    NPM_CONFIG_FETCH_TIMEOUT=300000 \
+    NPM_CONFIG_FETCH_RETRIES=5
+
 COPY package*.json .npmrc ./
-# Кэш npm + без audit/fund — быстрее укладываемся в buildctl ~1680s.
+# Кэш npm + node_modules между деплоями; без optional — меньше трафика и RAM.
 RUN --mount=type=cache,target=/root/.npm \
-  npm ci --no-audit --no-fund --prefer-offline
+    --mount=type=cache,id=web-npm-ci-v3,target=/app/node_modules \
+    npm ci --no-audit --no-fund --omit=optional --prefer-offline
 
 COPY . .
 
-RUN node scripts/ensureYoloModel.mjs
 RUN npm run db:generate
 RUN npm run build
-# Убрать devDependencies перед копированием в runner.
 RUN npm prune --omit=dev
 
-FROM node:20-bookworm-slim AS runner
-
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
-  && rm -rf /var/lib/apt/lists/*
+# Полный bookworm — openssl/ca уже есть, без медленного apt-get на стенде.
+FROM node:20-bookworm AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
@@ -45,7 +45,6 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/assets/report-fonts ./report-fonts
 
-# Чужие платформы onnx не нужны в linux-раннере.
 RUN rm -rf \
   node_modules/onnxruntime-node/bin/napi-v3/win32 \
   node_modules/onnxruntime-node/bin/napi-v3/darwin \
@@ -54,4 +53,4 @@ RUN rm -rf \
 
 EXPOSE 8080
 
-CMD ["sh", "-c", "node scripts/setupDb.mjs && exec npx next start -H 0.0.0.0 -p ${PORT:-8080}"]
+CMD ["sh", "-c", "node scripts/ensureYoloModel.mjs && node scripts/setupDb.mjs && exec npx next start -H 0.0.0.0 -p ${PORT:-8080}"]
