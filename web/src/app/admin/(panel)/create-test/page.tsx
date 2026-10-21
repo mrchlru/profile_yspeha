@@ -5,10 +5,7 @@ import { CreateTestPanel } from "@/components/admin/CreateTestPanel";
 
 export default function AdminCreateTestPage(): React.ReactElement {
   return (
-    <AdminShell
-      title="Создать тестирование"
-      description="Выпуск приглашений на скрининг и будущие типы тестов"
-    >
+    <AdminShell title="Создать тестирование">
       <CreateTestPanel />
     </AdminShell>
   );

@@ -51,7 +51,7 @@ export const ADMIN_NAV_ITEMS: ReadonlyArray<AdminNavItem> = [
   {
     iconId: "results",
     href: "/admin/results",
-    label: "Результаты тестирования",
+    label: "Результаты",
     roles: [ADMIN_ROLE_ADMIN, ADMIN_ROLE_HRD],
     description: "Папки сотрудников и отчёты",
   },

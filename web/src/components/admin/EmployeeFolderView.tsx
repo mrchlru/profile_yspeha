@@ -22,7 +22,7 @@ import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import { AdminFolderSectionNav } from "@/components/admin/AdminFolderSectionNav";
 import { AdminStatusChip } from "@/components/admin/ui/AdminUi";
 import {
-  adminBackLinkClass,
+  adminTextBackLinkClass,
   adminBadgeReadyClass,
   adminCompactPrimaryLinkClass,
   adminFolderPersonNameClass,
@@ -31,7 +31,7 @@ import {
   adminPanelSectionTitleClass,
   adminSectionHeadingClass,
 } from "@/lib/admin/adminPanelTheme";
-import { formatIsoCalendarDateRu } from "@/lib/datetime/moscowTime";
+import { formatPersonMetaLine, formatPersonName } from "@/lib/admin/formatPersonDisplay";
 import { useAdminSession } from "@/hooks/useAdminSession";
 
 /**
@@ -160,16 +160,12 @@ export function EmployeeFolderView(): React.ReactElement {
     folder.profSbEducationSessions.length > 0 ||
     folder.reportSessions.length > 0;
   const hasRisks = !similarityLoading && similarityAlerts.length > 0 && similaritySummary !== null;
-  const metaLine = [
-    folder.birthDate ? formatIsoCalendarDateRu(folder.birthDate) : null,
-    folder.positionLevelLabel,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const personName = formatPersonName(folder);
+  const metaLine = formatPersonMetaLine(folder);
 
   return (
     <div className="mx-auto max-w-[920px] space-y-6">
-      <Link href="/admin/results" className={adminBackLinkClass}>
+      <Link href="/admin/results" className={adminTextBackLinkClass}>
         ‹ Результаты
       </Link>
 
@@ -178,7 +174,7 @@ export function EmployeeFolderView(): React.ReactElement {
           {_folderInitials(folder)}
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className={adminFolderPersonNameClass}>{folder.displayName}</h2>
+          <h2 className={adminFolderPersonNameClass}>{personName}</h2>
           {metaLine ? <p className="mt-2 text-[14px] text-[var(--admin-text-3)]">{metaLine}</p> : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <AdminStatusChip label="Результаты" tone="ok" />
@@ -218,15 +214,6 @@ export function EmployeeFolderView(): React.ReactElement {
         />
       </div>
 
-      {isFullAdmin && folder ? (
-        <EmployeeFolderAdminActions
-          folderKey={folderKey}
-          displayName={folder.displayName}
-          dataItems={folder.dataItems}
-          onDataChanged={loadFolder}
-        />
-      ) : null}
-
       <section id="docs" className="space-y-4 scroll-mt-24">
         <h3 className={adminSectionHeadingClass}>Документы</h3>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -250,15 +237,6 @@ export function EmployeeFolderView(): React.ReactElement {
             ))
           )}
         </div>
-      </section>
-
-      <section id="files" className="scroll-mt-24">
-        <EmployeeFolderFilesPanel
-          folderKey={folderKey}
-          files={folder.uploadedFiles}
-          isFullAdmin={isFullAdmin}
-          onChanged={loadFolder}
-        />
       </section>
 
       {hasSessions ? (
@@ -319,6 +297,15 @@ export function EmployeeFolderView(): React.ReactElement {
         </section>
       ) : null}
 
+      <section id="files" className="scroll-mt-24">
+        <EmployeeFolderFilesPanel
+          folderKey={folderKey}
+          files={folder.uploadedFiles}
+          isFullAdmin={isFullAdmin}
+          onChanged={loadFolder}
+        />
+      </section>
+
       {dashboardDoc ? (
         <section id="dash" className="scroll-mt-24">
           <EmployeeDashboardPanel
@@ -326,6 +313,18 @@ export function EmployeeFolderView(): React.ReactElement {
             visual={folder.dashboardVisual}
             folderKey={folderKey}
             onRegenerated={loadFolder}
+          />
+        </section>
+      ) : null}
+
+      {isFullAdmin ? (
+        <section id="danger" className="scroll-mt-24 pt-4">
+          <EmployeeFolderAdminActions
+            folderKey={folderKey}
+            displayName={folder.displayName}
+            dataItems={folder.dataItems}
+            onDataChanged={loadFolder}
+            variant="dangerZone"
           />
         </section>
       ) : null}
@@ -405,13 +404,7 @@ function DocumentCard({
       }`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span
-            className={`size-2 shrink-0 rounded-full ${doc.available ? "bg-[var(--admin-ok)]" : "bg-[var(--admin-neutral)]"}`}
-            aria-hidden
-          />
-          <h3 className="text-[17px] font-semibold text-[var(--admin-text)]">{doc.title}</h3>
-        </div>
+        <h3 className="text-[17px] font-semibold text-[var(--admin-text)]">{doc.title}</h3>
         <div className="flex items-center gap-2">
           {isLocked ? (
             <span className="text-[var(--admin-text-3)]" title="Конфиденциально" aria-label="Конфиденциально">

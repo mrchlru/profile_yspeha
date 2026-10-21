@@ -42,23 +42,55 @@ export function formatMoscowDateTime(input: Date | string | number): string {
 }
 
 /**
- * Компактная метка даты и времени в МСК для таблиц: YYYY-MM-DD HH:mm:ss.
+ * Компактная метка даты и времени в МСК для таблиц админки (без секунд).
  */
 export function formatMoscowDateTimeTable(input: Date | string | number): string {
   const date = _parseDateInput(input);
   if (!_isValidDate(date)) {
     return "—";
   }
-
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    ...MSK_DATE_TIME_OPTIONS,
+  const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   }).formatToParts(date);
-
-  const read = (type: Intl.DateTimeFormatPartTypes): string =>
-    parts.find((part) => part.type === type)?.value ?? "00";
-
-  return `${read("year")}-${read("month")}-${read("day")} ${read("hour")}:${read("minute")}:${read("second")}`;
+  const read = (type: Intl.DateTimeFormatPartTypes): number =>
+    Number(parts.find((part) => part.type === type)?.value ?? "0");
+  const months = [
+    "янв.",
+    "февр.",
+    "мар.",
+    "апр.",
+    "мая",
+    "июн.",
+    "июл.",
+    "авг.",
+    "сент.",
+    "окт.",
+    "нояб.",
+    "дек.",
+  ];
+  const nowParts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+  })
+    .formatToParts(new Date())
+    .find((p) => p.type === "year");
+  const year = read("year");
+  const month = read("month");
+  const day = read("day");
+  const monthLabel = months[month - 1] ?? "";
+  const dayMonth =
+    Number(nowParts?.value) === year
+      ? `${String(day)} ${monthLabel}`
+      : `${String(day)} ${monthLabel} ${String(year)}`;
+  const hh = String(read("hour")).padStart(2, "0");
+  const mm = String(read("minute")).padStart(2, "0");
+  return `${dayMonth}, ${hh}:${mm}`;
 }
 
 /**

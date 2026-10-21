@@ -375,14 +375,19 @@ export function CreateTestPanel(): React.ReactElement {
               onClick={() => setSelectedId(item.id)}
               className={`${adminPanelCardClass} px-5 py-5 text-left transition ${
                 selectedCard
-                  ? "bg-[var(--admin-accent-tint-2)] ring-2 ring-[var(--admin-accent)]/35"
+                  ? "bg-[var(--admin-accent-tint-2)] ring-2 ring-[var(--admin-accent)]"
                   : "hover:bg-[var(--admin-surface-muted)]"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <h2 className={adminPanelSectionTitleClass}>{item.title}</h2>
+                {selectedCard ? (
+                  <span className="text-[22px] font-bold text-[var(--admin-ok)]" aria-hidden>
+                    ✓
+                  </span>
+                ) : null}
               </div>
-              <p className={`mt-3 ${adminPanelMutedTextClass}`}>{item.description}</p>
+              <p className={`mt-2 truncate ${adminPanelMutedTextClass}`}>{item.description}</p>
             </button>
           );
         })}

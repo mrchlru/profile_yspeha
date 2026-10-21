@@ -41,8 +41,7 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
   {
     id: ADMIN_TEST_CATALOG_ID_SCREENING,
     title: "Скрининг",
-    description:
-      "Анкета ПРОФ СБ и 5 методик: интеллект (Кеттелл), конфликт, мотивация, выгорание, тест на сектантство. Порядок прохождения случайный, отчёт — фиксированный. Код действует 3 суток.",
+    description: "ПРОФ СБ и 5 методик",
     available: true,
     inviteTestKind: TEST_KIND_SCREENING,
   },
@@ -58,17 +57,15 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
   {
     id: ADMIN_TEST_CATALOG_ID_AUDIT_MIDDLE,
     title: "ОД и кадровый резерв",
-    description:
-      "13 методик для руководителей: интеллект, мотивация, конфликт, выгорание, тест на сектантство и др. Порядок прохождения случайный, отчёт — фиксированный. Код действует 3 суток.",
+    description: "13 методик для руководителей",
     available: true,
     inviteTestKind: TEST_KIND_AUDIT_MIDDLE,
     supportsEmployeePick: true,
   },
   {
     id: ADMIN_TEST_CATALOG_ID_BURNOUT,
-    title: "Тест на выгорание",
-    description:
-      "Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
+    title: "Выгорание",
+    description: "Опросник Маслач (CBI)",
     available: true,
     inviteTestKind: TEST_KIND_BURNOUT,
     supportsEmployeePick: true,
@@ -84,9 +81,8 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
   },
   {
     id: ADMIN_TEST_CATALOG_ID_SPECIALIST_SCREENING,
-    title: "Скрининг депрессивных симптомов",
-    description:
-      "Конфиденциальный скрининг PHQ-9, GAD-7 и ASRS v1.1 (часть A). Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
+    title: "Депрессивные симптомы",
+    description: "PHQ-9, GAD-7, ASRS · конфиденциально",
     available: true,
     inviteTestKind: TEST_KIND_SPECIALIST_SCREENING,
     supportsEmployeePick: true,
@@ -94,8 +90,7 @@ export const ADMIN_TEST_CATALOG: ReadonlyArray<AdminTestCatalogItem> = [
   {
     id: ADMIN_TEST_CATALOG_ID_ATTESTATION,
     title: "Аттестация",
-    description:
-      "Батарея из 7 методик: Big Five, управленческий потенциал, CBI, тревожность, ДДО, Люшер, Розенцвейг. Приглашение для сотрудника из архива или с новыми данными. Код действует 3 суток.",
+    description: "7 блоков методик",
     available: true,
     inviteTestKind: TEST_KIND_ATTESTATION,
     supportsEmployeePick: true,

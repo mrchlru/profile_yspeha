@@ -5,10 +5,7 @@ import { InterviewFoldersBrowser } from "@/components/admin/InterviewFoldersBrow
 
 export default function AdminInterviewPage(): React.ReactElement {
   return (
-    <AdminShell
-      title="Собеседование"
-      description="Папки вакансий: должность и дата первого скрининга"
-    >
+    <AdminShell title="Собеседование">
       <InterviewFoldersBrowser />
     </AdminShell>
   );

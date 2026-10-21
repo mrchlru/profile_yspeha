@@ -5,10 +5,7 @@ import { EmployeeFolderView } from "@/components/admin/EmployeeFolderView";
 
 export default function AdminEmployeeFolderPage(): React.ReactElement {
   return (
-    <AdminShell
-      title="Папка сотрудника"
-      description="Документы, отчёты и дашборд"
-    >
+    <AdminShell title="">
       <EmployeeFolderView />
     </AdminShell>
   );

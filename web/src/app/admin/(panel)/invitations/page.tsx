@@ -1,15 +1,7 @@
 import React from "react";
 
-import { AdminShell } from "@/components/admin/AdminShell";
-import { InvitationsTable } from "@/components/admin/InvitationsTable";
+import { AdminInvitationsScreen } from "@/components/admin/AdminInvitationsScreen";
 
 export default function AdminInvitationsPage(): React.ReactElement {
-  return (
-    <AdminShell
-      title="Приглашения"
-      description="Коды доступа и их текущее состояние"
-    >
-      <InvitationsTable />
-    </AdminShell>
-  );
+  return <AdminInvitationsScreen />;
 }

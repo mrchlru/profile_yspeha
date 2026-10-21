@@ -4,14 +4,12 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
-import { AdminSettingsIcon, AdminTimewebLogsIcon } from "@/components/admin/AdminIconButton";
+import { AdminSettingsIcon } from "@/components/admin/AdminIconButton";
 import { AdminNavIcon } from "@/components/admin/AdminNavIcons";
 import {
   ADMIN_SETTINGS_HREF,
-  ADMIN_TIMEWEB_LOGS_HREF,
   adminSidebarNavItemsForRole,
   canAccessAdminSettings,
-  canAccessTimewebLogs,
   isAdminNavItemActive,
 } from "@/lib/admin/adminNav";
 import { ADMIN_ROLE_LABELS } from "@/lib/admin/adminRoles";
@@ -32,7 +30,6 @@ export type AdminShellProps = {
 export function AdminShell({
   children,
   title,
-  description,
   headerActions,
 }: AdminShellProps): React.ReactElement {
   const pathname = usePathname();
@@ -62,9 +59,7 @@ export function AdminShell({
 
   const navItems = adminSidebarNavItemsForRole(session.role);
   const settingsActive = isAdminNavItemActive(pathname, ADMIN_SETTINGS_HREF);
-  const timewebLogsActive = isAdminNavItemActive(pathname, ADMIN_TIMEWEB_LOGS_HREF);
   const showSettingsLink = canAccessAdminSettings(session.role);
-  const showTimewebLogsLink = canAccessTimewebLogs(session.role);
   const initials = adminEmailInitials(session.email);
 
   return (
@@ -115,21 +110,14 @@ export function AdminShell({
             initials={initials}
             showSettingsLink={showSettingsLink}
             settingsActive={settingsActive}
-            showTimewebLogsLink={showTimewebLogsLink}
-            timewebLogsActive={timewebLogsActive}
           />
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-[var(--admin-hairline)] bg-[var(--admin-bg)]/90 px-5 py-5 backdrop-blur-md sm:px-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0">
-                <h1 className={adminPageTitleClass}>{title}</h1>
-                {description ? (
-                  <p className="mt-1 max-w-2xl text-[15px] text-[var(--admin-text-3)]">
-                    {description}
-                  </p>
-                ) : null}
+          <header className="px-5 py-5 sm:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                {title ? <h1 className={adminPageTitleClass}>{title}</h1> : null}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {headerActions}
@@ -180,8 +168,6 @@ type AdminSidebarProfileProps = {
   initials: string;
   showSettingsLink: boolean;
   settingsActive: boolean;
-  showTimewebLogsLink: boolean;
-  timewebLogsActive: boolean;
 };
 
 function AdminSidebarProfile({
@@ -190,49 +176,33 @@ function AdminSidebarProfile({
   initials,
   showSettingsLink,
   settingsActive,
-  showTimewebLogsLink,
-  timewebLogsActive,
 }: AdminSidebarProfileProps): React.ReactElement {
   return (
-    <div className="mt-4 rounded-[14px] bg-[var(--admin-surface-muted)] p-3">
-      <div className="flex items-center gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--admin-avatar-bg-side)] text-[14px] font-semibold text-[var(--admin-accent)]">
+    <div className="mt-4 rounded-[14px] bg-[var(--admin-surface-muted)] p-3 pr-2">
+      <div className="flex items-start gap-2">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--admin-avatar-bg-side)] text-[13px] font-semibold text-[var(--admin-accent)]">
           {initials}
         </span>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-[var(--admin-text)]">{email}</p>
-          <p className="text-[12px] text-[var(--admin-text-3)]">{roleLabel}</p>
+        <div className="min-w-0 flex-1 pr-1">
+          <p className="truncate text-[14px] font-semibold leading-tight text-[var(--admin-text)]">
+            {roleLabel}
+          </p>
+          <p className="truncate text-[12px] text-[var(--admin-text-3)]">{email}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {showTimewebLogsLink ? (
-            <Link
-              href={ADMIN_TIMEWEB_LOGS_HREF}
-              aria-label="Логи Timeweb"
-              title="Логи Timeweb"
-              className={`inline-flex size-8 items-center justify-center rounded-full transition [&_svg]:size-4 ${
-                timewebLogsActive
-                  ? "bg-[var(--admin-accent-tint)] text-[var(--admin-accent)]"
-                  : "text-[var(--admin-text-3)] hover:bg-[var(--admin-surface)]"
-              }`}
-            >
-              <AdminTimewebLogsIcon />
-            </Link>
-          ) : null}
-          {showSettingsLink ? (
-            <Link
-              href={ADMIN_SETTINGS_HREF}
-              aria-label="Настройки"
-              title="Настройки"
-              className={`inline-flex size-8 items-center justify-center rounded-full transition [&_svg]:size-4 ${
-                settingsActive
-                  ? "bg-[var(--admin-accent-tint)] text-[var(--admin-accent)]"
-                  : "text-[var(--admin-text-3)] hover:bg-[var(--admin-surface)]"
-              }`}
-            >
-              <AdminSettingsIcon />
-            </Link>
-          ) : null}
-        </div>
+        {showSettingsLink ? (
+          <Link
+            href={ADMIN_SETTINGS_HREF}
+            aria-label="Настройки"
+            title="Настройки"
+            className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full transition [&_svg]:size-4 ${
+              settingsActive
+                ? "bg-[var(--admin-surface)] text-[var(--admin-accent)] shadow-[var(--admin-shadow-card)]"
+                : "text-[var(--admin-text-3)] hover:bg-[var(--admin-surface)]"
+            }`}
+          >
+            <AdminSettingsIcon />
+          </Link>
+        ) : null}
       </div>
     </div>
   );

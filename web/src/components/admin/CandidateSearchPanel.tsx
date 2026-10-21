@@ -11,7 +11,6 @@ import {
   type InviteStatus,
 } from "@/lib/admin/inviteStatus";
 import type { EmployeeFolderTypeFilter } from "@/lib/admin/buildEmployeeFolders";
-import { adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
 import {
   AdminSearchField,
   AdminSegmentControl,
@@ -32,6 +31,8 @@ export type CandidateSearchPanelProps = {
   onArchiveViewChange?: (value: boolean) => void;
   /** Скрыть иконки выгрузки (если они в шапке страницы). */
   hideExportActions?: boolean;
+  /** Не показывать подпись «Тип данных» / «Статус приглашения». */
+  compactFilterLabels?: boolean;
   reportExportAction?: {
     onClick: () => void;
     disabled?: boolean;
@@ -78,6 +79,7 @@ export function CandidateSearchPanel({
   archiveView,
   onArchiveViewChange,
   hideExportActions = false,
+  compactFilterLabels = false,
   reportExportAction,
   answersExportAction,
   similarityHighlight,
@@ -91,19 +93,18 @@ export function CandidateSearchPanel({
         id="candidate-search"
         value={query}
         onChange={onQueryChange}
-        placeholder="Код, ФИО, дата рождения, должность…"
+        placeholder="Поиск по ФИО, должности или дате"
       />
-      <p className={`px-1 ${adminPanelMutedTextClass}`}>
-        Можно искать по отдельным полям или сочетаниям: «Иванов Иван», «12 июля 1978», «топ-менеджер».
-      </p>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
         <div className="flex flex-col gap-3">
           {statusFilter !== undefined && onStatusFilterChange ? (
             <div>
-              <p className="mb-2 text-[13px] font-medium text-[var(--admin-text-3)]">
-                Статус приглашения
-              </p>
+              {!compactFilterLabels ? (
+                <p className="mb-2 text-[13px] font-medium text-[var(--admin-text-3)]">
+                  Статус приглашения
+                </p>
+              ) : null}
               <AdminSegmentControl
                 ariaLabel="Статус приглашения"
                 options={STATUS_OPTIONS}
@@ -115,7 +116,9 @@ export function CandidateSearchPanel({
 
           {typeFilter !== undefined && onTypeFilterChange ? (
             <div>
-              <p className="mb-2 text-[13px] font-medium text-[var(--admin-text-3)]">Тип данных</p>
+              {!compactFilterLabels ? (
+                <p className="mb-2 text-[13px] font-medium text-[var(--admin-text-3)]">Тип данных</p>
+              ) : null}
               <AdminSegmentControl
                 ariaLabel="Тип данных"
                 options={TYPE_OPTIONS}

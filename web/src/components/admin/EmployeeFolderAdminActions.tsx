@@ -10,7 +10,7 @@ import type {
 } from "@/lib/admin/employeeFolderTypes";
 import { ADMIN_EMPLOYEE_ASSESSMENT_LABEL } from "@/lib/access/testKinds";
 import type { DeleteEmployeeFolderTarget } from "@/lib/admin/deleteEmployeeFolder";
-import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
+import { formatAdminDateTimeShort } from "@/lib/datetime/adminDateFormat";
 import {
   adminPanelCardClass,
   adminPanelMutedTextClass,
@@ -24,6 +24,7 @@ export type EmployeeFolderAdminActionsProps = {
   onDataChanged: () => Promise<void>;
   /** После полного удаления папки — переход к списку. */
   redirectOnFolderRemoved?: boolean;
+  variant?: "default" | "dangerZone";
 };
 
 /**
@@ -35,6 +36,7 @@ export function EmployeeFolderAdminActions({
   dataItems,
   onDataChanged,
   redirectOnFolderRemoved = true,
+  variant = "default",
 }: EmployeeFolderAdminActionsProps): React.ReactElement {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -44,7 +46,14 @@ export function EmployeeFolderAdminActions({
     target: DeleteEmployeeFolderTarget,
     confirmMessage: string
   ): Promise<void> {
-    if (!window.confirm(confirmMessage)) {
+    if (target.type === "folder") {
+      const typed = window.prompt(
+        `${confirmMessage}\n\nВведите слово УДАЛИТЬ для подтверждения:`
+      );
+      if (typed?.trim().toUpperCase() !== "УДАЛИТЬ") {
+        return;
+      }
+    } else if (!window.confirm(confirmMessage)) {
       return;
     }
 
@@ -85,10 +94,17 @@ export function EmployeeFolderAdminActions({
   const inviteCount = dataItems.filter((item) => item.kind === "invite").length;
   const auditCount = dataItems.filter((item) => item.kind === "audit").length;
 
+  const shellClass =
+    variant === "dangerZone"
+      ? `${adminPanelCardClass} border border-[var(--admin-hairline)] bg-[var(--admin-surface-muted)]`
+      : `${adminPanelCardClass} border border-red-200/80`;
+
   return (
-    <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass} border border-red-200/80`}>
+    <div className={`space-y-4 px-6 py-6 ${shellClass}`}>
       <div>
-        <h3 className={adminPanelSectionTitleClass}>Удаление данных</h3>
+        <h3 className={adminPanelSectionTitleClass}>
+          {variant === "dangerZone" ? "Опасная зона" : "Удаление данных"}
+        </h3>
         <p className={`mt-2 ${adminPanelMutedTextClass}`}>
           Доступно только главному администратору. Удалённые данные восстановить нельзя.
         </p>
@@ -174,7 +190,7 @@ export function EmployeeFolderAdminActions({
                 <p className="text-[14px] font-bold text-[#5F5E5E]">{item.label}</p>
                 <p className={`text-[13px] ${adminPanelMutedTextClass}`}>
                   {_kindLabel(item.kind)} ·{" "}
-                  {formatMoscowDateTime(item.createdAt)}
+                  {formatAdminDateTimeShort(item.createdAt)}
                 </p>
               </div>
               <Button

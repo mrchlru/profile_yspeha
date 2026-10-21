@@ -2,14 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 
-import { Button } from "@/components/Button";
 import {
   AdminBulkActionButton,
   AdminBulkSelectionBar,
 } from "@/components/admin/AdminBulkSelectionBar";
 import { AdminSelectCheckbox } from "@/components/admin/AdminSelectCheckbox";
-import { AvProctorToggle } from "@/components/admin/AvProctorToggle";
 import { CandidateSearchPanel } from "@/components/admin/CandidateSearchPanel";
+import { AdminRowMenuItem, AdminRowMoreMenu } from "@/components/admin/AdminRowMoreMenu";
+import { formatAdminDateTimeTitle } from "@/lib/datetime/adminDateFormat";
 import {
   INVITE_STATUS_ACTIVE,
   INVITE_STATUS_EXPIRED,
@@ -29,7 +29,6 @@ import {
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useAdminSession } from "@/hooks/useAdminSession";
-import { stepNavPrimaryButtonClass } from "@/lib/stepPageTheme";
 import type { CandidateSearchStatusFilter } from "@/components/admin/CandidateSearchPanel";
 import { AdminStatusChip, type AdminStatusChipTone } from "@/components/admin/ui/AdminUi";
 
@@ -56,9 +55,6 @@ const INVITE_TEST_KIND_OPTIONS: ReadonlyArray<{ value: TestKind; label: string }
     label: TEST_KIND_LABELS[value],
   }));
 
-const inviteTestKindSelectClass =
-  "w-full min-w-[11.5rem] max-w-[15rem] cursor-pointer rounded-[10px] border border-black/[0.06] bg-white/70 py-1.5 pl-2.5 pr-7 text-[13px] font-medium leading-snug text-[#3A3A3A] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] outline-none transition-[background-color,border-color,box-shadow] hover:border-black/10 hover:bg-white focus:border-black/15 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)] disabled:cursor-wait disabled:opacity-55";
-
 function inviteStatusTone(status: string): AdminStatusChipTone {
   switch (status) {
     case INVITE_STATUS_ACTIVE:
@@ -76,10 +72,18 @@ function inviteStatusTone(status: string): AdminStatusChipTone {
   }
 }
 
+export type InvitationsTableProps = {
+  refreshToken?: number;
+  onLoadingChange?: (loading: boolean) => void;
+};
+
 /**
  * Таблица статусов приглашений на тестирование.
  */
-export function InvitationsTable(): React.ReactElement {
+export function InvitationsTable({
+  refreshToken = 0,
+  onLoadingChange,
+}: InvitationsTableProps = {}): React.ReactElement {
   const { session } = useAdminSession();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<CandidateSearchStatusFilter>("all");
@@ -104,6 +108,7 @@ export function InvitationsTable(): React.ReactElement {
 
   async function loadRows(search: string, status: CandidateSearchStatusFilter): Promise<void> {
     setLoading(true);
+    onLoadingChange?.(true);
     setError(null);
     try {
       const params = new URLSearchParams();
@@ -126,12 +131,13 @@ export function InvitationsTable(): React.ReactElement {
       setRows([]);
     } finally {
       setLoading(false);
+      onLoadingChange?.(false);
     }
   }
 
   useEffect(() => {
     void loadRows(debouncedQuery, statusFilter);
-  }, [debouncedQuery, statusFilter]);
+  }, [debouncedQuery, statusFilter, refreshToken]);
 
   function canExtendInvite(status: string): boolean {
     return status === INVITE_STATUS_ACTIVE || status === INVITE_STATUS_EXPIRED;
@@ -401,6 +407,8 @@ export function InvitationsTable(): React.ReactElement {
     }
   }
 
+  const totalCount = rows.length;
+
   return (
     <div className="space-y-4">
       <CandidateSearchPanel
@@ -408,24 +416,8 @@ export function InvitationsTable(): React.ReactElement {
         onQueryChange={setQuery}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        compactFilterLabels
       />
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className={adminPanelMutedTextClass}>
-          {loading
-            ? "Загрузка…"
-            : `Найдено приглашений: ${String(rows.length)}`}
-        </p>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => void loadRows(debouncedQuery, statusFilter)}
-          disabled={loading}
-          className={stepNavPrimaryButtonClass}
-        >
-          {loading ? "Обновление…" : "Обновить"}
-        </Button>
-      </div>
 
       {error ? (
         <p className="text-sm font-medium text-red-700/90" role="alert">
@@ -462,34 +454,27 @@ export function InvitationsTable(): React.ReactElement {
         ) : null}
       </AdminBulkSelectionBar>
 
-      <div className={`overflow-x-auto ${adminPanelCardClass}`}>
-        <table className="min-w-[1320px] w-full border-collapse text-left text-[14px] text-[#4F4F4F]">
-          <thead className="bg-black/[0.03] text-[12px] font-extrabold uppercase tracking-wide text-[#5F5E5E]">
-            <tr>
-              <th className="w-10 px-3 py-3" aria-label="Выбор" />
-              <th className="px-4 py-3">Соискатель</th>
-              <th className="px-4 py-3">Код</th>
-              <th className="px-4 py-3">Камера</th>
-              <th className="px-4 py-3">Тип теста</th>
-              <th className="px-4 py-3">Уровень должности</th>
-              <th className="px-4 py-3">Создан</th>
-              <th className="px-4 py-3">Действует до</th>
-              <th className="px-4 py-3">Пройден</th>
-              <th className="px-4 py-3">Статус</th>
-              <th className="px-4 py-3">Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-[#8C8C8C]">
-                  {loading ? "Загрузка…" : "Приглашений по заданным условиям не найдено."}
-                </td>
-              </tr>
-            ) : (
-              rows.map((row) => (
-                <tr key={row.id} className="border-t border-black/10">
-                  <td className="px-3 py-2">
+      <div className={`overflow-hidden ${adminPanelCardClass}`}>
+        <div className="hidden border-b border-[var(--admin-hairline)] px-4 py-3 text-[13px] font-medium text-[var(--admin-text-3)] sm:flex sm:gap-3">
+          <span className="w-8 shrink-0" aria-hidden />
+          <span className="min-w-0 flex-[2]">Соискатель</span>
+          <span className="min-w-0 flex-[1.4]">Код</span>
+          <span className="min-w-0 flex-[1.3]">Тест</span>
+          <span className="w-8 shrink-0 text-center">Кам.</span>
+          <span className="min-w-0 flex-1">Истекает</span>
+          <span className="min-w-0 flex-[1.1]">Статус</span>
+          <span className="w-8 shrink-0" aria-hidden />
+        </div>
+        <ul className="divide-y divide-[var(--admin-hairline)]">
+          {rows.length === 0 ? (
+            <li className="px-4 py-8 text-center text-[var(--admin-text-3)]">
+              {loading ? "Загрузка…" : "Приглашений по заданным условиям не найдено."}
+            </li>
+          ) : (
+            rows.map((row) => (
+              <li key={row.id}>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 sm:flex-nowrap">
+                  <div className="w-8 shrink-0">
                     <AdminSelectCheckbox
                       checked={selection.isSelected(row.id)}
                       disabled={rowActionBusy}
@@ -497,106 +482,114 @@ export function InvitationsTable(): React.ReactElement {
                       label={`Выбрать ${row.code}`}
                       hideLabel
                     />
-                  </td>
-                  <td className="px-4 py-2">{row.candidateDisplayName ?? "—"}</td>
-                  <td className="px-4 py-2 font-mono text-[13px] font-bold">{row.code}</td>
-                  <td className="px-4 py-2 align-middle">
-                    {row.canChangeAvProctor ? (
-                      <AvProctorToggle
-                        compact
-                        avProctorDisabled={row.avProctorDisabled}
-                        disabled={rowActionBusy || changingAvId === row.id}
-                        aria-label={`Камера для кода ${row.code}`}
-                        onChange={(nextDisabled) => {
-                          void toggleAvProctor(row, nextDisabled);
-                        }}
-                      />
-                    ) : (
-                      <AvProctorToggle
-                        compact
-                        avProctorDisabled={row.avProctorDisabled}
-                        disabled
-                        aria-label={`Камера для кода ${row.code} (только просмотр)`}
-                        onChange={() => undefined}
-                      />
-                    )}
-                  </td>
-                  <td className="px-4 py-2 align-middle">
-                    {row.canChangeTestKind ? (
-                      <label className="block">
-                        <span className="sr-only">Тип теста для {row.code}</span>
-                        <select
-                          className={inviteTestKindSelectClass}
-                          value={row.testKind}
-                          disabled={rowActionBusy}
-                          onChange={(event) => {
-                            void changeTestKind(row, event.target.value);
-                          }}
-                        >
-                          {INVITE_TEST_KIND_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                          {!INVITE_TEST_KIND_OPTIONS.some(
-                            (option) => option.value === row.testKind
-                          ) ? (
-                            <option value={row.testKind}>{row.testKindLabel}</option>
-                          ) : null}
-                        </select>
-                      </label>
-                    ) : (
-                      <span className="text-[13px] text-[#5F5E5E]">{row.testKindLabel}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2">{row.positionLevelLabel ?? "—"}</td>
-                  <td className="px-4 py-2 font-mono text-[12px]">
-                    {formatMoscowDateTimeTable(row.createdAt)}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-[12px]">
+                  </div>
+                  <div className="min-w-0 flex-[2]">
+                    <p className="text-[15px] font-semibold text-[var(--admin-text)]">
+                      {row.candidateDisplayName ?? "—"}
+                    </p>
+                    {row.positionLevelLabel ? (
+                      <p className="text-[13px] text-[var(--admin-text-3)]">
+                        {row.positionLevelLabel}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-[1.4] font-mono text-[14px] font-medium text-[var(--admin-text)]">
+                    {row.code}
+                  </div>
+                  <div className="min-w-0 flex-[1.3] text-[14px] text-[var(--admin-text-2)]">
+                    {row.testKindLabel}
+                  </div>
+                  <div className="flex w-8 shrink-0 justify-center">
+                    <InviteCameraIcon enabled={!row.avProctorDisabled} code={row.code} />
+                  </div>
+                  <div
+                    className="min-w-0 flex-1 text-[14px] text-[var(--admin-text-3)]"
+                    title={formatAdminDateTimeTitle(row.expiresAt)}
+                  >
                     {formatMoscowDateTimeTable(row.expiresAt)}
-                  </td>
-                  <td className="px-4 py-2 font-mono text-[12px]">
-                    {row.usedAt ? formatMoscowDateTimeTable(row.usedAt) : "—"}
-                  </td>
-                  <td className="px-4 py-2">
+                  </div>
+                  <div className="min-w-0 flex-[1.1]">
                     <AdminStatusChip label={row.statusLabel} tone={inviteStatusTone(row.status)} />
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex flex-wrap gap-2">
-                      {canExtendInvite(row.status) ? (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          disabled={rowActionBusy}
-                          onClick={() => void extendInvite(row)}
-                        >
-                          {extendingId === row.id
+                  </div>
+                  <AdminRowMoreMenu ariaLabel={`Действия для ${row.code}`}>
+                    {canExtendInvite(row.status) ? (
+                      <AdminRowMenuItem
+                        label={
+                          extendingId === row.id
                             ? "Продление…"
-                            : `+${String(ACCESS_INVITE_VALIDITY_DAYS)} сут.`}
-                        </Button>
-                      ) : null}
-                      {canDeleteInvites ? (
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          disabled={rowActionBusy}
-                          onClick={() => void deleteInvite(row)}
-                        >
-                          {deletingId === row.id ? "Удаление…" : "Удалить"}
-                        </Button>
-                      ) : null}
-                      {!canExtendInvite(row.status) && !canDeleteInvites ? (
-                        <span className="text-[12px] text-[#8C8C8C]">—</span>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+                            : `Продлить (+${String(ACCESS_INVITE_VALIDITY_DAYS)} сут.)`
+                        }
+                        disabled={rowActionBusy}
+                        onClick={() => void extendInvite(row)}
+                      />
+                    ) : null}
+                    {row.canChangeAvProctor ? (
+                      <AdminRowMenuItem
+                        label={
+                          row.avProctorDisabled
+                            ? "Включить камеру и микрофон"
+                            : "Отключить камеру и микрофон"
+                        }
+                        disabled={rowActionBusy || changingAvId === row.id}
+                        onClick={() => void toggleAvProctor(row, !row.avProctorDisabled)}
+                      />
+                    ) : null}
+                    {row.canChangeTestKind
+                      ? INVITE_TEST_KIND_OPTIONS.filter((option) => option.value !== row.testKind).map(
+                          (option) => (
+                            <AdminRowMenuItem
+                              key={option.value}
+                              label={`Тип: ${option.label}`}
+                              disabled={rowActionBusy || changingKindId === row.id}
+                              onClick={() => void changeTestKind(row, option.value)}
+                            />
+                          )
+                        )
+                      : null}
+                    {canDeleteInvites ? (
+                      <AdminRowMenuItem
+                        label={deletingId === row.id ? "Удаление…" : "Удалить"}
+                        tone="danger"
+                        disabled={rowActionBusy}
+                        onClick={() => void deleteInvite(row)}
+                      />
+                    ) : null}
+                  </AdminRowMoreMenu>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
       </div>
+
+      <p className={adminPanelMutedTextClass}>
+        {loading
+          ? "Загрузка…"
+          : `Показано ${String(totalCount)} из ${String(totalCount)} · время московское`}
+      </p>
     </div>
+  );
+}
+
+function InviteCameraIcon({
+  enabled,
+  code,
+}: {
+  enabled: boolean;
+  code: string;
+}): React.ReactElement {
+  const label = enabled
+    ? `Камера и микрофон включены для ${code}`
+    : `Камера и микрофон выключены для ${code}`;
+  return (
+    <span
+      className={enabled ? "text-[var(--admin-accent)]" : "text-[var(--admin-chevron)]"}
+      aria-label={label}
+      title={label}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+        <path d="M4 8h11v8H4zM15 11l5-3v8l-5-3" />
+      </svg>
+    </span>
   );
 }

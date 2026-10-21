@@ -1,4 +1,4 @@
-import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
+import { formatAdminDateTimeShort } from "@/lib/datetime/adminDateFormat";
 
 /** Срок действия кода приглашения с момента создания (сутки × 24 ч). */
 export const ACCESS_INVITE_VALIDITY_DAYS = 3;
@@ -22,5 +22,5 @@ export function computeExtendedInviteExpiresAt(
 }
 
 export function formatInviteValidThroughRu(expiresAt: Date): string {
-  return formatMoscowDateTime(expiresAt);
+  return formatAdminDateTimeShort(expiresAt);
 }

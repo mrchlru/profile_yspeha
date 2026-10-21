@@ -8,12 +8,13 @@ import {
   AdminBulkSelectionBar,
 } from "@/components/admin/AdminBulkSelectionBar";
 import { AdminSelectCheckbox } from "@/components/admin/AdminSelectCheckbox";
-import { ResultsFolderCardActions } from "@/components/admin/ResultsFolderCardActions";
+import { AdminRowMenuItem, AdminRowMoreMenu } from "@/components/admin/AdminRowMoreMenu";
+import { formatPersonMetaLine, formatPersonName } from "@/lib/admin/formatPersonDisplay";
+import { formatAdminDateShort, formatAdminDateTimeTitle } from "@/lib/datetime/adminDateFormat";
 import { CandidateSearchPanel } from "@/components/admin/CandidateSearchPanel";
 import { AnswersExportDialog } from "@/components/admin/AnswersExportDialog";
 import { ReportExportDialog } from "@/components/admin/ReportExportDialog";
 import type { CandidateSearchTypeFilter } from "@/components/admin/CandidateSearchPanel";
-import { ADMIN_EMPLOYEE_ASSESSMENT_LABEL } from "@/lib/access/testKinds";
 import type { EmployeeFolderSummary } from "@/lib/admin/employeeFolderTypes";
 import { similarityFolderCardClass } from "@/lib/admin/similarityClusterTheme";
 import type { SimilarityFolderHint } from "@/lib/admin/similarityClusterTypes";
@@ -32,7 +33,6 @@ import {
   readResultsListCache,
   writeResultsListCache,
 } from "@/lib/admin/resultsListCache";
-import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
 import { adminSecondaryButtonClass } from "@/lib/admin/adminPanelTheme";
 import { AdminTestChip } from "@/components/admin/ui/AdminUi";
 export type ResultsHeaderExportHandlers = {
@@ -347,6 +347,7 @@ export function ResultsBrowser({
         archiveView={archiveView}
         onArchiveViewChange={setArchiveView}
         hideExportActions={hideExportActions}
+        compactFilterLabels
         reportExportAction={{
           onClick: () => setExportOpen(true),
           disabled: loading,
@@ -455,7 +456,12 @@ export function ResultsBrowser({
                       hint.hasCloseInTimeMatch
                     )
                   : "";
-              const chips = folderTestChips(item);
+              const chips = folderTestChips(
+                item,
+                similarityHighlightEnabled && Boolean(hint)
+              );
+              const personName = formatPersonName(item);
+              const personMeta = formatPersonMetaLine(item);
               return (
                 <li key={item.key}>
                   <div
@@ -491,7 +497,7 @@ export function ResultsBrowser({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-[16px] font-semibold text-[var(--admin-text)]">
-                          {item.displayName}
+                          {personName}
                         </h3>
                         {item.isArchived ? (
                           <span className="text-[12px] font-medium text-[var(--admin-text-3)]">
@@ -499,10 +505,8 @@ export function ResultsBrowser({
                           </span>
                         ) : null}
                       </div>
-                      {item.positionLevelLabel ? (
-                        <p className="mt-0.5 text-[13px] text-[var(--admin-text-3)]">
-                          {item.positionLevelLabel}
-                        </p>
+                      {personMeta ? (
+                        <p className="mt-0.5 text-[13px] text-[var(--admin-text-3)]">{personMeta}</p>
                       ) : null}
                       {similarityHighlightEnabled && hint ? (
                         <p className="mt-1 text-[13px] font-medium text-[#8B4513]">
@@ -518,37 +522,48 @@ export function ResultsBrowser({
                         </div>
                       ) : null}
                     </div>
-                    <div className="ml-auto flex shrink-0 flex-col items-end gap-1 text-right">
-                      <p className="text-[13px] text-[var(--admin-text-3)]">
-                        {item.lastActivityAt
-                          ? formatMoscowDateTime(item.lastActivityAt)
-                          : "Без активности"}
-                      </p>
-                      {item.pendingInvite ? (
-                        <p className="text-[12px] font-medium text-[var(--admin-warn)]">
-                          Ожидает скрининг
-                        </p>
-                      ) : null}
+                    <div
+                      className="ml-auto w-[72px] shrink-0 text-right text-[13px] text-[var(--admin-text-3)]"
+                      title={
+                        item.lastActivityAt
+                          ? formatAdminDateTimeTitle(item.lastActivityAt)
+                          : undefined
+                      }
+                    >
+                      {item.lastActivityAt
+                        ? formatAdminDateShort(item.lastActivityAt)
+                        : "—"}
+                    </div>
+                    {isFullAdmin ? (
                       <div
-                        className="mt-1"
                         onClick={(event) => event.stopPropagation()}
                         onKeyDown={(event) => event.stopPropagation()}
                       >
-                        <ResultsFolderCardActions
-                          item={item}
-                          archiveView={archiveView}
-                          isFullAdmin={isFullAdmin}
-                          busyDelete={deletingKey === item.key}
-                          onArchive={async () => changeFolderArchive(item.key, "archive")}
-                          onRestore={async () => changeFolderArchive(item.key, "restore")}
-                          onDelete={async () => deleteFolder(item)}
-                        />
+                        <AdminRowMoreMenu ariaLabel={`Действия для ${personName}`}>
+                          {!archiveView && !item.isArchived ? (
+                            <AdminRowMenuItem
+                              label="В архив"
+                              disabled={bulkBusy || deletingKey === item.key}
+                              onClick={() => void changeFolderArchive(item.key, "archive")}
+                            />
+                          ) : null}
+                          {archiveView && item.isArchived ? (
+                            <AdminRowMenuItem
+                              label="Из архива"
+                              disabled={bulkBusy || deletingKey === item.key}
+                              onClick={() => void changeFolderArchive(item.key, "restore")}
+                            />
+                          ) : null}
+                          <AdminRowMenuItem
+                            label={deletingKey === item.key ? "Удаление…" : "Удалить"}
+                            tone="danger"
+                            disabled={bulkBusy || deletingKey === item.key}
+                            onClick={() => void deleteFolder(item)}
+                          />
+                        </AdminRowMoreMenu>
                       </div>
-                    </div>
-                    <span
-                      className="hidden text-[var(--admin-chevron)] sm:inline"
-                      aria-hidden
-                    >
+                    ) : null}
+                    <span className="text-[var(--admin-chevron)]" aria-hidden>
                       ›
                     </span>
                   </div>
@@ -586,13 +601,19 @@ function folderInitials(item: EmployeeFolderSummary): string {
   return item.displayName.trim().charAt(0).toUpperCase() || "?";
 }
 
-function folderTestChips(item: EmployeeFolderSummary): string[] {
+function folderTestChips(
+  item: EmployeeFolderSummary,
+  similarAnswers: boolean
+): string[] {
   const chips: string[] = [];
+  if (similarAnswers) {
+    chips.push("Схожие ответы");
+  }
   if (item.hasScreening || item.pendingInvite) {
     chips.push("Скрининг");
   }
   if (item.hasAudit) {
-    chips.push(ADMIN_EMPLOYEE_ASSESSMENT_LABEL);
+    chips.push("ОД");
   }
   if (item.hasProfSbEducation) {
     chips.push("ПРОФ СБ");

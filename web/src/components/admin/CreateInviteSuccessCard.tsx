@@ -7,7 +7,7 @@ import {
   adminPanelInsetClass,
   adminPanelMutedTextClass,
   adminPrimaryButtonClass,
-  adminSecondaryButtonClass,
+  adminSecondaryMutedButtonClass,
 } from "@/lib/admin/adminPanelTheme";
 
 export type CreateInviteSuccessCardProps = {
@@ -74,12 +74,12 @@ export function CreateInviteSuccessCard({
           </p>
           <p className="text-[14px] text-[var(--admin-text-3)]">Действует до {validThroughLabel}</p>
           {archiveFolderName ? (
-            <p className="text-[13px] text-[var(--admin-accent)]">
+            <p className={`text-[14px] ${adminPanelMutedTextClass}`}>
               Папка в архиве: {archiveFolderName}
             </p>
           ) : null}
           {interviewFolderName ? (
-            <p className="text-[13px] text-[var(--admin-accent)]">
+            <p className={`text-[14px] ${adminPanelMutedTextClass}`}>
               Папка в «Собеседование»: {interviewFolderName}
             </p>
           ) : null}
@@ -89,7 +89,7 @@ export function CreateInviteSuccessCard({
           <button type="button" onClick={onCopyInvite} className={`${adminPrimaryButtonClass} sm:min-w-[220px]`}>
             {copyBusyLabel}
           </button>
-          <button type="button" onClick={onCopyLink} className={`${adminSecondaryButtonClass} sm:min-w-[180px]`}>
+          <button type="button" onClick={onCopyLink} className={`${adminSecondaryMutedButtonClass} sm:min-w-[180px]`}>
             Скопировать ссылку
           </button>
         </div>

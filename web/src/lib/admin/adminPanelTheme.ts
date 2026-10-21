@@ -43,6 +43,13 @@ export const adminBadgeReadyClass =
 export const adminBackLinkClass =
   "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-4 text-[14px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] transition hover:bg-[var(--admin-surface-muted)]";
 
+/** Текстовая ссылка «‹ Результаты» в папке сотрудника. */
+export const adminTextBackLinkClass =
+  "inline-flex items-center text-[16px] font-medium text-[var(--admin-accent)] hover:underline";
+
+export const adminSecondaryMutedButtonClass =
+  "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface-muted)] px-5 text-[15px] font-medium text-[var(--admin-text)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
+
 /** Компактная primary-ссылка (строка прохождения, «Открыть»). */
 export const adminCompactPrimaryLinkClass =
   "inline-flex h-10 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-accent)] px-4 text-[14px] font-semibold text-white transition hover:bg-[var(--admin-accent-hover)]";
