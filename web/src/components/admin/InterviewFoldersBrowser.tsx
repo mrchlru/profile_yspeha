@@ -15,7 +15,7 @@ import {
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 /**
- * Список вакансий: клик открывает папку сразу под списком.
+ * Список вакансий: клик раскрывает папку сразу под строкой (аккордеон).
  */
 export function InterviewFoldersBrowser(): React.ReactElement {
   const router = useRouter();
@@ -31,9 +31,7 @@ export function InterviewFoldersBrowser(): React.ReactElement {
 
   useEffect(() => {
     const fromUrl = searchParams.get("folder")?.trim() ?? "";
-    if (fromUrl) {
-      setSelectedKey(fromUrl);
-    }
+    setSelectedKey(fromUrl);
   }, [searchParams]);
 
   const loadItems = useCallback(async (): Promise<void> => {
@@ -67,10 +65,15 @@ export function InterviewFoldersBrowser(): React.ReactElement {
   }, [loadItems]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
     if (!selectedKey) {
+      if (params.has("folder")) {
+        params.delete("folder");
+        const qs = params.toString();
+        router.replace(qs ? `/admin/interview?${qs}` : "/admin/interview", { scroll: false });
+      }
       return;
     }
-    const params = new URLSearchParams(window.location.search);
     if (params.get("folder") !== selectedKey) {
       params.set("folder", selectedKey);
       router.replace(`/admin/interview?${params.toString()}`, { scroll: false });
@@ -81,11 +84,11 @@ export function InterviewFoldersBrowser(): React.ReactElement {
     if (!selectedKey || !detailRef.current) {
       return;
     }
-    detailRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    detailRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedKey]);
 
   function selectFolder(key: string): void {
-    setSelectedKey(key);
+    setSelectedKey((prev) => (prev === key ? "" : key));
   }
 
   return (
@@ -116,16 +119,16 @@ export function InterviewFoldersBrowser(): React.ReactElement {
           {items.map((item) => {
             const { title, datePart } = splitInterviewFolderDisplayName(item.displayName);
             const dateLabel = datePart ?? formatIsoCalendarDateRu(item.firstScreeningAt);
-            const active = selectedKey === item.key;
+            const expanded = selectedKey === item.key;
             return (
-              <li key={item.key}>
+              <li key={item.key} className={expanded ? "bg-[var(--admin-accent-tint-2)]/40" : undefined}>
                 <button
                   type="button"
                   onClick={() => selectFolder(item.key)}
-                  aria-current={active ? "true" : undefined}
+                  aria-expanded={expanded}
                   className={`flex w-full items-center gap-3 px-4 py-4 text-left transition sm:px-5 ${
-                    active
-                      ? "bg-[var(--admin-accent-tint-2)] ring-1 ring-inset ring-[var(--admin-accent)]/25"
+                    expanded
+                      ? "bg-[var(--admin-accent-tint-2)]"
                       : "hover:bg-[var(--admin-accent-tint-2)]"
                   }`}
                 >
@@ -138,25 +141,28 @@ export function InterviewFoldersBrowser(): React.ReactElement {
                   <span className="shrink-0 text-[15px] font-semibold tabular-nums text-[var(--admin-text-2)]">
                     {String(item.candidateCount)}
                   </span>
-                  <span className="shrink-0 text-[var(--admin-chevron)]" aria-hidden>
+                  <span
+                    className={`shrink-0 text-[var(--admin-chevron)] transition-transform ${
+                      expanded ? "rotate-90" : ""
+                    }`}
+                    aria-hidden
+                  >
                     ›
                   </span>
                 </button>
+                {expanded ? (
+                  <div
+                    ref={detailRef}
+                    className="border-t border-[var(--admin-hairline)] bg-[var(--admin-bg)] px-4 py-5 sm:px-5"
+                  >
+                    <InterviewFolderDetailPanel folderKey={item.key} embedded />
+                  </div>
+                ) : null}
               </li>
             );
           })}
         </ul>
       </div>
-
-      {selectedKey ? (
-        <div ref={detailRef} className="scroll-mt-6">
-          <InterviewFolderDetailPanel folderKey={selectedKey} embedded />
-        </div>
-      ) : items.length > 0 && !loading ? (
-        <div className={`px-6 py-8 ${adminPanelCardClass}`}>
-          <p className={adminPanelMutedTextClass}>Выберите вакансию в списке выше.</p>
-        </div>
-      ) : null}
     </div>
   );
 }
