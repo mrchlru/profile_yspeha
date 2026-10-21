@@ -22,6 +22,7 @@ export type AttestationFormStore = {
   sessionId: string | null;
   firstName: string;
   lastName: string;
+  jobTitle: string;
   personalDataConsent: boolean;
   consentRecordedAt: string | null;
   answers: AttestationAnswers;
@@ -34,6 +35,7 @@ export type AttestationFormStore = {
   setPersonalDataConsent: (consent: boolean) => void;
   setAccessCodeSnapshot: (code: string) => void;
   setAttestationAssesseeName: (firstName: string, lastName: string) => void;
+  setAttestationJobTitle: (jobTitle: string) => void;
   setAttestationAnswer: (questionId: string, value: number | string) => void;
   setCurrentBlockIndex: (index: number) => void;
   submitAttestation: (accessCodeFallback?: string | null) => Promise<void>;
@@ -47,6 +49,7 @@ export const useAttestationFormStore = create<AttestationFormStore>()(
       sessionId: null,
       firstName: "",
       lastName: "",
+      jobTitle: "",
       personalDataConsent: false,
       consentRecordedAt: null,
       answers: createEmptyAttestationAnswers(),
@@ -78,6 +81,10 @@ export const useAttestationFormStore = create<AttestationFormStore>()(
         set({ firstName: firstName.trim(), lastName: lastName.trim() });
       },
 
+      setAttestationJobTitle: (jobTitle) => {
+        set({ jobTitle: jobTitle.trim() });
+      },
+
       setAttestationAnswer: (questionId, value) => {
         set((state) => ({
           answers: { ...state.answers, [questionId]: value },
@@ -97,7 +104,8 @@ export const useAttestationFormStore = create<AttestationFormStore>()(
           lastName: state.lastName,
         });
 
-        if (!state.sessionId || !accessCode || !assessee) {
+        const jobTitle = state.jobTitle.trim();
+        if (!state.sessionId || !accessCode || !assessee || jobTitle.length < 2) {
           set({
             submissionStatus: "error",
             submitError: "Не хватает данных для отправки. Начните тест заново.",
@@ -131,6 +139,7 @@ export const useAttestationFormStore = create<AttestationFormStore>()(
               accessCode,
               firstName: assessee.firstNameDisplay,
               lastName: assessee.lastNameDisplay,
+              jobTitle,
               personalDataConsent: true,
               consentRecordedAt: state.consentRecordedAt,
               answers: state.answers,
@@ -174,6 +183,7 @@ export const useAttestationFormStore = create<AttestationFormStore>()(
           sessionId: null,
           firstName: "",
           lastName: "",
+          jobTitle: "",
           personalDataConsent: false,
           consentRecordedAt: null,
           answers: createEmptyAttestationAnswers(),
@@ -185,12 +195,13 @@ export const useAttestationFormStore = create<AttestationFormStore>()(
       },
     }),
     {
-      name: "attestation-form-store-v1",
+      name: "attestation-form-store-v2",
       storage: createJSONStorage(getFormPersistStateStorage),
       partialize: (state) => ({
         sessionId: state.sessionId,
         firstName: state.firstName,
         lastName: state.lastName,
+        jobTitle: state.jobTitle,
         personalDataConsent: state.personalDataConsent,
         consentRecordedAt: state.consentRecordedAt,
         answers: state.answers,

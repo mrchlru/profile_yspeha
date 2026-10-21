@@ -40,6 +40,7 @@ export default function AttestationTestPage(): React.ReactElement {
   const answers = useAttestationFormStore((s) => s.answers);
   const setAnswer = useAttestationFormStore((s) => s.setAttestationAnswer);
   const sessionId = useAttestationFormStore((s) => s.sessionId);
+  const jobTitle = useAttestationFormStore((s) => s.jobTitle);
   const currentBlockIndex = useAttestationFormStore((s) => s.currentBlockIndex);
   const setCurrentBlockIndex = useAttestationFormStore((s) => s.setCurrentBlockIndex);
 
@@ -145,7 +146,7 @@ export default function AttestationTestPage(): React.ReactElement {
     );
   }
 
-  if (!sessionId) {
+  if (!sessionId || jobTitle.trim().length < 2) {
     router.replace("/attestation/intro");
     return (
       <StepLayout>

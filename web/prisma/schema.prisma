@@ -248,6 +248,8 @@ model AttestationSubmission {
   assesseeKeyVer Int    @map("assessee_key_version")
   firstName      String @map("first_name")
   lastName       String @map("last_name")
+  /** Должность, которую сотрудник указывает при старте аттестации. */
+  jobTitle       String? @map("job_title")
 
   personalDataConsent Boolean  @map("personal_data_consent")
   consentRecordedAt   DateTime @map("consent_recorded_at")

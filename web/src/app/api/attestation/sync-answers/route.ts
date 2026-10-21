@@ -75,6 +75,7 @@ export async function POST(
         assesseeKeyVer: assessee.version,
         firstName: assessee.firstNameDisplay,
         lastName: assessee.lastNameDisplay,
+        ...(payload.jobTitle !== undefined ? { jobTitle: payload.jobTitle.trim() } : {}),
         personalDataConsent: payload.personalDataConsent ?? false,
         consentRecordedAt: consentAt ?? new Date(),
         answers: mergedAnswers as Prisma.InputJsonValue,
@@ -84,6 +85,7 @@ export async function POST(
         assesseeKeyVer: assessee.version,
         firstName: assessee.firstNameDisplay,
         lastName: assessee.lastNameDisplay,
+        ...(payload.jobTitle !== undefined ? { jobTitle: payload.jobTitle.trim() } : {}),
         ...(payload.personalDataConsent !== undefined
           ? { personalDataConsent: payload.personalDataConsent }
           : {}),

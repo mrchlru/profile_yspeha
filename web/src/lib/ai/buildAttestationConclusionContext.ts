@@ -14,7 +14,7 @@ import {
 } from "@/lib/attestation/miniIpipInterpretation";
 import type { RosenzweigCodingSummary } from "@/lib/attestation/rosenzweigCoding";
 import { buildRosenzweigManagerHints } from "@/lib/attestation/rosenzweigProfileBlurb";
-import type { AttestationBriefEmployeeMeta } from "@/lib/attestation/resolveAttestationBriefEmployeeMeta";
+import type { AttestationEmployeeMeta } from "@/lib/attestation/attestationEmployeeMeta";
 
 const ROSENZWEIG_DIRECTION_LABELS: Record<string, string> = {
   E: "вовне — смотрит на внешнюю причину",
@@ -36,7 +36,7 @@ export function buildAttestationConclusionContext(input: {
   scores: AttestationComputedScores;
   rosenzweigCodingSummary: RosenzweigCodingSummary | null;
   reportAudience?: "hrd_full" | "line_manager_brief";
-  employeeMeta?: AttestationBriefEmployeeMeta;
+  employeeMeta?: AttestationEmployeeMeta;
 }): string {
   const { scores } = input;
   const safeName = sanitizeForAiInput(input.personName, 120);

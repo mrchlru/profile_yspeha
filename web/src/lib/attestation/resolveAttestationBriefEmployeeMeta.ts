@@ -1,17 +1,15 @@
-import { candidatePositionLevelLabel } from "@/lib/admin/candidatePositionLevels";
-import { STEP4_FIELD_OPTIONS } from "@/lib/step4/step4Labels";
+import {
+  buildAttestationEmployeeMetaFallback,
+  buildAttestationEmployeeMetaFromJobTitle,
+  type AttestationEmployeeMeta,
+} from "@/lib/attestation/attestationEmployeeMeta";
 import type { Step4Data } from "@/lib/step4/step4Types";
 import { prisma } from "@/lib/prisma";
 
-export type AttestationBriefEmployeeMeta = {
-  /** «бухгалтер финансового отдела» — без ФИО. */
-  roleSubtitle: string;
-  /** «для руководителя финансового отдела». */
-  managerAudienceLine: string;
-};
+export type AttestationBriefEmployeeMeta = AttestationEmployeeMeta;
 
 /**
- * Восстанавливает должность и адресата отчёта из приглашения и анкеты скрининга (step4).
+ * Должность для краткого отчёта: сначала из аттестации, иначе запасной вариант (step4).
  */
 export async function resolveAttestationBriefEmployeeMeta(
   sessionId: string
@@ -19,15 +17,21 @@ export async function resolveAttestationBriefEmployeeMeta(
   const row = await prisma.attestationSubmission.findUnique({
     where: { sessionId },
     select: {
+      jobTitle: true,
       candidateFolderKey: true,
       accessInviteCode: true,
     },
   });
 
+  const jobTitle = row?.jobTitle?.trim() ?? "";
+  if (jobTitle.length >= 2) {
+    return buildAttestationEmployeeMetaFromJobTitle(jobTitle);
+  }
+
   const step4 = await _loadLatestStep4ForFolder(row?.candidateFolderKey ?? null);
   const positionLevel = await _loadPositionLevelFromInvite(row?.accessInviteCode ?? null);
 
-  return _buildMetaFromSources(step4, positionLevel);
+  return buildAttestationEmployeeMetaFallback({ step4, positionLevel });
 }
 
 async function _loadLatestStep4ForFolder(
@@ -58,76 +62,4 @@ async function _loadPositionLevelFromInvite(
     select: { candidatePositionLevel: true },
   });
   return invite?.candidatePositionLevel ?? null;
-}
-
-function _buildMetaFromSources(
-  step4: Step4Data | null,
-  positionLevel: string | null
-): AttestationBriefEmployeeMeta {
-  const work = step4?.currentWork;
-  const position = work?.position?.trim() ?? "";
-  const organization = work?.organization?.trim() ?? "";
-  const fieldValue = work?.field ?? "";
-  const fieldLabel = _fieldLabel(fieldValue);
-
-  let roleSubtitle = position;
-  if (roleSubtitle.length === 0 && positionLevel) {
-    roleSubtitle = candidatePositionLevelLabel(positionLevel).toLowerCase();
-  }
-  if (roleSubtitle.length === 0) {
-    roleSubtitle = "сотрудник";
-  }
-
-  if (
-    position.length > 0 &&
-    fieldValue === "finance" &&
-    !_roleAlreadyMentionsField(roleSubtitle, fieldLabel)
-  ) {
-    roleSubtitle = `${position} финансового отдела`;
-  } else if (
-    position.length > 0 &&
-    fieldLabel.length > 0 &&
-    !_roleAlreadyMentionsField(roleSubtitle, fieldLabel)
-  ) {
-    roleSubtitle = `${position} · ${fieldLabel}`;
-  } else if (position.length === 0 && fieldLabel.length > 0) {
-    roleSubtitle = `${roleSubtitle} (${fieldLabel})`;
-  }
-
-  const managerAudienceLine = _managerAudienceLine(organization, fieldLabel, positionLevel);
-
-  return { roleSubtitle, managerAudienceLine };
-}
-
-function _fieldLabel(fieldValue: string): string {
-  const option = STEP4_FIELD_OPTIONS.find((item) => item.value === fieldValue);
-  if (!option) {
-    return "";
-  }
-  if (fieldValue === "finance") {
-    return "финансовый отдел";
-  }
-  return option.label.toLowerCase();
-}
-
-function _roleAlreadyMentionsField(role: string, fieldLabel: string): boolean {
-  const haystack = role.toLowerCase();
-  return haystack.includes(fieldLabel) || haystack.includes("финанс");
-}
-
-function _managerAudienceLine(
-  organization: string,
-  fieldLabel: string,
-  positionLevel: string | null
-): string {
-  if (fieldLabel.length > 0) {
-    return `для руководителя ${fieldLabel}`;
-  }
-  if (organization.length > 0) {
-    return `для руководителя · ${organization}`;
-  }
-  if (positionLevel) {
-    return `для непосредственного руководителя (${candidatePositionLevelLabel(positionLevel).toLowerCase()})`;
-  }
-  return "для непосредственного руководителя";
 }

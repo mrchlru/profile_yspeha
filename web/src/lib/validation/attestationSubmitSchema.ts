@@ -19,6 +19,7 @@ export const attestationSubmitBodySchema = z
     accessCode: z.string().min(8).max(80),
     firstName: z.string().trim().min(1).max(120),
     lastName: z.string().trim().min(1).max(120),
+    jobTitle: z.string().trim().min(2).max(200),
     personalDataConsent: z.literal(true),
     consentRecordedAt: z.string().datetime(),
     answers: answersSchema,

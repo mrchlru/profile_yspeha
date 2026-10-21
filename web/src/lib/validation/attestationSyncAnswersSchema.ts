@@ -12,6 +12,7 @@ export const attestationSyncAnswersBodySchema = z.object({
   accessCode: z.string().min(8).max(80),
   firstName: z.string().trim().min(1).max(120),
   lastName: z.string().trim().min(1).max(120),
+  jobTitle: z.string().trim().min(2).max(200).optional(),
   personalDataConsent: z.boolean().optional(),
   consentRecordedAt: z.string().datetime().optional(),
   answers: z.record(z.string(), attestationAnswerValueSchema),

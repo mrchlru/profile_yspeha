@@ -1,6 +1,7 @@
 import { Prisma } from "@/generated/prisma/client";
 
 import { buildAttestationConclusionContext } from "@/lib/ai/buildAttestationConclusionContext";
+import { resolveAttestationBriefEmployeeMeta } from "@/lib/attestation/resolveAttestationBriefEmployeeMeta";
 import { generateAttestationConclusion } from "@/lib/ai/generateAttestationConclusion";
 import type { AttestationReportJson } from "@/lib/attestation/attestationReportTypes";
 import { computeRosenzweigCodingSummary } from "@/lib/attestation/rosenzweigCoding";
@@ -62,10 +63,12 @@ export async function persistAttestationAiConclusion(input: {
       ? computeRosenzweigCodingSummary(coding)
       : report.rosenzweigCodingSummary ?? null;
 
+  const employeeMeta = await resolveAttestationBriefEmployeeMeta(input.sessionId);
   const attestationContext = buildAttestationConclusionContext({
     personName: input.personName,
     scores: report.scores,
     rosenzweigCodingSummary: codingSummary,
+    employeeMeta,
   });
 
   const aiResult = await generateAttestationConclusion({

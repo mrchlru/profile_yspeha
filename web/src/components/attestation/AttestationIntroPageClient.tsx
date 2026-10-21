@@ -34,11 +34,14 @@ export function AttestationIntroPageClient(): React.ReactElement {
   const setAccessCodeSnapshot = useAttestationFormStore((s) => s.setAccessCodeSnapshot);
   const setPersonalDataConsent = useAttestationFormStore((s) => s.setPersonalDataConsent);
   const setAssesseeName = useAttestationFormStore((s) => s.setAttestationAssesseeName);
+  const setJobTitle = useAttestationFormStore((s) => s.setAttestationJobTitle);
   const storedFirstName = useAttestationFormStore((s) => s.firstName);
   const storedLastName = useAttestationFormStore((s) => s.lastName);
+  const storedJobTitle = useAttestationFormStore((s) => s.jobTitle);
   const sessionId = useAttestationFormStore((s) => s.sessionId);
   const [firstNameInput, setFirstNameInput] = useState(storedFirstName);
   const [lastNameInput, setLastNameInput] = useState(storedLastName);
+  const [jobTitleInput, setJobTitleInput] = useState(storedJobTitle);
   const [consent, setConsent] = useState(false);
   const proctorRequired = useProctorIntroRequired();
   const proctorReady = useProctorIntroReady();
@@ -46,7 +49,8 @@ export function AttestationIntroPageClient(): React.ReactElement {
   useEffect(() => {
     setFirstNameInput(storedFirstName);
     setLastNameInput(storedLastName);
-  }, [storedFirstName, storedLastName]);
+    setJobTitleInput(storedJobTitle);
+  }, [storedFirstName, storedLastName, storedJobTitle]);
 
   useEffect(() => {
     if (!accessReady || !validatedAccessCode) {
@@ -89,20 +93,27 @@ export function AttestationIntroPageClient(): React.ReactElement {
   }
 
   const isReturning = sessionId !== null;
-  const assesseeKey = isReturning
-    ? null
-    : buildAuditAssesseeKey({
+  const needsIdentityForm = !isReturning || storedJobTitle.trim().length < 2;
+  const assesseeKey = needsIdentityForm
+    ? buildAuditAssesseeKey({
         firstName: firstNameInput.trim(),
         lastName: lastNameInput.trim(),
-      });
-  const canStart = isReturning || (assesseeKey !== null && consent);
+      })
+    : null;
+  const jobTitleReady = jobTitleInput.trim().length >= 2;
+  const canStart =
+    jobTitleReady &&
+    (isReturning && !needsIdentityForm
+      ? true
+      : assesseeKey !== null && consent);
   const startDisabled = !canStart || !proctorReady;
 
   function handleStart(): void {
     if (!canStart) {
       return;
     }
-    if (!isReturning && assesseeKey) {
+    setJobTitle(jobTitleInput);
+    if (needsIdentityForm && assesseeKey) {
       setAssesseeName(assesseeKey.firstNameDisplay, assesseeKey.lastNameDisplay);
       setPersonalDataConsent(true);
     }
@@ -120,7 +131,7 @@ export function AttestationIntroPageClient(): React.ReactElement {
             формата. Прохождение займёт около 40–60 минут. Ответы сохраняются автоматически.
           </p>
 
-          {!isReturning ? (
+          {needsIdentityForm ? (
             <>
               <div>
                 <label htmlFor="attestation-last-name" className={`block ${stepLabelClass}`}>
@@ -146,17 +157,20 @@ export function AttestationIntroPageClient(): React.ReactElement {
                   autoComplete="given-name"
                 />
               </div>
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-5 w-5"
-                  checked={consent}
-                  onChange={(event) => setConsent(event.target.checked)}
-                />
-                <span className={stepSecondaryTextClass}>
-                  Я согласен(на) на обработку персональных данных в рамках прохождения аттестации.
-                </span>
-              </label>
+              {!isReturning ? (
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-5 w-5"
+                    checked={consent}
+                    onChange={(event) => setConsent(event.target.checked)}
+                  />
+                  <span className={stepSecondaryTextClass}>
+                    Я согласен(на) на обработку персональных данных в рамках прохождения
+                    аттестации.
+                  </span>
+                </label>
+              ) : null}
             </>
           ) : (
             <p className={stepSecondaryTextClass}>
@@ -164,6 +178,23 @@ export function AttestationIntroPageClient(): React.ReactElement {
               остановились.
             </p>
           )}
+
+          <div>
+            <label htmlFor="attestation-job-title" className={`block ${stepLabelClass}`}>
+              Должность
+            </label>
+            <input
+              id="attestation-job-title"
+              value={jobTitleInput}
+              onChange={(event) => setJobTitleInput(event.target.value)}
+              className={`${stepInputClass} h-12`}
+              placeholder="Например: бухгалтер финансового отдела"
+              autoComplete="organization-title"
+            />
+            <p className={`mt-2 ${stepSecondaryTextClass}`}>
+              Укажите вашу текущую должность — она попадёт в отчёт для руководителя.
+            </p>
+          </div>
 
           {proctorRequired ? <ProctorIntroGate /> : null}
 

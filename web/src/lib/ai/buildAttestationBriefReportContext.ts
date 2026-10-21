@@ -1,6 +1,6 @@
 import { sanitizeForAiInput } from "@/lib/ai/sanitizeForAi";
 import { buildAttestationConclusionContext } from "@/lib/ai/buildAttestationConclusionContext";
-import type { AttestationBriefEmployeeMeta } from "@/lib/attestation/resolveAttestationBriefEmployeeMeta";
+import type { AttestationEmployeeMeta } from "@/lib/attestation/attestationEmployeeMeta";
 import { ROSENZWEIG_SITUATIONS } from "@/lib/attestation/attestationQuestions";
 import type { AttestationAnswers } from "@/lib/attestation/attestationQuestions";
 import type { AttestationComputedScores } from "@/lib/attestation/computeAttestationScores";
@@ -14,7 +14,7 @@ export function buildAttestationBriefReportContext(input: {
   scores: AttestationComputedScores;
   answers: AttestationAnswers;
   rosenzweigCodingSummary: RosenzweigCodingSummary | null;
-  employeeMeta: AttestationBriefEmployeeMeta;
+  employeeMeta: AttestationEmployeeMeta;
 }): string {
   const scoresContext = buildAttestationConclusionContext({
     personName: input.personName,

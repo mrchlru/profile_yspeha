@@ -13,7 +13,7 @@ import type {
   AttestationBriefKeyIndicatorRow,
   AttestationBriefReportJson,
 } from "@/lib/attestation/attestationBriefReportTypes";
-import type { AttestationBriefEmployeeMeta } from "@/lib/attestation/resolveAttestationBriefEmployeeMeta";
+import type { AttestationEmployeeMeta } from "@/lib/attestation/attestationEmployeeMeta";
 import { formatMoscowNow } from "@/lib/datetime/moscowTime";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
@@ -31,7 +31,7 @@ function _normalizeStringArray(value: unknown, maxItems: number): string[] {
 
 function _parseBriefReport(
   raw: AttestationBriefReportAiJson,
-  employeeMeta: AttestationBriefEmployeeMeta,
+  employeeMeta: AttestationEmployeeMeta,
   keyIndicators: ReadonlyArray<AttestationBriefKeyIndicatorRow>
 ): AttestationBriefReportJson | null {
   const mainPoints = _normalizeStringArray(raw.mainPoints, 8);
@@ -61,7 +61,7 @@ function _parseBriefReport(
 export async function generateAttestationBriefReport(input: {
   attestationContext: string;
   sessionRef: string;
-  employeeMeta: AttestationBriefEmployeeMeta;
+  employeeMeta: AttestationEmployeeMeta;
   keyIndicators: ReadonlyArray<AttestationBriefKeyIndicatorRow>;
 }): Promise<AttestationBriefReportJson | null> {
   const apiKey = process.env.OPENAI_API_KEY;

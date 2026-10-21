@@ -21,7 +21,11 @@ async function _syncAttestationAnswers(): Promise<void> {
   if (!attestation.sessionId || accessCode.length < 8) {
     return;
   }
-  if (attestation.firstName.trim().length === 0 || attestation.lastName.trim().length === 0) {
+  if (
+    attestation.firstName.trim().length === 0 ||
+    attestation.lastName.trim().length === 0 ||
+    attestation.jobTitle.trim().length < 2
+  ) {
     return;
   }
   if (Object.keys(attestation.answers).length === 0) {
@@ -38,6 +42,7 @@ async function _syncAttestationAnswers(): Promise<void> {
         accessCode,
         firstName: attestation.firstName.trim(),
         lastName: attestation.lastName.trim(),
+        jobTitle: attestation.jobTitle.trim(),
         answers: attestation.answers,
         personalDataConsent: attestation.personalDataConsent,
         consentRecordedAt: attestation.consentRecordedAt ?? undefined,
