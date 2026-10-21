@@ -9,7 +9,11 @@ import {
   readResponseBodySnippet,
   resolveOpenAiChatModel,
 } from "@/lib/ai/openaiHttp";
-import type { AttestationBriefReportJson } from "@/lib/attestation/attestationBriefReportTypes";
+import type {
+  AttestationBriefKeyIndicatorRow,
+  AttestationBriefReportJson,
+} from "@/lib/attestation/attestationBriefReportTypes";
+import type { AttestationBriefEmployeeMeta } from "@/lib/attestation/resolveAttestationBriefEmployeeMeta";
 import { formatMoscowNow } from "@/lib/datetime/moscowTime";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
@@ -25,25 +29,11 @@ function _normalizeStringArray(value: unknown, maxItems: number): string[] {
     .map((item) => item.trim());
 }
 
-function _parseBriefReport(raw: AttestationBriefReportAiJson): AttestationBriefReportJson | null {
-  const keyIndicators = Array.isArray(raw.keyIndicators)
-    ? raw.keyIndicators
-        .filter(
-          (row): row is { indicator: string; result: string; meaning: string } =>
-            !!row &&
-            typeof row === "object" &&
-            typeof (row as { indicator?: string }).indicator === "string" &&
-            typeof (row as { result?: string }).result === "string" &&
-            typeof (row as { meaning?: string }).meaning === "string"
-        )
-        .slice(0, 16)
-        .map((row) => ({
-          indicator: row.indicator.trim(),
-          result: row.result.trim(),
-          meaning: row.meaning.trim(),
-        }))
-    : [];
-
+function _parseBriefReport(
+  raw: AttestationBriefReportAiJson,
+  employeeMeta: AttestationBriefEmployeeMeta,
+  keyIndicators: ReadonlyArray<AttestationBriefKeyIndicatorRow>
+): AttestationBriefReportJson | null {
   const mainPoints = _normalizeStringArray(raw.mainPoints, 8);
   if (mainPoints.length === 0 || keyIndicators.length === 0) {
     return null;
@@ -51,14 +41,8 @@ function _parseBriefReport(raw: AttestationBriefReportAiJson): AttestationBriefR
 
   return {
     version: 1,
-    roleSubtitle:
-      typeof raw.roleSubtitle === "string" && raw.roleSubtitle.trim().length > 0
-        ? raw.roleSubtitle.trim()
-        : "сотрудник",
-    managerAudienceLine:
-      typeof raw.managerAudienceLine === "string" && raw.managerAudienceLine.trim().length > 0
-        ? raw.managerAudienceLine.trim()
-        : "для непосредственного руководителя",
+    roleSubtitle: employeeMeta.roleSubtitle,
+    managerAudienceLine: employeeMeta.managerAudienceLine,
     mainPoints,
     keyIndicators,
     pros: _normalizeStringArray(raw.pros, 12),
@@ -77,6 +61,8 @@ function _parseBriefReport(raw: AttestationBriefReportAiJson): AttestationBriefR
 export async function generateAttestationBriefReport(input: {
   attestationContext: string;
   sessionRef: string;
+  employeeMeta: AttestationBriefEmployeeMeta;
+  keyIndicators: ReadonlyArray<AttestationBriefKeyIndicatorRow>;
 }): Promise<AttestationBriefReportJson | null> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.length === 0) {
@@ -147,7 +133,7 @@ export async function generateAttestationBriefReport(input: {
     return null;
   }
 
-  const brief = _parseBriefReport(parsed);
+  const brief = _parseBriefReport(parsed, input.employeeMeta, input.keyIndicators);
   if (!brief) {
     screeningServerLog("openai_attestation_brief", "invalid_shape", {
       sessionRef: input.sessionRef,

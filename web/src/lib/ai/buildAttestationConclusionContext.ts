@@ -14,6 +14,7 @@ import {
 } from "@/lib/attestation/miniIpipInterpretation";
 import type { RosenzweigCodingSummary } from "@/lib/attestation/rosenzweigCoding";
 import { buildRosenzweigManagerHints } from "@/lib/attestation/rosenzweigProfileBlurb";
+import type { AttestationBriefEmployeeMeta } from "@/lib/attestation/resolveAttestationBriefEmployeeMeta";
 
 const ROSENZWEIG_DIRECTION_LABELS: Record<string, string> = {
   E: "вовне — смотрит на внешнюю причину",
@@ -34,6 +35,8 @@ export function buildAttestationConclusionContext(input: {
   personName: string;
   scores: AttestationComputedScores;
   rosenzweigCodingSummary: RosenzweigCodingSummary | null;
+  reportAudience?: "hrd_full" | "line_manager_brief";
+  employeeMeta?: AttestationBriefEmployeeMeta;
 }): string {
   const { scores } = input;
   const safeName = sanitizeForAiInput(input.personName, 120);
@@ -111,11 +114,14 @@ export function buildAttestationConclusionContext(input: {
       }
     : null;
 
+  const isBrief = input.reportAudience === "line_manager_brief";
   const payload = {
     participantName: safeName,
-    testName: "Аттестация управляющего / шеф-повара",
-    readerRole:
-      "HRD / генеральный директор / линейный руководитель. Нужен живой портрет сотрудника для бизнеса, а не учебник по методикам.",
+    testName: "Аттестация сотрудника",
+    employeeMeta: input.employeeMeta ?? null,
+    readerRole: isBrief
+      ? "Непосредственный руководитель. Нужен короткий, честный портрет: что делать завтра, без учебника по методикам."
+      : "HRD / генеральный директор / линейный руководитель. Нужен живой портрет сотрудника для бизнеса, а не учебник по методикам.",
     goal:
       "Связать Big Five, управленческий потенциал, выгорание, тревожность, ДДО, Люшер и Розенцвейг в один понятный вывод: " +
       "кто это за человек на работе, в какой среде раскроется, чего нельзя давать, на что опираться, какие риски для команды и результата.",

@@ -11,7 +11,6 @@ import {
   WidthType,
 } from "docx";
 
-import { buildReportBrandDocxLeadParagraphs } from "@/lib/admin/reportBrandDocx";
 import { sanitizeDocxPlainText } from "@/lib/admin/reportExportDocxShell";
 import type { AttestationBriefReportJson } from "@/lib/attestation/attestationBriefReportTypes";
 
@@ -33,9 +32,7 @@ export async function buildAttestationBriefReportDocx(
   brief: AttestationBriefReportJson,
   meta: AttestationBriefReportDocxMeta
 ): Promise<Buffer> {
-  const brandLead = await buildReportBrandDocxLeadParagraphs();
   const children: Array<Paragraph | Table> = [
-    ...brandLead,
     _confidentialParagraph(),
     _titleParagraph("Отчёт по аттестации — краткая версия"),
     _bodyParagraph(`${meta.personName} · ${brief.roleSubtitle}`, { bold: true }),
@@ -47,15 +44,15 @@ export async function buildAttestationBriefReportDocx(
     _sectionHeading("2. Ключевые показатели"),
     _keyIndicatorsTable(brief),
     _sectionHeading("3. Плюсы"),
-    ..._bulletParagraphs(brief.pros),
+    ...brief.pros.map((text) => _bodyParagraph(text)),
     _sectionHeading("4. Минусы — явные и скрытые"),
-    ..._bulletParagraphs(brief.cons),
+    ...brief.cons.map((text) => _bodyParagraph(text)),
     _sectionHeading("5. Подковерные игры"),
     ...brief.undergroundGames.map((text) => _bodyParagraph(text)),
     _sectionHeading("6. Эмоциональное состояние и место в коллективе"),
     ...brief.emotionalState.map((text) => _bodyParagraph(text)),
     _sectionHeading("7. Что делать руководителю"),
-    ..._bulletParagraphs(brief.managerTodo),
+    ...brief.managerTodo.map((text) => _bodyParagraph(text)),
     _sectionHeading("8. Вопросы для разговора"),
     ...brief.conversationQuestions.map((text) => _bodyParagraph(text)),
   ];
@@ -129,19 +126,6 @@ function _bodyParagraph(
       }),
     ],
   });
-}
-
-function _bulletParagraphs(items: ReadonlyArray<string>): Paragraph[] {
-  return items.map(
-    (text) =>
-      new Paragraph({
-        spacing: { after: 80 },
-        children: [
-          new TextRun({ text: "• ", font: FONT, size: BODY_SIZE, bold: true }),
-          new TextRun({ text: sanitizeDocxPlainText(text), font: FONT, size: BODY_SIZE }),
-        ],
-      })
-  );
 }
 
 function _keyIndicatorsTable(brief: AttestationBriefReportJson): Table {

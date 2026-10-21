@@ -1,7 +1,10 @@
 import { Prisma } from "@/generated/prisma/client";
 
-import { buildAttestationConclusionContext } from "@/lib/ai/buildAttestationConclusionContext";
+import { buildAttestationBriefReportContext } from "@/lib/ai/buildAttestationBriefReportContext";
 import { generateAttestationBriefReport } from "@/lib/ai/generateAttestationBriefReport";
+import type { AttestationAnswers } from "@/lib/attestation/attestationQuestions";
+import { buildAttestationBriefKeyIndicators } from "@/lib/attestation/buildAttestationBriefKeyIndicators";
+import { resolveAttestationBriefEmployeeMeta } from "@/lib/attestation/resolveAttestationBriefEmployeeMeta";
 import type { AttestationBriefReportJson } from "@/lib/attestation/attestationBriefReportTypes";
 import type { AttestationReportJson } from "@/lib/attestation/attestationReportTypes";
 import { computeRosenzweigCodingSummary } from "@/lib/attestation/rosenzweigCoding";
@@ -26,6 +29,7 @@ export async function persistAttestationBriefReport(input: {
     select: {
       attestationReport: true,
       rosenzweigCoding: true,
+      answers: true,
     },
   });
   if (!row?.attestationReport || typeof row.attestationReport !== "object") {
@@ -46,15 +50,26 @@ export async function persistAttestationBriefReport(input: {
       ? computeRosenzweigCodingSummary(coding)
       : report.rosenzweigCodingSummary ?? null;
 
-  const attestationContext = buildAttestationConclusionContext({
+  const answers =
+    row.answers && typeof row.answers === "object"
+      ? (row.answers as AttestationAnswers)
+      : ({} as AttestationAnswers);
+  const employeeMeta = await resolveAttestationBriefEmployeeMeta(input.sessionId);
+  const keyIndicators = buildAttestationBriefKeyIndicators(report.scores);
+
+  const attestationContext = buildAttestationBriefReportContext({
     personName: input.personName,
     scores: report.scores,
+    answers,
     rosenzweigCodingSummary: codingSummary,
+    employeeMeta,
   });
 
   const brief = await generateAttestationBriefReport({
     attestationContext,
     sessionRef: input.sessionRef,
+    employeeMeta,
+    keyIndicators,
   });
   if (!brief) {
     return { briefReport: report.briefReport ?? null, aiGenerated: false };
