@@ -39,7 +39,7 @@ export function AvProctorToggle({
       aria-label={ariaLabel ?? (protectionOn ? "Камера и микрофон включены" : "Камера и микрофон выключены")}
       disabled={disabled}
       onClick={() => onChange(!avProctorDisabled)}
-      className="relative shrink-0 rounded-full transition-[opacity,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00B596]/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+      className="relative shrink-0 rounded-full transition-[opacity,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--admin-accent)]/45 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
       style={{
         width: trackW,
         height: trackH,

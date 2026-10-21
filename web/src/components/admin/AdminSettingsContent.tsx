@@ -16,8 +16,14 @@ import { CommissionEvalLogsPanel } from "@/components/admin/CommissionEvalLogsPa
 import { CommissionQuestionsPanel } from "@/components/admin/CommissionQuestionsPanel";
 import { HrdSettingsForm } from "@/components/admin/HrdSettingsForm";
 import { NotificationSettingsForm } from "@/components/admin/NotificationSettingsForm";
+import { AdminSegmentControl } from "@/components/admin/ui/AdminUi";
 import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import { useAdminSession } from "@/hooks/useAdminSession";
+import {
+  adminBadgeSoonClass,
+  adminPanelMutedTextClass,
+  adminPanelSectionTitleClass,
+} from "@/lib/admin/adminPanelTheme";
 
 type SettingsTab = "access" | "commission" | "logs";
 
@@ -29,46 +35,56 @@ export function AdminSettingsContent(): React.ReactElement {
   const [tab, setTab] = useState<SettingsTab>("access");
 
   if (session.status !== "authenticated") {
-    return <p>Загрузка…</p>;
+    return <p className={adminPanelMutedTextClass}>Загрузка…</p>;
   }
 
+  const tabOptions: ReadonlyArray<{ value: SettingsTab; label: string }> = [
+    { value: "access", label: "Доступ" },
+    { value: "commission", label: "Вопросы комиссии" },
+    ...(session.role === ADMIN_ROLE_ADMIN ? [{ value: "logs" as const, label: "Логи" }] : []),
+  ];
+
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        <SettingsTabButton
-          active={tab === "access"}
-          onClick={() => setTab("access")}
-          label="Доступ"
-        />
-        <SettingsTabButton
-          active={tab === "commission"}
-          onClick={() => setTab("commission")}
-          label="Вопросы комиссии"
-        />
-        {session.role === ADMIN_ROLE_ADMIN ? (
-          <SettingsTabButton
-            active={tab === "logs"}
-            onClick={() => setTab("logs")}
-            label="Логи"
-          />
-        ) : null}
-      </div>
+    <div className="mx-auto max-w-[760px] space-y-6">
+      <AdminSegmentControl
+        ariaLabel="Разделы настроек"
+        options={tabOptions}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === "access" ? (
-        <div className="space-y-6">
+        <div className="space-y-8">
+          <SettingsGroup title="Учётные записи">
+            {session.role === ADMIN_ROLE_ADMIN ? (
+              <AdminCredentialsNotice />
+            ) : (
+              <MyCredentialsForm />
+            )}
+            {session.role === ADMIN_ROLE_ADMIN ? <HrdSettingsForm /> : null}
+          </SettingsGroup>
+
           {session.role === ADMIN_ROLE_ADMIN ? (
-            <AdminCredentialsNotice />
-          ) : (
-            <MyCredentialsForm />
-          )}
-          {session.role === ADMIN_ROLE_ADMIN ? <HrdSettingsForm /> : null}
-          {session.role === ADMIN_ROLE_ADMIN ? <NotificationSettingsForm /> : null}
-          {session.role === ADMIN_ROLE_ADMIN ? <OpenAiTestPanel /> : null}
-          {session.role === ADMIN_ROLE_ADMIN ? <GoogleSheetsTestPanel /> : null}
-          {session.role === ADMIN_ROLE_ADMIN ? <RegenerateScreeningAiPanel /> : null}
-          {session.role === ADMIN_ROLE_ADMIN ? <RegenerateManagerBriefPanel /> : null}
-          {session.role === ADMIN_ROLE_ADMIN ? <RegenerateReportsPanel /> : null}
-          {session.role === ADMIN_ROLE_ADMIN ? <DataMigrationPanel /> : null}
+            <SettingsGroup title="Интеграции" adminOnly>
+              <NotificationSettingsForm />
+              <OpenAiTestPanel />
+              <GoogleSheetsTestPanel />
+            </SettingsGroup>
+          ) : null}
+
+          {session.role === ADMIN_ROLE_ADMIN ? (
+            <SettingsGroup title="Перегенерация ИИ" adminOnly>
+              <RegenerateScreeningAiPanel />
+              <RegenerateManagerBriefPanel />
+              <RegenerateReportsPanel />
+            </SettingsGroup>
+          ) : null}
+
+          {session.role === ADMIN_ROLE_ADMIN ? (
+            <SettingsGroup title="Сервис" adminOnly>
+              <DataMigrationPanel />
+            </SettingsGroup>
+          ) : null}
         </div>
       ) : tab === "commission" ? (
         <CommissionQuestionsPanel />
@@ -79,26 +95,20 @@ export function AdminSettingsContent(): React.ReactElement {
   );
 }
 
-type SettingsTabButtonProps = {
-  active: boolean;
-  onClick: () => void;
-  label: string;
+type SettingsGroupProps = {
+  title: string;
+  adminOnly?: boolean;
+  children: React.ReactNode;
 };
 
-function SettingsTabButton({
-  active,
-  onClick,
-  label,
-}: SettingsTabButtonProps): React.ReactElement {
+function SettingsGroup({ title, adminOnly = false, children }: SettingsGroupProps): React.ReactElement {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full px-5 py-2 text-[14px] font-bold transition ${
-        active ? "bg-[#00B596] text-white" : "bg-[#DDDDDD] text-[#5F5E5E] hover:bg-white/70"
-      }`}
-    >
-      {label}
-    </button>
+    <section className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className={adminPanelSectionTitleClass}>{title}</h2>
+        {adminOnly ? <span className={adminBadgeSoonClass}>Только администратор</span> : null}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
   );
 }

@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-import { Button } from "@/components/Button";
 import { AvProctorToggle } from "@/components/admin/AvProctorToggle";
+import { CreateInviteSuccessCard } from "@/components/admin/CreateInviteSuccessCard";
 import {
   EmployeeInviteSelector,
   EMPTY_EMPLOYEE_INVITE,
@@ -18,9 +18,12 @@ import {
 } from "@/components/admin/InterviewFolderSelector";
 import { ADMIN_TEST_CATALOG_ID_SCREENING, ADMIN_TEST_CATALOG } from "@/lib/admin/adminTestCatalog";
 import {
+  adminFieldLabelClass,
+  adminInputClass,
   adminPanelCardClass,
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
+  adminPrimaryButtonClass,
 } from "@/lib/admin/adminPanelTheme";
 import { CANDIDATE_POSITION_LEVEL_OPTIONS } from "@/lib/admin/candidatePositionLevels";
 import type { CandidateLookupMatch } from "@/lib/admin/candidateFolderTypes";
@@ -30,11 +33,6 @@ import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import { isProctorTestKind } from "@/lib/access/testKinds";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import {
-  stepInputClass,
-  stepLabelClass,
-  stepNavPrimaryButtonClass,
-} from "@/lib/stepPageTheme";
 
 const CREATABLE_TEST_CATALOG = ADMIN_TEST_CATALOG.filter((item) => item.available);
 type ScreeningCandidateForm = {
@@ -319,8 +317,54 @@ export function CreateTestPanel(): React.ReactElement {
     }
   }
 
+  async function copyServiceLink(): Promise<void> {
+    if (!serviceLink) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(serviceLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("Не удалось скопировать ссылку.");
+    }
+  }
+
+  function resetInviteSuccess(): void {
+    setIssuedCode(null);
+    setIssuedExpiresAt(null);
+    setIssuedFolderName(null);
+    setIssuedInterviewFolderName(null);
+    setIssuedDevMode(false);
+    setCopied(false);
+  }
+
+  const invitePersonLabel = isScreening
+    ? [candidate.lastName, candidate.firstName].filter(Boolean).join(" ").trim() || "Новый кандидат"
+    : employeeInvite.mode === "existing"
+      ? employeeInvite.selectedDisplayName ?? "Сотрудник из архива"
+      : [employeeInvite.candidate.lastName, employeeInvite.candidate.firstName]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || "Новый сотрудник";
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-[920px] space-y-6">
+      {issuedCode && issuedExpiresAt && selected ? (
+        <CreateInviteSuccessCard
+          testTitle={selected.title}
+          personLabel={invitePersonLabel}
+          code={issuedCode}
+          validThroughLabel={formatInviteValidThroughRu(issuedExpiresAt)}
+          devMode={issuedDevMode}
+          copyBusyLabel={copied ? "Скопировано" : "Скопировать приглашение"}
+          onCopyInvite={() => void copyMessage()}
+          onCopyLink={() => void copyServiceLink()}
+          onCreateAnother={resetInviteSuccess}
+          archiveFolderName={issuedFolderName}
+          interviewFolderName={issuedInterviewFolderName}
+        />
+      ) : null}
       <div className="grid gap-4 lg:grid-cols-2">
         {CREATABLE_TEST_CATALOG.map((item) => {
           const selectedCard = item.id === selectedId;
@@ -330,7 +374,9 @@ export function CreateTestPanel(): React.ReactElement {
               type="button"
               onClick={() => setSelectedId(item.id)}
               className={`${adminPanelCardClass} px-5 py-5 text-left transition ${
-                selectedCard ? "ring-2 ring-[#00B596]/60" : "hover:bg-[#E7E7E7]"
+                selectedCard
+                  ? "bg-[var(--admin-accent-tint-2)] ring-2 ring-[var(--admin-accent)]/35"
+                  : "hover:bg-[var(--admin-surface-muted)]"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -374,7 +420,7 @@ export function CreateTestPanel(): React.ReactElement {
               ) : null}
               <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label htmlFor="candidate-last-name" className={`block ${stepLabelClass}`}>
+                <label htmlFor="candidate-last-name" className={`block ${adminFieldLabelClass}`}>
                   Фамилия
                 </label>
                 <input
@@ -382,12 +428,12 @@ export function CreateTestPanel(): React.ReactElement {
                   type="text"
                   value={candidate.lastName}
                   onChange={(event) => updateCandidate("lastName", event.target.value)}
-                  className={`${stepInputClass} h-12 text-[16px]`}
+                  className={`${adminInputClass} h-12 text-[16px]`}
                   autoComplete="family-name"
                 />
               </div>
               <div>
-                <label htmlFor="candidate-first-name" className={`block ${stepLabelClass}`}>
+                <label htmlFor="candidate-first-name" className={`block ${adminFieldLabelClass}`}>
                   Имя
                 </label>
                 <input
@@ -395,12 +441,12 @@ export function CreateTestPanel(): React.ReactElement {
                   type="text"
                   value={candidate.firstName}
                   onChange={(event) => updateCandidate("firstName", event.target.value)}
-                  className={`${stepInputClass} h-12 text-[16px]`}
+                  className={`${adminInputClass} h-12 text-[16px]`}
                   autoComplete="given-name"
                 />
               </div>
               <div>
-                <label htmlFor="candidate-middle-name" className={`block ${stepLabelClass}`}>
+                <label htmlFor="candidate-middle-name" className={`block ${adminFieldLabelClass}`}>
                   Отчество
                 </label>
                 <input
@@ -408,12 +454,12 @@ export function CreateTestPanel(): React.ReactElement {
                   type="text"
                   value={candidate.middleName}
                   onChange={(event) => updateCandidate("middleName", event.target.value)}
-                  className={`${stepInputClass} h-12 text-[16px]`}
+                  className={`${adminInputClass} h-12 text-[16px]`}
                   autoComplete="additional-name"
                 />
               </div>
               <div>
-                <label htmlFor="candidate-birth-date" className={`block ${stepLabelClass}`}>
+                <label htmlFor="candidate-birth-date" className={`block ${adminFieldLabelClass}`}>
                   Дата рождения
                 </label>
                 <input
@@ -421,18 +467,18 @@ export function CreateTestPanel(): React.ReactElement {
                   type="date"
                   value={candidate.birthDate}
                   onChange={(event) => updateCandidate("birthDate", event.target.value)}
-                  className={`${stepInputClass} h-12 text-[16px]`}
+                  className={`${adminInputClass} h-12 text-[16px]`}
                 />
               </div>
               <div className="md:col-span-2">
-                <label htmlFor="candidate-position-level" className={`block ${stepLabelClass}`}>
+                <label htmlFor="candidate-position-level" className={`block ${adminFieldLabelClass}`}>
                   Уровень должности
                 </label>
                 <select
                   id="candidate-position-level"
                   value={candidate.positionLevel}
                   onChange={(event) => updateCandidate("positionLevel", event.target.value)}
-                  className={`${stepInputClass} h-12 text-[16px]`}
+                  className={`${adminInputClass} h-12 text-[16px]`}
                 >
                   <option value="">Выберите уровень</option>
                   {CANDIDATE_POSITION_LEVEL_OPTIONS.map((option) => (
@@ -499,54 +545,16 @@ export function CreateTestPanel(): React.ReactElement {
           ) : null}
 
           <div className="flex flex-wrap gap-3">
-            <Button
+            <button
               type="button"
               onClick={() => void createInvite()}
               disabled={busy || !canCreate}
-              className={stepNavPrimaryButtonClass}
+              className={adminPrimaryButtonClass}
             >
-              {busy ? "Создание…" : "Сформировать код и текст"}
-            </Button>
-            {issuedCode ? (
-            <div className="flex min-h-[56px] flex-1 flex-wrap items-center justify-center gap-2 rounded-[51px] border border-black/10 bg-white/70 px-6 font-mono text-[18px] font-bold tracking-wider text-[#4F4F4F]">
-              {issuedCode}
-              {issuedDevMode ? (
-                <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-950">
-                  DEV
-                </span>
-              ) : null}
-            </div>
-          ) : null}
+              {busy ? "Создание…" : "Создать приглашение"}
+            </button>
           </div>
-
-          {issuedFolderName ? (
-            <p className="text-[14px] text-[#007A68]">
-              Папка в архиве: <span className="font-extrabold">{issuedFolderName}</span>
-            </p>
-          ) : null}
-
-          {issuedInterviewFolderName ? (
-            <p className="text-[14px] text-[#007A68]">
-              Папка в «Собеседование»:{" "}
-              <span className="font-extrabold">{issuedInterviewFolderName}</span>
-            </p>
-          ) : null}
-
-          {message ? (
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <span className={stepLabelClass}>Текст для копирования</span>
-                <Button type="button" variant="secondary" onClick={() => void copyMessage()}>
-                  {copied ? "Скопировано" : "Копировать"}
-                </Button>
-              </div>
-              <textarea
-                readOnly
-                className={`${stepInputClass} min-h-[220px] font-sans leading-relaxed`}
-                value={message}
-              />
-            </div>
-          ) : null}
+          <p className="text-[14px] text-[var(--admin-text-3)]">Код действует 3 суток</p>
         </div>
       ) : (
         <div className={`px-6 py-6 ${adminPanelCardClass}`}>

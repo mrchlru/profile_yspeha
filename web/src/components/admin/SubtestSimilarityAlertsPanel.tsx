@@ -7,7 +7,11 @@ import type {
   SubtestSimilarityAlert,
   SubtestSimilarityFolderSummary,
 } from "@/lib/admin/similarityClusterTypes";
-import { adminPanelCardClass, adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
+import {
+  adminPanelCardClass,
+  adminPanelMutedTextClass,
+  adminRisksCardClass,
+} from "@/lib/admin/adminPanelTheme";
 
 const COLLAPSED_MATCH_PREVIEW = 2;
 
@@ -18,6 +22,8 @@ export type SubtestSimilarityAlertsPanelProps = {
   summary: SubtestSimilarityFolderSummary | null;
   alerts: ReadonlyArray<SubtestSimilarityAlert>;
   loading?: boolean;
+  /** Компактная карточка рисков в папке сотрудника (4.7). */
+  variant?: "default" | "folder";
 };
 
 /**
@@ -30,6 +36,7 @@ export function SubtestSimilarityAlertsPanel({
   summary,
   alerts,
   loading = false,
+  variant = "default",
 }: SubtestSimilarityAlertsPanelProps): React.ReactElement | null {
   const [panelExpanded, setPanelExpanded] = useState(false);
   const [expandedSubtests, setExpandedSubtests] = useState<ReadonlySet<string>>(() => new Set());
@@ -61,12 +68,15 @@ export function SubtestSimilarityAlertsPanel({
     });
   }
 
+  const shellClass =
+    variant === "folder"
+      ? adminRisksCardClass
+      : `rounded-[28px] border-2 px-5 py-5 shadow-[0px_4px_40px_0px_rgba(0,0,0,0.08)] ${
+          hasHigh ? "border-[#F0BCBC] bg-[#FFF3F0]" : "border-[#F0D890] bg-[#FFF8E0]"
+        }`;
+
   return (
-    <div
-      className={`rounded-[28px] border-2 px-5 py-5 shadow-[0px_4px_40px_0px_rgba(0,0,0,0.08)] ${
-        hasHigh ? "border-[#F0BCBC] bg-[#FFF3F0]" : "border-[#F0D890] bg-[#FFF8E0]"
-      }`}
-    >
+    <div className={shellClass}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className={`text-[15px] font-extrabold ${hasHigh ? "text-[#8B4513]" : "text-[#92600A]"}`}>

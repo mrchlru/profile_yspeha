@@ -314,7 +314,7 @@ export function EmployeeReportViewer(): React.ReactElement {
           ) : null}
           <Link
             href={`/admin/results/${encodeURIComponent(folderKey)}`}
-            className="rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
+            className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-4 text-[14px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] hover:bg-[var(--admin-surface-muted)]"
           >
             ← К папке
           </Link>
@@ -331,7 +331,7 @@ export function EmployeeReportViewer(): React.ReactElement {
                 href={buildReportHref(item.sessionId)}
                 className={`rounded-full px-4 py-2 text-[13px] font-bold ${
                   (sessionId || sessions[0]?.sessionId) === item.sessionId
-                    ? "bg-[#00B596] text-white"
+                    ? "bg-[var(--admin-accent)] text-white"
                     : "bg-white/70 text-[#5F5E5E]"
                 }`}
               >
@@ -666,7 +666,7 @@ function ViolationsReportContent({
                     onClick={() => setSelectedSessionId(sessionBlock.sessionId)}
                     className={`rounded-full px-4 py-2 text-[13px] font-bold transition ${
                       selected
-                        ? "bg-[#00B596] text-white"
+                        ? "bg-[var(--admin-accent)] text-white"
                         : "bg-white/70 text-[#5F5E5E] hover:bg-white"
                     }`}
                   >
@@ -713,7 +713,7 @@ function ViolationsReportContent({
               />
               <a
                 href={`/api/admin/proctor/session-audio/${encodeURIComponent(activeSession.sessionId)}?folderKey=${encodeURIComponent(folderKey)}&download=1`}
-                className="mt-2 inline-block text-[13px] font-semibold text-[#00B596] hover:underline"
+                className="mt-2 inline-block text-[13px] font-semibold text-[var(--admin-accent)] hover:underline"
               >
                 Скачать запись (.webm)
               </a>
@@ -781,7 +781,7 @@ function ViolationsReportContent({
                       />
                       <a
                         href={`/api/admin/proctor/audio/${encodeURIComponent(event.audioClipId)}?folderKey=${encodeURIComponent(folderKey)}&download=1`}
-                        className="text-[13px] font-semibold text-[#00B596] underline"
+                        className="text-[13px] font-semibold text-[var(--admin-accent)] underline"
                       >
                         Скачать запись (WebM)
                       </a>

@@ -50,7 +50,12 @@ import { listFolderAttestationSessions } from "@/lib/admin/folderAttestationSess
 import { listFolderSpecialistScreeningSessions } from "@/lib/admin/folderSpecialistScreeningSessions";
 import { prisma } from "@/lib/prisma";
 
-export type EmployeeFolderTypeFilter = "all" | "screening" | "audit";
+export type EmployeeFolderTypeFilter =
+  | "all"
+  | "screening"
+  | "audit"
+  | "burnout"
+  | "attestation";
 
 type FolderAccumulator = {
   key: string;
@@ -264,6 +269,12 @@ function _matchesTypeFilter(row: FolderAccumulator, typeFilter: EmployeeFolderTy
   }
   if (typeFilter === "audit") {
     return row.hasAudit;
+  }
+  if (typeFilter === "burnout") {
+    return row.hasBurnout;
+  }
+  if (typeFilter === "attestation") {
+    return row.hasAttestation;
   }
   return true;
 }

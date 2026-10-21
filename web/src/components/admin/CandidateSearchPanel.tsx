@@ -10,12 +10,16 @@ import {
   INVITE_STATUS_USED,
   type InviteStatus,
 } from "@/lib/admin/inviteStatus";
-import { ADMIN_EMPLOYEE_ASSESSMENT_LABEL } from "@/lib/access/testKinds";
-import { adminPanelCardClass, adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
-import { stepInputClass, stepLabelClass } from "@/lib/stepPageTheme";
+import type { EmployeeFolderTypeFilter } from "@/lib/admin/buildEmployeeFolders";
+import { adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
+import {
+  AdminSearchField,
+  AdminSegmentControl,
+  AdminToggle,
+} from "@/components/admin/ui/AdminUi";
 
 export type CandidateSearchStatusFilter = InviteStatus | "all";
-export type CandidateSearchTypeFilter = "all" | "screening" | "audit";
+export type CandidateSearchTypeFilter = EmployeeFolderTypeFilter;
 
 export type CandidateSearchPanelProps = {
   query: string;
@@ -26,17 +30,16 @@ export type CandidateSearchPanelProps = {
   onTypeFilterChange?: (value: CandidateSearchTypeFilter) => void;
   archiveView?: boolean;
   onArchiveViewChange?: (value: boolean) => void;
-  /** Кнопка выгрузки отчётов (иконка) в строке фильтров. */
+  /** Скрыть иконки выгрузки (если они в шапке страницы). */
+  hideExportActions?: boolean;
   reportExportAction?: {
     onClick: () => void;
     disabled?: boolean;
   };
-  /** Кнопка выгрузки сырых ответов. */
   answersExportAction?: {
     onClick: () => void;
     disabled?: boolean;
   };
-  /** Переключатель подсветки схожих ответов (рядом с выгрузкой). */
   similarityHighlight?: {
     enabled: boolean;
     onChange: (value: boolean) => void;
@@ -46,9 +49,9 @@ export type CandidateSearchPanelProps = {
 };
 
 const STATUS_OPTIONS: ReadonlyArray<{ value: CandidateSearchStatusFilter; label: string }> = [
-  { value: "all", label: "Все статусы" },
+  { value: "all", label: "Все" },
   { value: INVITE_STATUS_ACTIVE, label: "Активен" },
-  { value: INVITE_STATUS_IN_PROGRESS, label: "Начал проходить" },
+  { value: INVITE_STATUS_IN_PROGRESS, label: "В процессе" },
   { value: INVITE_STATUS_USED, label: "Пройден" },
   { value: INVITE_STATUS_EXPIRED, label: "Истёк" },
   { value: INVITE_STATUS_REVOKED, label: "Отозван" },
@@ -57,7 +60,9 @@ const STATUS_OPTIONS: ReadonlyArray<{ value: CandidateSearchStatusFilter; label:
 const TYPE_OPTIONS: ReadonlyArray<{ value: CandidateSearchTypeFilter; label: string }> = [
   { value: "all", label: "Все" },
   { value: "screening", label: "Скрининг" },
-  { value: "audit", label: ADMIN_EMPLOYEE_ASSESSMENT_LABEL },
+  { value: "audit", label: "ОД" },
+  { value: "burnout", label: "Выгорание" },
+  { value: "attestation", label: "Аттестация" },
 ];
 
 /**
@@ -72,172 +77,151 @@ export function CandidateSearchPanel({
   onTypeFilterChange,
   archiveView,
   onArchiveViewChange,
+  hideExportActions = false,
   reportExportAction,
   answersExportAction,
   similarityHighlight,
 }: CandidateSearchPanelProps): React.ReactElement {
+  const showExports =
+    !hideExportActions && (reportExportAction || answersExportAction || similarityHighlight);
+
   return (
-    <div className={`space-y-4 px-5 py-5 ${adminPanelCardClass}`}>
-      <div>
-        <label htmlFor="candidate-search" className={`block ${stepLabelClass}`}>
-          Поиск
-        </label>
-        <input
-          id="candidate-search"
-          type="search"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Код, фамилия, имя, отчество, дата (12.07.1978 / 1978.07.12 / 12 июля 1978), должность"
-          className={`${stepInputClass} h-12 text-[16px]`}
-        />
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          Можно искать по отдельным полям или их сочетаниям: «Иванов Иван», «Иванович», «топ-менеджер»,
-          «12 июля 1978».
-        </p>
-      </div>
+    <div className="space-y-4">
+      <AdminSearchField
+        id="candidate-search"
+        value={query}
+        onChange={onQueryChange}
+        placeholder="Код, ФИО, дата рождения, должность…"
+      />
+      <p className={`px-1 ${adminPanelMutedTextClass}`}>
+        Можно искать по отдельным полям или сочетаниям: «Иванов Иван», «12 июля 1978», «топ-менеджер».
+      </p>
 
-      <div className="flex flex-wrap gap-6">
-        {statusFilter !== undefined && onStatusFilterChange ? (
-          <div>
-            <span className={`block ${stepLabelClass}`}>Статус приглашения</span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {STATUS_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => onStatusFilterChange(option.value)}
-                  className={`rounded-full px-4 py-2 text-[14px] font-bold ${
-                    statusFilter === option.value
-                      ? "bg-[#00B596] text-white"
-                      : "bg-white/70 text-[#5F5E5E]"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+      <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3">
+          {statusFilter !== undefined && onStatusFilterChange ? (
+            <div>
+              <p className="mb-2 text-[13px] font-medium text-[var(--admin-text-3)]">
+                Статус приглашения
+              </p>
+              <AdminSegmentControl
+                ariaLabel="Статус приглашения"
+                options={STATUS_OPTIONS}
+                value={statusFilter}
+                onChange={onStatusFilterChange}
+              />
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {typeFilter !== undefined && onTypeFilterChange ? (
-          <div>
-            <span className={`block ${stepLabelClass}`}>Тип данных</span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {TYPE_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => onTypeFilterChange(option.value)}
-                  className={`rounded-full px-4 py-2 text-[14px] font-bold ${
-                    typeFilter === option.value
-                      ? "bg-[#00B596] text-white"
-                      : "bg-white/70 text-[#5F5E5E]"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+          {typeFilter !== undefined && onTypeFilterChange ? (
+            <div>
+              <p className="mb-2 text-[13px] font-medium text-[var(--admin-text-3)]">Тип данных</p>
+              <AdminSegmentControl
+                ariaLabel="Тип данных"
+                options={TYPE_OPTIONS}
+                value={typeFilter}
+                onChange={onTypeFilterChange}
+              />
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
-        {archiveView !== undefined && onArchiveViewChange ? (
-          <div>
-            <span className={`block ${stepLabelClass}`}>Показать</span>
-            <div className="mt-2 flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-4">
+          {archiveView !== undefined && onArchiveViewChange ? (
+            <div className="flex items-center gap-3">
               <span
-                className={`text-[14px] font-bold ${
-                  !archiveView ? "text-[#007A68]" : "text-[#8C8C8C]"
+                className={`text-[14px] font-medium ${
+                  !archiveView ? "text-[var(--admin-text)]" : "text-[var(--admin-text-3)]"
                 }`}
               >
                 Активные
               </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={archiveView}
-                aria-label="Переключить архив"
-                onClick={() => onArchiveViewChange(!archiveView)}
-                className={`relative h-8 w-14 rounded-full transition ${
-                  archiveView ? "bg-[#00B596]" : "bg-[#B8B8B8]"
-                }`}
-              >
-                <span
-                  className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${
-                    archiveView ? "left-7" : "left-1"
-                  }`}
-                />
-              </button>
+              <AdminToggle
+                checked={archiveView}
+                onChange={onArchiveViewChange}
+                label="Показать архив"
+              />
               <span
-                className={`text-[14px] font-bold ${
-                  archiveView ? "text-[#007A68]" : "text-[#8C8C8C]"
+                className={`text-[14px] font-medium ${
+                  archiveView ? "text-[var(--admin-text)]" : "text-[var(--admin-text-3)]"
                 }`}
               >
                 Архив
               </span>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        {reportExportAction || answersExportAction || similarityHighlight ? (
-          <div className="ml-auto flex flex-wrap items-end justify-end gap-3 pb-0.5">
-            {similarityHighlight ? (
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[13px] font-bold leading-tight ${
-                    similarityHighlight.enabled ? "text-[#007A68]" : "text-[#8C8C8C]"
-                  }`}
-                >
-                  Схожие ответы
-                  {similarityHighlight.loading ? "…" : null}
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={similarityHighlight.enabled}
-                  aria-label="Подсветка схожих ответов"
-                  disabled={similarityHighlight.disabled}
-                  onClick={() => similarityHighlight.onChange(!similarityHighlight.enabled)}
-                  className={`relative h-8 w-14 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    similarityHighlight.enabled ? "bg-[#00B596]" : "bg-[#B8B8B8]"
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow transition ${
-                      similarityHighlight.enabled ? "left-7" : "left-1"
-                    }`}
+          {showExports ? (
+            <div className="flex flex-wrap items-center gap-3">
+              {similarityHighlight ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-medium text-[var(--admin-text-2)]">
+                    Схожие ответы
+                    {similarityHighlight.loading ? "…" : null}
+                  </span>
+                  <AdminToggle
+                    checked={similarityHighlight.enabled}
+                    onChange={similarityHighlight.onChange}
+                    disabled={similarityHighlight.disabled}
+                    label="Подсветка схожих ответов"
                   />
-                </button>
-              </div>
-            ) : null}
-            {answersExportAction ? (
-              <button
-                type="button"
-                title="Выгрузка ответов"
-                aria-label="Выгрузка ответов"
-                disabled={answersExportAction.disabled}
-                onClick={answersExportAction.onClick}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-[#007A68] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.12)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <AnswersExportIcon />
-              </button>
-            ) : null}
-            {reportExportAction ? (
-              <button
-                type="button"
-                title="Выгрузка отчётов"
-                aria-label="Выгрузка отчётов"
-                disabled={reportExportAction.disabled}
-                onClick={reportExportAction.onClick}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-[#007A68] shadow-[0px_2px_12px_0px_rgba(0,0,0,0.12)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <ReportExportIcon />
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+                </div>
+              ) : null}
+              {answersExportAction ? (
+                <ResultsExportIconButton
+                  title="Экспорт таблицей"
+                  ariaLabel="Экспорт таблицей"
+                  disabled={answersExportAction.disabled}
+                  onClick={answersExportAction.onClick}
+                >
+                  <AnswersExportIcon />
+                </ResultsExportIconButton>
+              ) : null}
+              {reportExportAction ? (
+                <ResultsExportIconButton
+                  title="Скачать отчёты"
+                  ariaLabel="Скачать отчёты"
+                  disabled={reportExportAction.disabled}
+                  onClick={reportExportAction.onClick}
+                >
+                  <ReportExportIcon />
+                </ResultsExportIconButton>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
+  );
+}
+
+type ResultsExportIconButtonProps = {
+  title: string;
+  ariaLabel: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+};
+
+/** Круглые иконки экспорта (шапка и фильтры). */
+export function ResultsExportIconButton({
+  title,
+  ariaLabel,
+  disabled = false,
+  onClick,
+  children,
+}: ResultsExportIconButtonProps): React.ReactElement {
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={ariaLabel}
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex size-11 items-center justify-center rounded-full bg-[var(--admin-surface)] text-[var(--admin-accent)] shadow-[var(--admin-shadow-card)] transition hover:bg-[var(--admin-surface-muted)] disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {children}
+    </button>
   );
 }
 

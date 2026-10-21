@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
-import { Button } from "@/components/Button";
 import { AdminSettingsIcon, AdminTimewebLogsIcon } from "@/components/admin/AdminIconButton";
 import { AdminNavIcon } from "@/components/admin/AdminNavIcons";
 import {
@@ -17,16 +16,14 @@ import {
 } from "@/lib/admin/adminNav";
 import { ADMIN_ROLE_LABELS } from "@/lib/admin/adminRoles";
 import { useAdminSession, clearAdminSessionCache } from "@/hooks/useAdminSession";
-import {
-  stepSecondaryTextClass,
-  stepSectionTitleClass,
-  stepSurfaceCardClass,
-} from "@/lib/stepPageTheme";
+import { adminPageTitleClass, adminSecondaryButtonClass } from "@/lib/admin/adminPanelTheme";
 
 export type AdminShellProps = {
   children: React.ReactNode;
   title: string;
   description?: string;
+  /** Иконки и действия справа в шапке (до «Выйти»). */
+  headerActions?: React.ReactNode;
 };
 
 /**
@@ -36,6 +33,7 @@ export function AdminShell({
   children,
   title,
   description,
+  headerActions,
 }: AdminShellProps): React.ReactElement {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,7 +54,7 @@ export function AdminShell({
 
   if (session.status !== "authenticated") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F2F2F2] text-[#5F5E5E]">
+      <div className="flex min-h-screen items-center justify-center bg-[var(--admin-bg)] text-[var(--admin-text-3)]">
         Загрузка…
       </div>
     );
@@ -67,47 +65,54 @@ export function AdminShell({
   const timewebLogsActive = isAdminNavItemActive(pathname, ADMIN_TIMEWEB_LOGS_HREF);
   const showSettingsLink = canAccessAdminSettings(session.role);
   const showTimewebLogsLink = canAccessTimewebLogs(session.role);
+  const initials = adminEmailInitials(session.email);
 
   return (
-    <div className="min-h-screen bg-[#F2F2F2] text-[#4F4F4F]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1400px]">
-        <aside
-          className={`sticky top-0 hidden h-screen w-[260px] shrink-0 self-start flex-col justify-between overflow-y-auto border-r border-black/10 bg-[#DDDDDD] p-6 lg:flex ${stepSurfaceCardClass} !rounded-none !shadow-none`}
-        >
-          <div>
-            <p className="text-[13px] font-extrabold uppercase tracking-[0.14em] text-[#8C8C8C]">
-              DriveS
-            </p>
-            <p className="mt-1 text-[22px] font-extrabold text-[#5F5E5E]">Админ-панель</p>
-            <nav className="mt-8 space-y-2">
-              {navItems.map((item) => {
-                const active = isAdminNavItemActive(pathname, item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-start gap-3 rounded-2xl px-4 py-3 text-[15px] font-bold transition ${
+    <div className="min-h-screen bg-[var(--admin-bg)]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
+        <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-[var(--admin-hairline)] bg-[var(--admin-surface)] px-4 py-6 lg:flex">
+          <div className="flex items-center gap-3 px-2">
+            <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--admin-accent)] text-[18px] font-bold text-white">
+              D
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold text-[var(--admin-text)]">DriveS</p>
+              <p className="text-[12px] font-medium text-[var(--admin-text-3)]">Админ-панель</p>
+            </div>
+          </div>
+
+          <nav className="mt-8 flex flex-1 flex-col gap-0.5 overflow-y-auto" aria-label="Разделы">
+            {navItems.map((item) => {
+              const active = isAdminNavItemActive(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-[15px] transition ${
+                    active
+                      ? "bg-[var(--admin-surface)] font-semibold text-[var(--admin-accent)] shadow-[var(--admin-shadow-nav-active)]"
+                      : "font-medium text-[var(--admin-text-2)] hover:bg-[var(--admin-surface-muted)]"
+                  }`}
+                >
+                  <span
+                    className={`inline-flex size-8 shrink-0 items-center justify-center rounded-[10px] ${
                       active
-                        ? "bg-[#00B596]/15 text-[#007A68]"
-                        : "text-[#5F5E5E] hover:bg-white/50"
+                        ? "bg-[var(--admin-accent-tint)] text-[var(--admin-accent)]"
+                        : "text-[var(--admin-text-3)]"
                     }`}
                   >
-                    <span
-                      className={`mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-full ${
-                        active ? "bg-white/90 text-[#007A68]" : "bg-white/70 text-[#8C8C8C]"
-                      }`}
-                    >
-                      <AdminNavIcon iconId={item.iconId} />
-                    </span>
-                    <span className="leading-snug">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
-          <AdminProfileCard
+                    <AdminNavIcon iconId={item.iconId} />
+                  </span>
+                  <span className="leading-snug">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <AdminSidebarProfile
             email={session.email}
             roleLabel={ADMIN_ROLE_LABELS[session.role]}
+            initials={initials}
             showSettingsLink={showSettingsLink}
             settingsActive={settingsActive}
             showTimewebLogsLink={showTimewebLogsLink}
@@ -116,40 +121,43 @@ export function AdminShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 bg-white/70 px-5 py-4 sm:px-8">
-            <div>
-              <h1 className={`${stepSectionTitleClass} !mb-1 !text-[24px] sm:!text-[28px]`}>
-                {title}
-              </h1>
-              {description ? (
-                <p className={`${stepSecondaryTextClass} !text-[14px]`}>{description}</p>
-              ) : null}
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <AdminProfileCard
-                email={session.email}
-                roleLabel={session.roleLabel}
-                showSettingsLink={showSettingsLink}
-                settingsActive={settingsActive}
-                showTimewebLogsLink={showTimewebLogsLink}
-                timewebLogsActive={timewebLogsActive}
-                compact
-              />
-              <Button type="button" variant="secondary" onClick={() => void logout()}>
-                Выйти
-              </Button>
+          <header className="sticky top-0 z-20 border-b border-[var(--admin-hairline)] bg-[var(--admin-bg)]/90 px-5 py-5 backdrop-blur-md sm:px-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className={adminPageTitleClass}>{title}</h1>
+                {description ? (
+                  <p className="mt-1 max-w-2xl text-[15px] text-[var(--admin-text-3)]">
+                    {description}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {headerActions}
+                <button
+                  type="button"
+                  onClick={() => void logout()}
+                  className={adminSecondaryButtonClass}
+                >
+                  Выйти
+                </button>
+              </div>
             </div>
           </header>
 
-          <div className="flex flex-wrap gap-2 border-b border-black/5 bg-white/40 px-5 py-3 lg:hidden">
+          <div
+            className="flex gap-2 overflow-x-auto border-b border-[var(--admin-hairline)] px-4 py-3 lg:hidden"
+            aria-label="Разделы"
+          >
             {navItems.map((item) => {
               const active = isAdminNavItemActive(pathname, item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[14px] font-bold ${
-                    active ? "bg-[#00B596] text-white" : "bg-[#DDDDDD] text-[#5F5E5E]"
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-[14px] font-semibold ${
+                    active
+                      ? "bg-[var(--admin-accent)] text-white"
+                      : "bg-[var(--admin-surface)] text-[var(--admin-text-2)] shadow-[var(--admin-shadow-card)]"
                   }`}
                 >
                   <AdminNavIcon iconId={item.iconId} />
@@ -159,58 +167,52 @@ export function AdminShell({
             })}
           </div>
 
-          <main className="flex-1 px-5 py-8 sm:px-8">{children}</main>
+          <main className="flex-1 px-5 py-6 sm:px-8 sm:py-8">{children}</main>
         </div>
       </div>
     </div>
   );
 }
 
-type AdminProfileCardProps = {
+type AdminSidebarProfileProps = {
   email: string;
   roleLabel: string;
+  initials: string;
   showSettingsLink: boolean;
   settingsActive: boolean;
   showTimewebLogsLink: boolean;
   timewebLogsActive: boolean;
-  /** Компактный вид в шапке на телефонах. */
-  compact?: boolean;
 };
 
-function AdminProfileCard({
+function AdminSidebarProfile({
   email,
   roleLabel,
+  initials,
   showSettingsLink,
   settingsActive,
   showTimewebLogsLink,
   timewebLogsActive,
-  compact = false,
-}: AdminProfileCardProps): React.ReactElement {
-  const profileActionsCount = Number(showSettingsLink) + Number(showTimewebLogsLink);
-  const profileActionsPadding =
-    profileActionsCount >= 2 ? "pr-[4.5rem]" : profileActionsCount === 1 ? "pr-10" : "";
-
+}: AdminSidebarProfileProps): React.ReactElement {
   return (
-    <div
-      className={`relative text-[13px] leading-snug text-[#5F5E5E] ${
-        compact
-          ? `rounded-2xl bg-[#DDDDDD] px-4 py-2 ${profileActionsPadding} lg:hidden`
-          : `rounded-2xl bg-white/50 px-4 py-3 ${profileActionsPadding}`
-      }`}
-    >
-      <p className={`font-extrabold ${compact ? "truncate" : "break-all"}`}>{email}</p>
-      <p className="mt-1">{roleLabel}</p>
-      {(showSettingsLink || showTimewebLogsLink) && (
-        <div className="absolute bottom-2 right-2 flex items-center gap-1">
+    <div className="mt-4 rounded-[14px] bg-[var(--admin-surface-muted)] p-3">
+      <div className="flex items-center gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[var(--admin-avatar-bg-side)] text-[14px] font-semibold text-[var(--admin-accent)]">
+          {initials}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-semibold text-[var(--admin-text)]">{email}</p>
+          <p className="text-[12px] text-[var(--admin-text-3)]">{roleLabel}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           {showTimewebLogsLink ? (
             <Link
               href={ADMIN_TIMEWEB_LOGS_HREF}
               aria-label="Логи Timeweb"
               title="Логи Timeweb"
-              className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)] transition [&_svg]:h-4 [&_svg]:w-4 ${
+              className={`inline-flex size-8 items-center justify-center rounded-full transition [&_svg]:size-4 ${
                 timewebLogsActive
-                  ? "bg-[#00B596]/15 text-[#007A68]"
-                  : "text-[#8C8C8C] hover:bg-white"
+                  ? "bg-[var(--admin-accent-tint)] text-[var(--admin-accent)]"
+                  : "text-[var(--admin-text-3)] hover:bg-[var(--admin-surface)]"
               }`}
             >
               <AdminTimewebLogsIcon />
@@ -221,17 +223,25 @@ function AdminProfileCard({
               href={ADMIN_SETTINGS_HREF}
               aria-label="Настройки"
               title="Настройки"
-              className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-white/70 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.1)] transition [&_svg]:h-4 [&_svg]:w-4 ${
+              className={`inline-flex size-8 items-center justify-center rounded-full transition [&_svg]:size-4 ${
                 settingsActive
-                  ? "bg-[#00B596]/15 text-[#007A68]"
-                  : "text-[#8C8C8C] hover:bg-white"
+                  ? "bg-[var(--admin-accent-tint)] text-[var(--admin-accent)]"
+                  : "text-[var(--admin-text-3)] hover:bg-[var(--admin-surface)]"
               }`}
             >
               <AdminSettingsIcon />
             </Link>
           ) : null}
         </div>
-      )}
+      </div>
     </div>
   );
+}
+
+function adminEmailInitials(email: string): string {
+  const local = email.split("@")[0]?.trim() ?? "";
+  if (local.length >= 2) {
+    return local.slice(0, 2).toUpperCase();
+  }
+  return local.slice(0, 1).toUpperCase() || "?";
 }

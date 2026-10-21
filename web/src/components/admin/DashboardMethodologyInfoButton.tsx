@@ -60,7 +60,7 @@ export function DashboardMethodologyInfoButton({
         type="button"
         className={
           className ??
-          "inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-[#C5D4CF] bg-[#F4F6F5] text-[11px] font-bold leading-none text-[#8C8C8C] transition hover:border-[#00B596]/40 hover:bg-white hover:text-[#007A68]"
+          "inline-flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-[#C5D4CF] bg-[#F4F6F5] text-[11px] font-bold leading-none text-[#8C8C8C] transition hover:border-[var(--admin-accent)]/40 hover:bg-white hover:text-[#007A68]"
         }
         aria-label={label}
         aria-haspopup="dialog"

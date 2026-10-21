@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
-import { Button } from "@/components/Button";
 import {
   AdminBulkActionButton,
   AdminBulkSelectionBar,
@@ -23,7 +22,6 @@ import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import {
   adminPanelCardClass,
   adminPanelMutedTextClass,
-  adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
@@ -35,12 +33,26 @@ import {
   writeResultsListCache,
 } from "@/lib/admin/resultsListCache";
 import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
-import { stepNavPrimaryButtonClass } from "@/lib/stepPageTheme";
+import { adminSecondaryButtonClass } from "@/lib/admin/adminPanelTheme";
+import { AdminTestChip } from "@/components/admin/ui/AdminUi";
+export type ResultsHeaderExportHandlers = {
+  onAnswersExport: () => void;
+  onReportExport: () => void;
+  exportDisabled: boolean;
+};
+
+export type ResultsBrowserProps = {
+  hideExportActions?: boolean;
+  onRegisterHeaderExports?: (handlers: ResultsHeaderExportHandlers | null) => void;
+};
 
 /**
  * Список папок сотрудников с поиском и фильтрацией.
  */
-export function ResultsBrowser(): React.ReactElement {
+export function ResultsBrowser({
+  hideExportActions = false,
+  onRegisterHeaderExports,
+}: ResultsBrowserProps = {}): React.ReactElement {
   const router = useRouter();
   const { session } = useAdminSession();
   const [query, setQuery] = useState("");
@@ -176,6 +188,18 @@ export function ResultsBrowser(): React.ReactElement {
     }
     void loadSimilarity(typeFilter);
   }, [similarityHighlightEnabled, typeFilter]);
+
+  useEffect(() => {
+    if (!onRegisterHeaderExports) {
+      return;
+    }
+    onRegisterHeaderExports({
+      onAnswersExport: () => setAnswersExportOpen(true),
+      onReportExport: () => setExportOpen(true),
+      exportDisabled: loading,
+    });
+    return () => onRegisterHeaderExports(null);
+  }, [loading, onRegisterHeaderExports]);
 
   async function deleteFolder(item: EmployeeFolderSummary): Promise<void> {
     if (
@@ -322,6 +346,7 @@ export function ResultsBrowser(): React.ReactElement {
         onTypeFilterChange={setTypeFilter}
         archiveView={archiveView}
         onArchiveViewChange={setArchiveView}
+        hideExportActions={hideExportActions}
         reportExportAction={{
           onClick: () => setExportOpen(true),
           disabled: loading,
@@ -407,11 +432,11 @@ export function ResultsBrowser(): React.ReactElement {
         </div>
       ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className={`overflow-hidden ${adminPanelCardClass}`}>
         {loading ? (
-          <div className={`px-6 py-8 ${adminPanelCardClass}`}>Загрузка папок…</div>
+          <div className="px-6 py-10 text-[15px] text-[var(--admin-text-3)]">Загрузка папок…</div>
         ) : items.length === 0 ? (
-          <div className={`px-6 py-8 ${adminPanelCardClass}`}>
+          <div className="px-6 py-10">
             <p className={adminPanelMutedTextClass}>
               {archiveView
                 ? "В архиве папок по заданным условиям не найдено."
@@ -419,124 +444,123 @@ export function ResultsBrowser(): React.ReactElement {
             </p>
           </div>
         ) : (
-          items.map((item) => {
-            const hint = similarityHighlightEnabled ? similarityHints[item.key] : undefined;
-            const cardClass = similarityHighlightEnabled
-              ? similarityFolderCardClass(
-                  hint?.colorIndex,
-                  hint?.severity,
-                  hint?.hasCloseInTimeMatch
-                )
-              : adminPanelCardClass;
-            return (
-            <div
-              key={item.key}
-              role="link"
-              tabIndex={0}
-              className={`${cardClass} cursor-pointer space-y-3 px-5 py-5 transition hover:opacity-95`}
-              onClick={() => {
-                router.push(`/admin/results/${encodeURIComponent(item.key)}`);
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  router.push(`/admin/results/${encodeURIComponent(item.key)}`);
-                }
-              }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div
-                  className="relative z-10"
-                  onClick={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  <AdminSelectCheckbox
-                    checked={selection.isSelected(item.key)}
-                    disabled={bulkBusy || deletingKey === item.key}
-                    onChange={() => selection.toggle(item.key)}
-                    label={`Выбрать ${item.displayName}`}
-                    hideLabel
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className={adminPanelSectionTitleClass}>{item.displayName}</h3>
-                </div>
-                <ResultsFolderCardActions
-                  item={item}
-                  archiveView={archiveView}
-                  isFullAdmin={isFullAdmin}
-                  busyDelete={deletingKey === item.key}
-                  onArchive={async () => changeFolderArchive(item.key, "archive")}
-                  onRestore={async () => changeFolderArchive(item.key, "restore")}
-                  onDelete={async () => deleteFolder(item)}
-                />
-              </div>
-              <div className={`space-y-1 ${adminPanelMutedTextClass}`}>
-                  {similarityHighlightEnabled && hint ? (
-                    <p className="text-[13px] font-bold text-[#8B4513]">
-                      {hint.severity === "soft" ? "На грани" : "Похожие субтесты"}:{" "}
-                      {String(hint.suspiciousSubtestCount)} (≥{String(hint.highSubtestCount)} высокий
-                      риск) · до ~{String(hint.similarityPercent)}%
-                      {hint.hasCloseInTimeMatch ? " · рядом по времени" : ""}
-                    </p>
-                  ) : null}
-                  {item.positionLevelLabel ? <p>Уровень: {item.positionLevelLabel}</p> : null}
-                  {item.pendingInvite ? (
-                    <p className="text-amber-800">Ожидает прохождения скрининга</p>
-                  ) : null}
-                  <p>
-                    Скрининг: {item.hasScreening ? `${String(item.screeningSessions)} сессий` : "нет"}
-                  </p>
-                  <p>
-                    {ADMIN_EMPLOYEE_ASSESSMENT_LABEL}:{" "}
-                    {item.hasAudit ? `${String(item.auditSessions)} сессий` : "нет"}
-                  </p>
-                  <p>
-                    ПРОФ СБ + образование:{" "}
-                    {item.hasProfSbEducation
-                      ? item.profSbEducationSessionCount > 0
-                        ? `${String(item.profSbEducationSessionCount)} сессий`
-                        : "приглашение без сохранённой сессии"
-                      : "нет"}
-                  </p>
-                  <p>
-                    Выгорание:{" "}
-                    {item.hasBurnout
-                      ? item.burnoutSessionCount > 0
-                        ? `${String(item.burnoutSessionCount)} сессий`
-                        : "есть"
-                      : "нет"}
-                  </p>
-                  <p>
-                    Скрининг депрессивных симптомов:{" "}
-                    {item.hasSpecialistScreening
-                      ? item.specialistScreeningSessionCount > 0
-                        ? `${String(item.specialistScreeningSessionCount)} сессий`
-                        : "есть"
-                      : "нет"}
-                  </p>
-                  <p>
-                    Аттестация:{" "}
-                    {item.hasAttestation
-                      ? item.attestationSessionCount > 0
-                        ? `${String(item.attestationSessionCount)} сессий`
-                        : "есть"
-                      : "нет"}
-                  </p>
-                  <p>
-                    Последняя активность:{" "}
-                    {item.lastActivityAt ? formatMoscowDateTime(item.lastActivityAt) : "—"}
-                  </p>
-              </div>
-            </div>
-            );
-          })
+          <ul className="divide-y divide-[var(--admin-hairline)]">
+            {items.map((item) => {
+              const hint = similarityHighlightEnabled ? similarityHints[item.key] : undefined;
+              const rowHighlight =
+                similarityHighlightEnabled && hint
+                  ? similarityFolderCardClass(
+                      hint.colorIndex,
+                      hint.severity,
+                      hint.hasCloseInTimeMatch
+                    )
+                  : "";
+              const chips = folderTestChips(item);
+              return (
+                <li key={item.key}>
+                  <div
+                    role="link"
+                    tabIndex={0}
+                    className={`group flex cursor-pointer flex-wrap items-center gap-3 px-4 py-4 transition hover:bg-[var(--admin-accent-tint-2)] sm:px-5 ${rowHighlight}`}
+                    onClick={() => {
+                      router.push(`/admin/results/${encodeURIComponent(item.key)}`);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(`/admin/results/${encodeURIComponent(item.key)}`);
+                      }
+                    }}
+                  >
+                    <div
+                      className="relative z-10 shrink-0"
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    >
+                      <AdminSelectCheckbox
+                        checked={selection.isSelected(item.key)}
+                        disabled={bulkBusy || deletingKey === item.key}
+                        onChange={() => selection.toggle(item.key)}
+                        label={`Выбрать ${item.displayName}`}
+                        hideLabel
+                      />
+                    </div>
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[var(--admin-avatar-bg)] text-[14px] font-semibold text-[var(--admin-accent)]">
+                      {folderInitials(item)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-[16px] font-semibold text-[var(--admin-text)]">
+                          {item.displayName}
+                        </h3>
+                        {item.isArchived ? (
+                          <span className="text-[12px] font-medium text-[var(--admin-text-3)]">
+                            Архив
+                          </span>
+                        ) : null}
+                      </div>
+                      {item.positionLevelLabel ? (
+                        <p className="mt-0.5 text-[13px] text-[var(--admin-text-3)]">
+                          {item.positionLevelLabel}
+                        </p>
+                      ) : null}
+                      {similarityHighlightEnabled && hint ? (
+                        <p className="mt-1 text-[13px] font-medium text-[#8B4513]">
+                          {hint.severity === "soft" ? "На грани" : "Похожие субтесты"} · до ~
+                          {String(hint.similarityPercent)}%
+                        </p>
+                      ) : null}
+                      {chips.length > 0 ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {chips.map((chip) => (
+                            <AdminTestChip key={chip} label={chip} />
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="ml-auto flex shrink-0 flex-col items-end gap-1 text-right">
+                      <p className="text-[13px] text-[var(--admin-text-3)]">
+                        {item.lastActivityAt
+                          ? formatMoscowDateTime(item.lastActivityAt)
+                          : "Без активности"}
+                      </p>
+                      {item.pendingInvite ? (
+                        <p className="text-[12px] font-medium text-[var(--admin-warn)]">
+                          Ожидает скрининг
+                        </p>
+                      ) : null}
+                      <div
+                        className="mt-1"
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => event.stopPropagation()}
+                      >
+                        <ResultsFolderCardActions
+                          item={item}
+                          archiveView={archiveView}
+                          isFullAdmin={isFullAdmin}
+                          busyDelete={deletingKey === item.key}
+                          onArchive={async () => changeFolderArchive(item.key, "archive")}
+                          onRestore={async () => changeFolderArchive(item.key, "restore")}
+                          onDelete={async () => deleteFolder(item)}
+                        />
+                      </div>
+                    </div>
+                    <span
+                      className="hidden text-[var(--admin-chevron)] sm:inline"
+                      aria-hidden
+                    >
+                      ›
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
 
-      <Button
+      <button
         type="button"
-        variant="secondary"
         onClick={() => {
           void loadItems(debouncedQuery, typeFilter, archiveView, { force: true });
           if (similarityHighlightEnabled) {
@@ -544,10 +568,43 @@ export function ResultsBrowser(): React.ReactElement {
           }
         }}
         disabled={loading || refreshing}
-        className={stepNavPrimaryButtonClass}
+        className={adminSecondaryButtonClass}
       >
         Обновить список
-      </Button>
+      </button>
     </div>
   );
+}
+
+function folderInitials(item: EmployeeFolderSummary): string {
+  const a = item.lastName?.trim().charAt(0) ?? "";
+  const b = item.firstName?.trim().charAt(0) ?? "";
+  const pair = `${a}${b}`.toUpperCase();
+  if (pair) {
+    return pair;
+  }
+  return item.displayName.trim().charAt(0).toUpperCase() || "?";
+}
+
+function folderTestChips(item: EmployeeFolderSummary): string[] {
+  const chips: string[] = [];
+  if (item.hasScreening || item.pendingInvite) {
+    chips.push("Скрининг");
+  }
+  if (item.hasAudit) {
+    chips.push(ADMIN_EMPLOYEE_ASSESSMENT_LABEL);
+  }
+  if (item.hasProfSbEducation) {
+    chips.push("ПРОФ СБ");
+  }
+  if (item.hasBurnout) {
+    chips.push("Выгорание");
+  }
+  if (item.hasSpecialistScreening) {
+    chips.push("Спец. скрининг");
+  }
+  if (item.hasAttestation) {
+    chips.push("Аттестация");
+  }
+  return chips;
 }

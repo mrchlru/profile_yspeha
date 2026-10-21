@@ -286,7 +286,7 @@ export function TimewebLogsViewer(): React.ReactElement {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Поиск по логам"
-              className="w-full rounded-2xl border border-black/10 bg-white/80 py-2.5 pl-10 pr-4 text-[14px] font-medium text-[#5F5E5E] outline-none focus:border-[#00B596]/50"
+              className="w-full rounded-2xl border border-black/10 bg-white/80 py-2.5 pl-10 pr-4 text-[14px] font-medium text-[#5F5E5E] outline-none focus:border-[var(--admin-accent)]/50"
             />
           </label>
           {sources.length > 1 && (
@@ -412,7 +412,7 @@ export function TimewebLogsViewer(): React.ReactElement {
 }
 
 const selectClass =
-  "rounded-2xl border border-black/10 bg-white/80 px-3 py-2.5 text-[14px] font-medium text-[#5F5E5E] outline-none focus:border-[#00B596]/50";
+  "rounded-2xl border border-black/10 bg-white/80 px-3 py-2.5 text-[14px] font-medium text-[#5F5E5E] outline-none focus:border-[var(--admin-accent)]/50";
 
 function severityRowClass(severity: TimewebLogEntry["severity"]): string {
   switch (severity) {

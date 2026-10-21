@@ -6,7 +6,7 @@ import { InvitationsTable } from "@/components/admin/InvitationsTable";
 export default function AdminInvitationsPage(): React.ReactElement {
   return (
     <AdminShell
-      title="Статус приглашений"
+      title="Приглашения"
       description="Коды доступа и их текущее состояние"
     >
       <InvitationsTable />

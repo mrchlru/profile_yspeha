@@ -44,7 +44,7 @@ export const ADMIN_NAV_ITEMS: ReadonlyArray<AdminNavItem> = [
   {
     iconId: "invitations",
     href: "/admin/invitations",
-    label: "Статус приглашений",
+    label: "Приглашения",
     roles: [ADMIN_ROLE_ADMIN, ADMIN_ROLE_HRD],
     description: "Коды доступа и их текущее состояние",
   },

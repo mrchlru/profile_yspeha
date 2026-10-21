@@ -97,7 +97,7 @@ export function InterviewFolderSelector({
             })
           }
           className={`rounded-full px-4 py-2 text-[14px] font-bold ${
-            value.mode === "new" ? "bg-[#00B596] text-white" : "bg-white/70 text-[#5F5E5E]"
+            value.mode === "new" ? "bg-[var(--admin-accent)] text-white" : "bg-white/70 text-[#5F5E5E]"
           }`}
         >
           Новая вакансия
@@ -112,7 +112,7 @@ export function InterviewFolderSelector({
             })
           }
           className={`rounded-full px-4 py-2 text-[14px] font-bold ${
-            value.mode === "existing" ? "bg-[#00B596] text-white" : "bg-white/70 text-[#5F5E5E]"
+            value.mode === "existing" ? "bg-[var(--admin-accent)] text-white" : "bg-white/70 text-[#5F5E5E]"
           }`}
         >
           Выбрать из «Собеседование»
@@ -176,7 +176,7 @@ export function InterviewFolderSelector({
                       })
                     }
                     className={`w-full rounded-2xl px-4 py-3 text-left transition ${
-                      selected ? "bg-[#00B596]/15 ring-2 ring-[#00B596]/40" : "bg-white/60 hover:bg-white/80"
+                      selected ? "bg-[var(--admin-accent-tint)] ring-2 ring-[var(--admin-accent)]/40" : "bg-white/60 hover:bg-white/80"
                     }`}
                   >
                     <p className="font-bold text-[#5F5E5E]">{folder.displayName}</p>

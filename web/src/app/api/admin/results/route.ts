@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
 
 const querySchema = z.object({
   q: z.string().max(200).optional(),
-  type: z.enum(["all", "screening", "audit"]).optional(),
+  type: z
+    .enum(["all", "screening", "audit", "burnout", "attestation"])
+    .optional(),
   archive: z.enum(["true", "false"]).optional(),
 });
 

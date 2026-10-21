@@ -13,9 +13,12 @@ import { MiniIpipBigFiveSection } from "@/components/admin/MiniIpipBigFiveSectio
 import { Button } from "@/components/Button";
 import type { AttestationReportView } from "@/lib/admin/buildAttestationReportView";
 import {
+  adminBackLinkClass,
+  adminFolderPersonNameClass,
   adminPanelCardClass,
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
+  adminSecondaryButtonClass,
 } from "@/lib/admin/adminPanelTheme";
 import {
   CBI_SCALE_LABELS,
@@ -203,49 +206,45 @@ export function AttestationReportViewer(): React.ReactElement {
   const profileBlurb = buildRosenzweigProfileBlurb(codingSummary);
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] space-y-5 px-4 py-6 sm:px-6 lg:px-8">
-      <header className={`px-6 py-5 sm:px-8 ${adminPanelCardClass}`}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-[#8C8C8C]">
-              Аттестация
-            </p>
-            <h2 className="mt-1 text-[26px] font-extrabold leading-tight text-[#5F5E5E] sm:text-[30px]">
-              {view.personName}
-            </h2>
-            <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-              Пройден: {formatMoscowDateTime(view.createdAt)}
-              {view.computedAt ? ` · Рассчитано: ${view.computedAt}` : null}
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <AttestationBriefReportControls
-              folderKey={folderKey}
-              sessionId={sessionId}
-              hasBriefReport={isAttestationBriefReportJson(view.report.briefReport)}
-              onBriefGenerated={loadView}
-            />
-            <DownloadDocumentReportButton
-              folderKey={folderKey}
-              sessionId={sessionId}
-              kind="attestation"
-            />
-            <RegenerateDocumentReportButton
-              folderKey={folderKey}
-              sessionId={sessionId}
-              kind="attestation"
-              onSuccess={loadView}
-            />
-            <Link
-              href={`/admin/results/${encodeURIComponent(folderKey)}`}
-              className="shrink-0 rounded-full bg-white/80 px-4 py-2 text-[14px] font-bold text-[#5F5E5E] transition hover:bg-white"
-            >
-              ← К папке
-            </Link>
-          </div>
+    <div className="mx-auto w-full max-w-[1200px] space-y-6 px-1 py-2">
+      <Link
+        href={`/admin/results/${encodeURIComponent(folderKey)}`}
+        className={adminBackLinkClass}
+      >
+        ‹ {view.personName}
+      </Link>
+
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className={adminFolderPersonNameClass}>Аттестация</h2>
+          <p className={`mt-2 ${adminPanelMutedTextClass}`}>
+            {formatMoscowDateTime(view.createdAt)}
+            {view.computedAt ? ` · рассчитано ${view.computedAt}` : null}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <DownloadDocumentReportButton
+            folderKey={folderKey}
+            sessionId={sessionId}
+            kind="attestation"
+            className={adminSecondaryButtonClass}
+          />
+          <AttestationBriefReportControls
+            folderKey={folderKey}
+            sessionId={sessionId}
+            hasBriefReport={isAttestationBriefReportJson(view.report.briefReport)}
+            onBriefGenerated={loadView}
+          />
+          <RegenerateDocumentReportButton
+            folderKey={folderKey}
+            sessionId={sessionId}
+            kind="attestation"
+            onSuccess={loadView}
+          />
         </div>
       </header>
 
+      <div className="space-y-5">
       <AdminReportAiConclusionSection
         conclusionText={view.report.conclusionText}
         managerActions={view.report.managerActions}
@@ -450,6 +449,7 @@ export function AttestationReportViewer(): React.ReactElement {
             </p>
           ) : null}
         </div>
+      </div>
       </div>
     </div>
   );

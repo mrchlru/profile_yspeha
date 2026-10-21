@@ -1,14 +1,57 @@
+/** Белая карточка / список (радиус 18). */
 export const adminPanelCardClass =
-  "rounded-[28px] bg-[#DDDDDD] shadow-[0px_4px_40px_0px_rgba(0,0,0,0.12)]";
+  "rounded-[18px] bg-[var(--admin-surface)] shadow-[var(--admin-shadow-card)]";
+
+/** Вложенная плитка на сером фоне. */
+export const adminPanelInsetClass =
+  "rounded-[14px] bg-[var(--admin-bg)]";
 
 export const adminPanelMutedTextClass =
-  "text-[15px] font-normal leading-relaxed text-[#5F5E5E]";
+  "text-[14px] font-normal leading-relaxed text-[var(--admin-text-3)]";
 
 export const adminPanelSectionTitleClass =
-  "text-[18px] font-extrabold text-[#5F5E5E]";
+  "text-[17px] font-semibold tracking-[-0.01em] text-[var(--admin-text)]";
 
-export const adminPanelBadgeSoonClass =
-  "inline-flex rounded-full bg-amber-100 px-3 py-1 text-[12px] font-bold text-amber-900";
+export const adminPageTitleClass =
+  "text-[32px] font-bold tracking-[-0.02em] text-[var(--admin-text)]";
 
-export const adminPanelBadgeReadyClass =
-  "inline-flex rounded-full bg-emerald-100 px-3 py-1 text-[12px] font-bold text-emerald-800";
+export const adminFieldLabelClass =
+  "mb-1.5 block text-[13px] font-medium text-[var(--admin-text-3)]";
+
+export const adminInputClass =
+  "h-12 w-full rounded-xl border-0 bg-[var(--admin-field)] px-4 text-[16px] text-[var(--admin-text)] outline-none ring-0 placeholder:text-[var(--admin-text-3)] focus:ring-2 focus:ring-[var(--admin-accent)]/25";
+
+export const adminPrimaryButtonClass =
+  "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-accent)] px-6 text-[15px] font-semibold text-white transition hover:bg-[var(--admin-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50";
+
+export const adminSecondaryButtonClass =
+  "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-5 text-[15px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] transition hover:bg-[var(--admin-surface-muted)] disabled:cursor-not-allowed disabled:opacity-50";
+
+export const adminTintButtonClass =
+  "inline-flex h-9 items-center justify-center rounded-full bg-[var(--admin-accent-tint)] px-4 text-[14px] font-semibold text-[var(--admin-accent)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
+
+export const adminIconCircleButtonClass =
+  "inline-flex size-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] text-[var(--admin-accent)] shadow-[var(--admin-shadow-card)] transition hover:bg-[var(--admin-surface-muted)] disabled:cursor-not-allowed disabled:opacity-50";
+
+export const adminBadgeSoonClass =
+  "inline-flex rounded-full bg-[var(--admin-warn-bg)] px-3 py-1 text-[12px] font-semibold text-[var(--admin-warn)]";
+
+export const adminBadgeReadyClass =
+  "inline-flex rounded-full bg-[var(--admin-ok-bg)] px-3 py-1 text-[12px] font-semibold text-[var(--admin-ok)]";
+
+/** Ссылка «назад» / вторичное действие в шапке экрана. */
+export const adminBackLinkClass =
+  "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-4 text-[14px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] transition hover:bg-[var(--admin-surface-muted)]";
+
+/** Компактная primary-ссылка (строка прохождения, «Открыть»). */
+export const adminCompactPrimaryLinkClass =
+  "inline-flex h-10 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-accent)] px-4 text-[14px] font-semibold text-white transition hover:bg-[var(--admin-accent-hover)]";
+
+export const adminFolderPersonNameClass =
+  "text-[28px] font-bold tracking-[-0.02em] text-[var(--admin-text)] sm:text-[34px]";
+
+export const adminSectionHeadingClass =
+  "text-[20px] font-semibold tracking-[-0.01em] text-[var(--admin-text)]";
+
+export const adminRisksCardClass =
+  "rounded-[18px] border border-[#F0D890] bg-[#FFF8E6] px-5 py-5";

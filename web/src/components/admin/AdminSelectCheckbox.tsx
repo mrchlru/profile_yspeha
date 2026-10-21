@@ -10,6 +10,8 @@ export type AdminSelectCheckboxProps = {
   label: string;
   /** Компактный вид без текста (только чекбокс). */
   hideLabel?: boolean;
+  /** Стиль подписи на тёмной панели. */
+  tone?: "default" | "onDark";
 };
 
 /**
@@ -22,6 +24,7 @@ export function AdminSelectCheckbox({
   onChange,
   label,
   hideLabel = false,
+  tone = "default",
 }: AdminSelectCheckboxProps): React.ReactElement {
   const inputRef = React.useRef<HTMLInputElement>(null);
 
@@ -43,10 +46,16 @@ export function AdminSelectCheckbox({
         onChange={onChange}
         onClick={(event) => event.stopPropagation()}
         aria-label={label}
-        className="h-4 w-4 shrink-0 rounded border-black/25 accent-[#00B596]"
+        className="size-[18px] shrink-0 rounded border-black/25 accent-[var(--admin-accent)]"
       />
       {hideLabel ? null : (
-        <span className="text-[14px] font-semibold text-[#5F5E5E]">{label}</span>
+        <span
+          className={`text-[14px] font-semibold ${
+            tone === "onDark" ? "text-white" : "text-[var(--admin-text-2)]"
+          }`}
+        >
+          {label}
+        </span>
       )}
     </label>
   );

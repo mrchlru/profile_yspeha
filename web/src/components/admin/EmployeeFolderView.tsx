@@ -19,11 +19,19 @@ import type {
 } from "@/lib/admin/similarityClusterTypes";
 import type { EmployeeDashboardVisual } from "@/lib/admin/employeeDashboardTypes";
 import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
+import { AdminFolderSectionNav } from "@/components/admin/AdminFolderSectionNav";
+import { AdminStatusChip } from "@/components/admin/ui/AdminUi";
 import {
+  adminBackLinkClass,
+  adminBadgeReadyClass,
+  adminCompactPrimaryLinkClass,
+  adminFolderPersonNameClass,
   adminPanelCardClass,
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
+  adminSectionHeadingClass,
 } from "@/lib/admin/adminPanelTheme";
+import { formatIsoCalendarDateRu } from "@/lib/datetime/moscowTime";
 import { useAdminSession } from "@/hooks/useAdminSession";
 
 /**
@@ -145,33 +153,49 @@ export function EmployeeFolderView(): React.ReactElement {
 
   const reportDocuments = folder.documents.filter((doc) => doc.id !== "dashboard");
   const dashboardDoc = folder.documents.find((doc) => doc.id === "dashboard");
+  const hasSessions =
+    folder.burnoutSessions.length > 0 ||
+    folder.specialistScreeningSessions.length > 0 ||
+    folder.attestationSessions.length > 0 ||
+    folder.profSbEducationSessions.length > 0 ||
+    folder.reportSessions.length > 0;
+  const hasRisks = !similarityLoading && similarityAlerts.length > 0 && similaritySummary !== null;
+  const metaLine = [
+    folder.birthDate ? formatIsoCalendarDateRu(folder.birthDate) : null,
+    folder.positionLevelLabel,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[13px] font-extrabold uppercase tracking-wide text-[#8C8C8C]">
-            Папка сотрудника
-          </p>
-          <h2 className="text-[24px] font-extrabold text-[#5F5E5E]">{folder.displayName}</h2>
-          {folder.positionLevelLabel ? (
-            <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-              Уровень должности: {folder.positionLevelLabel}
-            </p>
-          ) : null}
-          {folder.pendingInvite ? (
-            <p className="mt-2 text-[14px] font-medium text-amber-800">
-              Приглашение выдано, скрининг ещё не пройден
-            </p>
-          ) : null}
+    <div className="mx-auto max-w-[920px] space-y-6">
+      <Link href="/admin/results" className={adminBackLinkClass}>
+        ‹ Результаты
+      </Link>
+
+      <div className="flex flex-wrap items-start gap-5">
+        <span className="flex size-[72px] shrink-0 items-center justify-center rounded-full bg-[var(--admin-avatar-bg-side)] text-[26px] font-semibold text-[var(--admin-accent)]">
+          {_folderInitials(folder)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className={adminFolderPersonNameClass}>{folder.displayName}</h2>
+          {metaLine ? <p className="mt-2 text-[14px] text-[var(--admin-text-3)]">{metaLine}</p> : null}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <AdminStatusChip label="Результаты" tone="ok" />
+            {folder.pendingInvite ? (
+              <AdminStatusChip label="Ожидает скрининг" tone="warn" />
+            ) : null}
+          </div>
         </div>
-        <Link
-          href="/admin/results"
-          className="rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
-        >
-          ← К списку папок
-        </Link>
       </div>
+
+      <AdminFolderSectionNav
+        visible={{
+          risks: hasRisks,
+          dash: Boolean(dashboardDoc),
+          sessions: hasSessions,
+        }}
+      />
 
       {folder.key.startsWith("candidate:") ? (
         <CandidateLifecycleButtons
@@ -182,14 +206,17 @@ export function EmployeeFolderView(): React.ReactElement {
         />
       ) : null}
 
-      <SubtestSimilarityAlertsPanel
-        thresholdPercent={similarityThreshold}
-        softThresholdPercent={similaritySoftThreshold}
-        closeCompletionMinutes={similarityCloseMinutes}
-        summary={similaritySummary}
-        alerts={similarityAlerts}
-        loading={similarityLoading}
-      />
+      <div id="risks">
+        <SubtestSimilarityAlertsPanel
+          thresholdPercent={similarityThreshold}
+          softThresholdPercent={similaritySoftThreshold}
+          closeCompletionMinutes={similarityCloseMinutes}
+          summary={similaritySummary}
+          alerts={similarityAlerts}
+          loading={similarityLoading}
+          variant="folder"
+        />
+      </div>
 
       {isFullAdmin && folder ? (
         <EmployeeFolderAdminActions
@@ -200,172 +227,107 @@ export function EmployeeFolderView(): React.ReactElement {
         />
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {reportDocuments.length === 0 ? (
-          <div className={`px-5 py-5 ${adminPanelCardClass}`}>
-            <p className={adminPanelMutedTextClass}>
-              Сформированных отчётов в папке пока нет. После прохождения тестирования здесь появятся
-              карточки доступных отчётов.
-            </p>
-          </div>
-        ) : (
-          reportDocuments.map((doc) => (
-            <DocumentCard
-              key={doc.id}
-              doc={doc}
-              folderKey={folderKey}
-              reportSessions={folder.reportSessions}
-              attestationSessions={folder.attestationSessions}
-              onRegenerated={loadFolder}
-            />
-          ))
-        )}
-      </div>
+      <section id="docs" className="space-y-4 scroll-mt-24">
+        <h3 className={adminSectionHeadingClass}>Документы</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {reportDocuments.length === 0 ? (
+            <div className={`px-5 py-5 ${adminPanelCardClass}`}>
+              <p className={adminPanelMutedTextClass}>
+                Сформированных отчётов в папке пока нет. После прохождения тестирования здесь
+                появятся карточки доступных отчётов.
+              </p>
+            </div>
+          ) : (
+            reportDocuments.map((doc) => (
+              <DocumentCard
+                key={doc.id}
+                doc={doc}
+                folderKey={folderKey}
+                reportSessions={folder.reportSessions}
+                attestationSessions={folder.attestationSessions}
+                onRegenerated={loadFolder}
+              />
+            ))
+          )}
+        </div>
+      </section>
 
-      <EmployeeFolderFilesPanel
-        folderKey={folderKey}
-        files={folder.uploadedFiles}
-        isFullAdmin={isFullAdmin}
-        onChanged={loadFolder}
-      />
+      <section id="files" className="scroll-mt-24">
+        <EmployeeFolderFilesPanel
+          folderKey={folderKey}
+          files={folder.uploadedFiles}
+          isFullAdmin={isFullAdmin}
+          onChanged={loadFolder}
+        />
+      </section>
 
-      {folder.burnoutSessions.length > 0 ? (
-        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-          <h3 className={adminPanelSectionTitleClass}>Тест на выгорание (Маслач)</h3>
-          <ul className="space-y-3">
-            {folder.burnoutSessions.map((session) => (
-              <li
-                key={session.sessionId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/70 px-4 py-3"
-              >
-                <div>
-                  <p className="font-bold text-[#5F5E5E]">{session.label}</p>
-                  {session.classicBurnout ? (
-                    <p className="mt-1 text-[13px] font-medium text-red-700">
-                      Классическая картина выгорания
-                    </p>
-                  ) : session.hasConcerningScale ? (
-                    <p className="mt-1 text-[13px] font-medium text-amber-800">
-                      Отдельные показатели требуют внимания
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[13px] font-medium text-emerald-800">
-                      Выраженного выгорания не выявлено
-                    </p>
-                  )}
-                </div>
-                <Link
+      {hasSessions ? (
+        <section id="sessions" className="space-y-3 scroll-mt-24">
+          <h3 className={adminSectionHeadingClass}>Прохождения</h3>
+          <div className={`overflow-hidden ${adminPanelCardClass}`}>
+            <ul className="divide-y divide-[var(--admin-hairline)]">
+              {folder.reportSessions.map((session) => (
+                <SessionRow
+                  key={`report-${session.sessionId}-${session.source}`}
+                  title={session.source === "audit" ? "Оценка деятельности" : "Скрининг"}
+                  subtitle={session.label}
+                  href={`/admin/results/${encodeURIComponent(folderKey)}/report/${session.source === "audit" ? "full_report" : "short_report"}?sessionId=${encodeURIComponent(session.sessionId)}`}
+                  actionLabel="Открыть"
+                  done
+                />
+              ))}
+              {folder.burnoutSessions.map((session) => (
+                <SessionRow
+                  key={`burnout-${session.sessionId}`}
+                  title="Выгорание (Маслач)"
+                  subtitle={session.label}
                   href={`/admin/results/${encodeURIComponent(folderKey)}/burnout/${encodeURIComponent(session.sessionId)}`}
-                  className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-                >
-                  Интерпретация
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {folder.specialistScreeningSessions.length > 0 ? (
-        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-          <h3 className={adminPanelSectionTitleClass}>
-            Скрининг депрессивных симптомов (конфиденциально)
-          </h3>
-          <ul className="space-y-3">
-            {folder.specialistScreeningSessions.map((session) => (
-              <li
-                key={session.sessionId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/70 px-4 py-3"
-              >
-                <div>
-                  <p className="font-bold text-[#5F5E5E]">{session.label}</p>
-                  {session.phq9Item9Positive ? (
-                    <p className="mt-1 text-[13px] font-medium text-red-700">
-                      Срочный сигнал по вопросу 9 PHQ-9
-                    </p>
-                  ) : session.referralSuggested ? (
-                    <p className="mt-1 text-[13px] font-medium text-amber-800">
-                      Рекомендуется направление к специалисту
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[13px] font-medium text-emerald-800">
-                      Пороги направления не достигнуты
-                    </p>
-                  )}
-                </div>
-                <Link
-                  href={`/admin/results/${encodeURIComponent(folderKey)}/specialist-screening/${encodeURIComponent(session.sessionId)}`}
-                  className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-                >
-                  Отчёт
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {folder.attestationSessions.length > 0 ? (
-        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-          <h3 className={adminPanelSectionTitleClass}>Аттестация</h3>
-          <ul className="space-y-3">
-            {folder.attestationSessions.map((session) => (
-              <li
-                key={session.sessionId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/70 px-4 py-3"
-              >
-                <div>
-                  <p className="font-bold text-[#5F5E5E]">{session.label}</p>
-                  <p className="mt-1 text-[13px] text-[#8C8C8C]">
-                    {session.hasReport ? "Отчёт рассчитан" : "Ожидает расчёта"}
-                  </p>
-                </div>
-                <Link
+                  actionLabel="Интерпретация"
+                />
+              ))}
+              {folder.attestationSessions.map((session) => (
+                <SessionRow
+                  key={`att-${session.sessionId}`}
+                  title="Аттестация"
+                  subtitle={session.label}
                   href={`/admin/results/${encodeURIComponent(folderKey)}/attestation/${encodeURIComponent(session.sessionId)}`}
-                  className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-                >
-                  Отчёт
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {folder.profSbEducationSessions.length > 0 ? (
-        <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
-          <h3 className={adminPanelSectionTitleClass}>ПРОФ СБ + ПРОФ образование</h3>
-          <ul className="space-y-3">
-            {folder.profSbEducationSessions.map((session) => (
-              <li
-                key={session.sessionId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/70 px-4 py-3"
-              >
-                <div>
-                  <p className="font-bold text-[#5F5E5E]">{session.label}</p>
-                  <p className="mt-1 text-[13px] text-[#8C8C8C]">
-                    Анкета ПРОФ СБ и ПРОФ образование
-                  </p>
-                </div>
-                <Link
+                  actionLabel="Отчёт"
+                  done={session.hasReport}
+                />
+              ))}
+              {folder.specialistScreeningSessions.map((session) => (
+                <SessionRow
+                  key={`spec-${session.sessionId}`}
+                  title="Спец. скрининг"
+                  subtitle={session.label}
+                  href={`/admin/results/${encodeURIComponent(folderKey)}/specialist-screening/${encodeURIComponent(session.sessionId)}`}
+                  actionLabel="Отчёт"
+                  confidential
+                />
+              ))}
+              {folder.profSbEducationSessions.map((session) => (
+                <SessionRow
+                  key={`prof-${session.sessionId}`}
+                  title="ПРОФ СБ + образование"
+                  subtitle={session.label}
                   href={`/admin/results/${encodeURIComponent(folderKey)}/prof-sb-education/${encodeURIComponent(session.sessionId)}`}
-                  className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-                >
-                  Результат
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+                  actionLabel="Результат"
+                />
+              ))}
+            </ul>
+          </div>
+        </section>
       ) : null}
 
       {dashboardDoc ? (
-        <EmployeeDashboardPanel
-          doc={dashboardDoc}
-          visual={folder.dashboardVisual}
-          folderKey={folderKey}
-          onRegenerated={loadFolder}
-        />
+        <section id="dash" className="scroll-mt-24">
+          <EmployeeDashboardPanel
+            doc={dashboardDoc}
+            visual={folder.dashboardVisual}
+            folderKey={folderKey}
+            onRegenerated={loadFolder}
+          />
+        </section>
       ) : null}
     </div>
   );
@@ -398,9 +360,7 @@ function EmployeeDashboardPanel({
               onSuccess={onRegenerated}
             />
           ) : null}
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[12px] font-bold text-emerald-800">
-            Есть данные
-          </span>
+          <span className={adminBadgeReadyClass}>Есть данные</span>
         </div>
       </div>
       <EmployeeDashboardCharts visual={visual} />
@@ -434,30 +394,49 @@ function DocumentCard({
     attestationSessions
   );
 
+  const unavailable = !doc.available || doc.viewKind === "none";
+  const isLocked =
+    doc.id === "attestation_brief_report" || doc.id === "commission_reports";
+
   return (
-    <div className={`px-5 py-5 ${adminPanelCardClass}`}>
+    <div
+      className={`flex min-h-[132px] flex-col px-5 py-5 ${adminPanelCardClass} ${
+        unavailable ? "bg-[#EEEEF1]" : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
-        <h3 className={adminPanelSectionTitleClass}>{doc.title}</h3>
-        <span className="rounded-full bg-emerald-100 px-3 py-1 text-[12px] font-bold text-emerald-800">
-          Есть данные
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`size-2 shrink-0 rounded-full ${doc.available ? "bg-[var(--admin-ok)]" : "bg-[var(--admin-neutral)]"}`}
+            aria-hidden
+          />
+          <h3 className="text-[17px] font-semibold text-[var(--admin-text)]">{doc.title}</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          {isLocked ? (
+            <span className="text-[var(--admin-text-3)]" title="Конфиденциально" aria-label="Конфиденциально">
+              🔒
+            </span>
+          ) : null}
+          {doc.available ? (
+            <span className={adminBadgeReadyClass}>Готов</span>
+          ) : (
+            <span className="rounded-full bg-[var(--admin-neutral-bg)] px-3 py-1 text-[12px] font-semibold text-[var(--admin-neutral)]">
+              Нет данных
+            </span>
+          )}
+        </div>
       </div>
-      <p className={`mt-2 ${adminPanelMutedTextClass}`}>{doc.description}</p>
+      <p className={`mt-2 flex-1 ${adminPanelMutedTextClass}`}>{doc.description}</p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        {reportHref ? (
+        {reportHref && !unavailable ? (
           reportHref.startsWith("/api/") ? (
-            <a
-              href={reportHref}
-              className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-            >
+            <a href={reportHref} className={adminCompactPrimaryLinkClass}>
               Скачать Word
             </a>
           ) : (
-            <Link
-              href={reportHref}
-              className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
-            >
-              Открыть отчёт
+            <Link href={reportHref} className={adminCompactPrimaryLinkClass}>
+              Открыть
             </Link>
           )
         ) : null}
@@ -565,6 +544,58 @@ function _buildDocumentReportHref(
 
   const query = new URLSearchParams({ sessionId: session.sessionId });
   return `/admin/results/${encodeURIComponent(folderKey)}/report/${encodeURIComponent(doc.id)}?${query.toString()}`;
+}
+
+type SessionRowProps = {
+  title: string;
+  subtitle: string;
+  href: string;
+  actionLabel: string;
+  done?: boolean;
+  confidential?: boolean;
+};
+
+function SessionRow({
+  title,
+  subtitle,
+  href,
+  actionLabel,
+  done = true,
+  confidential = false,
+}: SessionRowProps): React.ReactElement {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="flex flex-wrap items-center gap-3 px-4 py-4 transition hover:bg-[var(--admin-accent-tint-2)] sm:px-5"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="text-[16px] font-semibold text-[var(--admin-text)]">
+            {title}
+            {confidential ? (
+              <span className="ml-2 text-[13px] font-normal text-[var(--admin-text-3)]">🔒</span>
+            ) : null}
+          </p>
+          <p className="mt-0.5 text-[13px] text-[var(--admin-text-3)]">{subtitle}</p>
+        </div>
+        {done ? <AdminStatusChip label="Завершено" tone="ok" /> : null}
+        <span className={adminCompactPrimaryLinkClass}>{actionLabel}</span>
+        <span className="text-[var(--admin-chevron)]" aria-hidden>
+          ›
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+function _folderInitials(folder: EmployeeFolderDetail): string {
+  const a = folder.lastName?.trim().charAt(0) ?? "";
+  const b = folder.firstName?.trim().charAt(0) ?? "";
+  const pair = `${a}${b}`.toUpperCase();
+  if (pair) {
+    return pair;
+  }
+  return folder.displayName.trim().charAt(0).toUpperCase() || "?";
 }
 
 function _emptyVisualForSkeleton(): EmployeeDashboardVisual {

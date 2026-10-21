@@ -31,6 +31,7 @@ import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { stepNavPrimaryButtonClass } from "@/lib/stepPageTheme";
 import type { CandidateSearchStatusFilter } from "@/components/admin/CandidateSearchPanel";
+import { AdminStatusChip, type AdminStatusChipTone } from "@/components/admin/ui/AdminUi";
 
 type InvitationRow = {
   id: string;
@@ -58,20 +59,20 @@ const INVITE_TEST_KIND_OPTIONS: ReadonlyArray<{ value: TestKind; label: string }
 const inviteTestKindSelectClass =
   "w-full min-w-[11.5rem] max-w-[15rem] cursor-pointer rounded-[10px] border border-black/[0.06] bg-white/70 py-1.5 pl-2.5 pr-7 text-[13px] font-medium leading-snug text-[#3A3A3A] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] outline-none transition-[background-color,border-color,box-shadow] hover:border-black/10 hover:bg-white focus:border-black/15 focus:bg-white focus:shadow-[0_0_0_3px_rgba(0,0,0,0.06)] disabled:cursor-wait disabled:opacity-55";
 
-function statusBadgeClass(status: string): string {
+function inviteStatusTone(status: string): AdminStatusChipTone {
   switch (status) {
     case INVITE_STATUS_ACTIVE:
-      return "bg-emerald-100 text-emerald-800";
+      return "info";
     case INVITE_STATUS_IN_PROGRESS:
-      return "bg-indigo-100 text-indigo-800";
+      return "warn";
     case INVITE_STATUS_USED:
-      return "bg-sky-100 text-sky-800";
+      return "ok";
     case INVITE_STATUS_EXPIRED:
-      return "bg-amber-100 text-amber-900";
+      return "neutral";
     case INVITE_STATUS_REVOKED:
-      return "bg-red-100 text-red-800";
+      return "danger";
     default:
-      return "bg-gray-100 text-gray-700";
+      return "neutral";
   }
 }
 
@@ -559,11 +560,7 @@ export function InvitationsTable(): React.ReactElement {
                     {row.usedAt ? formatMoscowDateTimeTable(row.usedAt) : "—"}
                   </td>
                   <td className="px-4 py-2">
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-[12px] font-bold ${statusBadgeClass(row.status)}`}
-                    >
-                      {row.statusLabel}
-                    </span>
+                    <AdminStatusChip label={row.statusLabel} tone={inviteStatusTone(row.status)} />
                   </td>
                   <td className="px-4 py-2">
                     <div className="flex flex-wrap gap-2">

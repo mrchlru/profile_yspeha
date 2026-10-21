@@ -17,7 +17,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 const querySchema = z.object({
-  type: z.enum(["all", "screening", "audit"]).default("all"),
+  type: z
+    .enum(["all", "screening", "audit", "burnout", "attestation"])
+    .default("all"),
   folderKey: z.string().min(1).max(300).optional(),
 });
 

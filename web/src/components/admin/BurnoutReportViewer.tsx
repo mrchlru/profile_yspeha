@@ -64,7 +64,7 @@ export function BurnoutReportViewer(): React.ReactElement {
         <p className="text-sm font-medium text-red-700/90">{error ?? "Отчёт не найден."}</p>
         <Link
           href={`/admin/results/${encodeURIComponent(folderKey)}`}
-          className="inline-flex rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
+          className="inline-flex inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-4 text-[14px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] hover:bg-[var(--admin-surface-muted)]"
         >
           ← К папке
         </Link>
@@ -108,7 +108,7 @@ export function BurnoutReportViewer(): React.ReactElement {
           />
           <Link
             href={`/admin/results/${encodeURIComponent(folderKey)}`}
-            className="rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E]"
+            className="inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-4 text-[14px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] hover:bg-[var(--admin-surface-muted)]"
           >
             ← К папке
           </Link>

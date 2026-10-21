@@ -2,9 +2,7 @@
 
 import React from "react";
 
-import { Button } from "@/components/Button";
 import { AdminSelectCheckbox } from "@/components/admin/AdminSelectCheckbox";
-import { adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
 
 export type AdminBulkSelectionBarProps = {
   selectedCount: number;
@@ -18,6 +16,7 @@ export type AdminBulkSelectionBarProps = {
 
 /**
  * Панель «выбрать все» и массовых действий над списком.
+ * При выборе — плавающая тёмная панель по макету.
  */
 export function AdminBulkSelectionBar({
   selectedCount,
@@ -34,31 +33,44 @@ export function AdminBulkSelectionBar({
 
   const indeterminate = selectedCount > 0 && !allSelected;
 
+  if (selectedCount === 0) {
+    return (
+      <div className="flex items-center gap-3 px-1 py-2">
+        <AdminSelectCheckbox
+          checked={allSelected}
+          indeterminate={indeterminate}
+          disabled={busy}
+          onChange={onToggleAll}
+          label="Выбрать все"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-black/10 bg-white/60 px-4 py-3">
+    <div
+      className="fixed bottom-6 left-1/2 z-30 flex w-[min(640px,calc(100%-2rem))] -translate-x-1/2 flex-wrap items-center gap-3 rounded-[16px] bg-[var(--admin-dark)] px-5 py-4 text-white shadow-[var(--admin-shadow-float)]"
+      role="toolbar"
+      aria-label="Массовые действия"
+    >
       <AdminSelectCheckbox
         checked={allSelected}
         indeterminate={indeterminate}
         disabled={busy}
         onChange={onToggleAll}
         label="Выбрать все"
+        tone="onDark"
       />
-      {selectedCount > 0 ? (
-        <>
-          <span className={`text-[14px] font-semibold text-[#5F5E5E] ${adminPanelMutedTextClass}`}>
-            Выбрано: {String(selectedCount)}
-          </span>
-          <div className="flex flex-wrap gap-2">{children}</div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={onClear}
-            className="text-[13px] font-semibold text-[#8C8C8C] underline-offset-2 hover:underline disabled:opacity-50"
-          >
-            Снять выделение
-          </button>
-        </>
-      ) : null}
+      <span className="text-[14px] font-semibold">Выбрано: {String(selectedCount)}</span>
+      <div className="flex flex-1 flex-wrap gap-2">{children}</div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onClear}
+        className="text-[13px] font-semibold text-[var(--admin-danger-on-dark)] hover:underline disabled:opacity-50"
+      >
+        Снять
+      </button>
     </div>
   );
 }
@@ -81,18 +93,14 @@ export function AdminBulkActionButton({
 }: AdminBulkActionButtonProps): React.ReactElement {
   const className =
     variant === "danger"
-      ? "rounded-full border border-red-200 bg-red-50 px-4 py-2 text-[13px] font-bold text-red-700 hover:bg-red-100 disabled:opacity-50"
-      : undefined;
+      ? "rounded-full bg-[var(--admin-danger)] px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 disabled:opacity-50"
+      : variant === "primary"
+        ? "rounded-full bg-[var(--admin-accent)] px-4 py-2 text-[13px] font-semibold text-white hover:bg-[var(--admin-accent-hover)] disabled:opacity-50"
+        : "rounded-full bg-white/15 px-4 py-2 text-[13px] font-semibold text-white hover:bg-white/25 disabled:opacity-50";
 
   return (
-    <Button
-      type="button"
-      variant={variant === "primary" ? "primary" : "secondary"}
-      disabled={disabled}
-      onClick={onClick}
-      className={className}
-    >
+    <button type="button" disabled={disabled} onClick={onClick} className={className}>
       {label}
-    </Button>
+    </button>
   );
 }

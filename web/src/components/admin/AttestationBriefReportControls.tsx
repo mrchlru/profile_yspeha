@@ -2,6 +2,11 @@
 
 import React, { useState } from "react";
 
+import {
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
+} from "@/lib/admin/adminPanelTheme";
+
 type AttestationBriefReportControlsProps = {
   folderKey: string;
   sessionId: string;
@@ -54,18 +59,18 @@ export function AttestationBriefReportControls({
         {hasBriefReport ? (
           <a
             href={downloadHref}
-            className="inline-flex shrink-0 items-center justify-center rounded-full border border-[#007A68]/30 bg-white/90 px-4 py-2 text-[14px] font-bold text-[#007A68] transition hover:bg-white"
+            className={adminSecondaryButtonClass}
           >
-            Скачать краткий отчёт (Word)
+            Краткий отчёт
           </a>
         ) : (
           <button
             type="button"
             disabled={busy}
-            className="inline-flex shrink-0 items-center justify-center rounded-full border border-black/10 bg-white/90 px-4 py-2 text-[14px] font-bold text-[#5F5E5E] transition hover:bg-white disabled:opacity-50"
+            className={adminPrimaryButtonClass}
             onClick={() => void handleGenerate()}
           >
-            {busy ? "Формирование…" : "Сформировать краткий отчёт"}
+            {busy ? "Идёт генерация…" : "Краткий отчёт"}
           </button>
         )}
       </div>

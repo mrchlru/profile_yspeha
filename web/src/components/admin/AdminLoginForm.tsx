@@ -3,16 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
-import { Button } from "@/components/Button";
-import { StepLayout } from "@/components/StepLayout";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import {
-  stepInputClass,
-  stepLabelClass,
-  stepNavPrimaryButtonClass,
-  stepSurfaceCardClass,
-  stepSectionTitleClass,
-} from "@/lib/stepPageTheme";
+  adminFieldLabelClass,
+  adminInputClass,
+  adminPanelCardClass,
+  adminPrimaryButtonClass,
+} from "@/lib/admin/adminPanelTheme";
 
 /**
  * Форма входа в админ-панель по почте и паролю.
@@ -59,64 +56,65 @@ export function AdminLoginForm(): React.ReactElement {
   }
 
   return (
-    <StepLayout hideHeaderTitle>
-      <div className="flex flex-1 items-center justify-center px-4 pb-12 pt-2">
-        <form
-          onSubmit={(event) => void submit(event)}
-          className={`w-full max-w-[480px] space-y-6 px-8 py-8 ${stepSurfaceCardClass}`}
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
+      <form
+        onSubmit={(event) => void submit(event)}
+        className={`w-full max-w-[420px] space-y-5 p-8 ${adminPanelCardClass} shadow-[var(--admin-shadow-elevated)]`}
+      >
+        <div className="flex flex-col items-center text-center">
+          <span className="mb-4 flex size-14 items-center justify-center rounded-[16px] bg-[var(--admin-accent)] text-[22px] font-bold text-white">
+            D
+          </span>
+          <h1 className="text-[26px] font-bold tracking-[-0.02em] text-[var(--admin-text)]">
+            Вход в админ-панель
+          </h1>
+          <p className="mt-2 text-[15px] text-[var(--admin-text-3)]">DriveS · учётная запись администратора</p>
+        </div>
+
+        <div>
+          <label htmlFor="admin-email" className={adminFieldLabelClass}>
+            Почта
+          </label>
+          <input
+            id="admin-email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className={adminInputClass}
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="admin-password" className={adminFieldLabelClass}>
+            Пароль
+          </label>
+          <input
+            id="admin-password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className={adminInputClass}
+            required
+          />
+        </div>
+
+        {error ? (
+          <p className="text-[14px] font-medium text-[var(--admin-danger)]" role="alert">
+            {error}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
+          disabled={busy || session.status === "loading"}
+          className={`${adminPrimaryButtonClass} w-full`}
         >
-          <div>
-            <p className="text-[13px] font-extrabold uppercase tracking-[0.14em] text-[#8C8C8C]">
-              DriveS
-            </p>
-            <h1 className={`${stepSectionTitleClass} !mb-2`}>Вход в админ-панель</h1>
-          </div>
-
-          <div>
-            <label htmlFor="admin-email" className={`block ${stepLabelClass}`}>
-              Почта
-            </label>
-            <input
-              id="admin-email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className={`${stepInputClass} h-12 text-[16px]`}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="admin-password" className={`block ${stepLabelClass}`}>
-              Пароль
-            </label>
-            <input
-              id="admin-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className={`${stepInputClass} h-12 text-[16px]`}
-              required
-            />
-          </div>
-
-          {error ? (
-            <p className="text-sm font-medium text-red-700/90" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <Button
-            type="submit"
-            disabled={busy || session.status === "loading"}
-            className={stepNavPrimaryButtonClass}
-          >
-            {busy ? "Вход…" : "Войти"}
-          </Button>
-        </form>
-      </div>
-    </StepLayout>
+          {busy ? "Вход…" : "Войти"}
+        </button>
+      </form>
+    </div>
   );
 }

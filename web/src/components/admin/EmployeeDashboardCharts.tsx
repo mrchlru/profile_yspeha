@@ -295,7 +295,7 @@ function KpiCardsRow({ cards }: { cards: ReadonlyArray<DashboardKpiCard> }): Rea
                 className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
                   card.deltaGood === false
                     ? "bg-[#FDE8E8] text-[#C71F1F]"
-                    : "bg-[#00B596]/12 text-[#007A68]"
+                    : "bg-[var(--admin-accent-tint)] text-[#007A68]"
                 }`}
               >
                 {card.deltaPercent > 0 ? "+" : ""}
@@ -331,7 +331,7 @@ function DashboardAlertsRow({
               ? "bg-[#FDE8E8] ring-1 ring-[#C71F1F]/25"
               : alert.severity === "warning"
                 ? "bg-[#FEF3C7] ring-1 ring-[#E9A319]/30"
-                : "bg-white/75 ring-1 ring-[#00B596]/20"
+                : "bg-white/75 ring-1 ring-[var(--admin-accent)]/20"
           }`}
         >
           <div className="flex flex-wrap items-center gap-1.5">
@@ -526,7 +526,7 @@ function GaugeRing({ gauge }: { gauge: DashboardGauge }): React.ReactElement {
             className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${
               gauge.deltaPercent < 0
                 ? "bg-[#FDE8E8] text-[#C71F1F]"
-                : "bg-[#00B596]/12 text-[#007A68]"
+                : "bg-[var(--admin-accent-tint)] text-[#007A68]"
             }`}
           >
             {gauge.deltaPercent > 0 ? "+" : ""}
@@ -663,7 +663,7 @@ function IntelligenceStat({
 }): React.ReactElement {
   return (
     <div className="flex items-center gap-6 py-2">
-      <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[#00B596]/12 ring-4 ring-[#00B596]/25">
+      <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-full bg-[var(--admin-accent-tint)] ring-4 ring-[var(--admin-accent)]/25">
         <div className="text-center">
           <p className="text-[32px] font-extrabold leading-none text-[#007A68]">
             {iq !== null ? String(iq) : "—"}
@@ -766,7 +766,7 @@ function YoYInlineDelta({ current, previous }: { current: number; previous: numb
   return (
     <span
       className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-bold ${
-        good ? "bg-[#00B596]/12 text-[#007A68]" : "bg-[#FDE8E8] text-[#C71F1F]"
+        good ? "bg-[var(--admin-accent-tint)] text-[#007A68]" : "bg-[#FDE8E8] text-[#C71F1F]"
       }`}
     >
       Δ {delta > 0 ? "+" : ""}

@@ -9,7 +9,6 @@ import { formatIsoCalendarDateRu } from "@/lib/datetime/moscowTime";
 import {
   adminPanelCardClass,
   adminPanelMutedTextClass,
-  adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
@@ -73,28 +72,32 @@ export function InterviewFoldersBrowser(): React.ReactElement {
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {items.map((item) => (
-          <Link
-            key={item.key}
-            href={`/admin/interview/${encodeURIComponent(item.key)}`}
-            className={`block px-5 py-5 transition hover:opacity-90 ${adminPanelCardClass}`}
-          >
-            <h3 className={adminPanelSectionTitleClass}>{item.displayName}</h3>
-            <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-              Должность: {item.positionTitle}
-            </p>
-            <p className={`mt-1 ${adminPanelMutedTextClass}`}>
-              Первый скрининг: {formatIsoCalendarDateRu(item.firstScreeningAt)}
-            </p>
-            <p className={`mt-3 text-[14px] font-bold text-[#007A68]`}>
-              Скринингов в папке: {String(item.screeningCount)}
-            </p>
-            <p className={`mt-1 text-[13px] ${adminPanelMutedTextClass}`}>
-              Кандидатов: {String(item.candidateCount)}
-            </p>
-          </Link>
-        ))}
+      <div className={`overflow-hidden ${adminPanelCardClass}`}>
+        <ul className="divide-y divide-[var(--admin-hairline)]">
+          {items.map((item) => (
+            <li key={item.key}>
+              <Link
+                href={`/admin/interview/${encodeURIComponent(item.key)}`}
+                className="flex flex-wrap items-center gap-3 px-4 py-4 transition hover:bg-[var(--admin-accent-tint-2)] sm:px-5"
+              >
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[16px] font-semibold text-[var(--admin-text)]">
+                    {item.displayName}
+                  </h3>
+                  <p className={`mt-0.5 ${adminPanelMutedTextClass}`}>
+                    Первый скрининг: {formatIsoCalendarDateRu(item.firstScreeningAt)}
+                  </p>
+                </div>
+                <span className="rounded-full bg-[var(--admin-surface-muted)] px-3 py-1 text-[13px] font-semibold text-[var(--admin-text-2)]">
+                  {String(item.candidateCount)} канд.
+                </span>
+                <span className="text-[var(--admin-chevron)]" aria-hidden>
+                  ›
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

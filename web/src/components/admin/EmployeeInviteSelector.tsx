@@ -132,7 +132,7 @@ export function EmployeeInviteSelector({
           onClick={() => setMode("existing")}
           className={`rounded-full px-4 py-2 text-[14px] font-bold ${
             value.mode === "existing"
-              ? "bg-[#00B596] text-white"
+              ? "bg-[var(--admin-accent)] text-white"
               : "bg-white/70 text-[#5F5E5E]"
           }`}
         >
@@ -143,7 +143,7 @@ export function EmployeeInviteSelector({
           onClick={() => setMode("new")}
           className={`rounded-full px-4 py-2 text-[14px] font-bold ${
             value.mode === "new"
-              ? "bg-[#00B596] text-white"
+              ? "bg-[var(--admin-accent)] text-white"
               : "bg-white/70 text-[#5F5E5E]"
           }`}
         >
@@ -190,7 +190,7 @@ export function EmployeeInviteSelector({
                     onClick={() => selectEmployee(employee)}
                     className={`block w-full rounded-2xl px-4 py-3 text-left transition ${
                       selected
-                        ? "bg-[#00B596]/15 ring-2 ring-[#00B596]/50"
+                        ? "bg-[var(--admin-accent-tint)] ring-2 ring-[var(--admin-accent)]/50"
                         : "bg-white/60 hover:bg-white/90"
                     }`}
                   >

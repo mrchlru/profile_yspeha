@@ -153,7 +153,7 @@ export function NotificationSettingsForm(): React.ReactElement {
           rows={4}
           value={notifyExtraEmailsRaw}
           onChange={(event) => setNotifyExtraEmailsRaw(event.target.value)}
-          className="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-[14px] text-[#5F5E5E] outline-none ring-[#00B596] focus:ring-2"
+          className="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-[14px] text-[#5F5E5E] outline-none ring-[var(--admin-accent)] focus:ring-2"
           placeholder={"hr.partner@company.ru\nsecurity@company.ru"}
           spellCheck={false}
           autoComplete="off"

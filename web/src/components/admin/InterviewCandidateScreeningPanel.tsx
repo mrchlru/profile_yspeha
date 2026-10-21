@@ -75,7 +75,7 @@ export function InterviewCandidateScreeningPanel({
       {hasScreening && !pendingInvite ? (
         <Link
           href={`/admin/results/${encodeURIComponent(candidateFolderKey)}`}
-          className="inline-flex rounded-full bg-[#DDDDDD] px-4 py-2 text-[14px] font-bold text-[#5F5E5E] transition hover:bg-[#d0d0d0]"
+          className="inline-flex inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-4 text-[14px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] hover:bg-[var(--admin-surface-muted)] transition hover:bg-[#d0d0d0]"
         >
           Вся папка кандидата
         </Link>
@@ -101,7 +101,7 @@ function ReportLink({
   return (
     <Link
       href={href}
-      className="inline-flex rounded-full bg-[#00B596] px-4 py-2 text-[14px] font-bold text-white transition hover:bg-[#009f84]"
+      className="inline-flex h-10 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-accent)] px-4 text-[14px] font-semibold text-white transition hover:bg-[var(--admin-accent-hover)]"
     >
       {label}
     </Link>
