@@ -12,7 +12,8 @@ import type {
   RegenerateManagerBriefBatchResult,
   RegenerateManagerBriefResult,
 } from "@/lib/admin/regenerateStoredManagerBriefConclusions";
-import { stepNavPrimaryButtonClass } from "@/lib/stepPageTheme";
+import { AdminListSwitchRow } from "@/components/admin/ui/AdminUi";
+import { adminPrimaryButtonClass } from "@/lib/admin/adminPanelTheme";
 
 function _emptyAggregate(): RegenerateManagerBriefResult {
   return {
@@ -30,17 +31,25 @@ function _emptyAggregate(): RegenerateManagerBriefResult {
 /**
  * Пересчёт блока «Заключение» в отчёте для руководителя (ОД / ТУ), только главный админ.
  */
-export function RegenerateManagerBriefPanel(): React.ReactElement {
+export type RegenerateManagerBriefPanelProps = {
+  embedded?: boolean;
+};
+
+export function RegenerateManagerBriefPanel({
+  embedded = false,
+}: RegenerateManagerBriefPanelProps): React.ReactElement {
   const [busy, setBusy] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const [useAi, setUseAi] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<RegenerateManagerBriefResult | null>(null);
 
   async function runRegenerate(): Promise<void> {
-    if (!confirmed) {
-      setError("Отметьте подтверждение перед запуском.");
+    if (
+      !window.confirm(
+        "Пересобрать заключения для руководителя по отчётам ОД и ТУ? Операция может занять несколько минут."
+      )
+    ) {
       return;
     }
     setBusy(true);
@@ -79,7 +88,7 @@ export function RegenerateManagerBriefPanel(): React.ReactElement {
           setError(
             res.ok
               ? "Сервер вернул не JSON (возможен обрыв соединения). Проверьте логи: часть отчётов могла уже обновиться."
-              : `Ошибка сервера (${String(res.status)}). Проверьте логи Railway.`
+              : `Ошибка сервера (${String(res.status)}). Проверьте логи сервера.`
           );
           if (aggregate.updated > 0) {
             setResult(aggregate);
@@ -139,69 +148,33 @@ export function RegenerateManagerBriefPanel(): React.ReactElement {
   }
 
   return (
-    <div className={`space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
-      <div>
-        <h2 className={adminPanelSectionTitleClass}>Заключение для руководителя (ОД / ТУ)</h2>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          Финальный абзац «Заключение» генерирует OpenAI (промпт v3, критичный тон для
-          руководителя) по пунктам отчёта этого человека. Модель:{" "}
-          <span className="font-mono text-[13px]">OPENAI_MANAGER_BRIEF_MODEL</span> или общая{" "}
-          <span className="font-mono text-[13px]">OPENAI_MODEL</span> (сейчас по умолчанию gpt-5.5).
-          При сбое ИИ подставляется запасной короткий текст.
-        </p>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          С OpenAI пересборка идёт пачками по 3 отчёта, чтобы не обрывалось
-          соединение (на сервере при этом в логах будет много строк success — это нормально).
-        </p>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          Пересобирает полный объёмный отчёт (метрики, narrative, testBlocks) и отчёт для
-          руководителя по актуальным правилам. Развёрнутое{" "}
-          <span className="font-mono text-[13px]">ЗАКЛЮЧЕНИЕ (ИИ)</span> для HrD в полном PDF
-          сохраняется без повторного вызова OpenAI. Финальное «Заключение» для руководителя
-          генерируется через OpenAI (или по правилам, если галочка снята).
-        </p>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          Обновляются все сохранённые прохождения батарей «ОД, кадровый резерв» и «ТУ / шефы».
-          PDF в админке пересоберётся при следующем открытии отчёта; устаревшие PDF-копии в
-          папках удаляются.
-        </p>
-      </div>
+    <div className={embedded ? "space-y-4" : `space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
+      {!embedded ? (
+        <div>
+          <h2 className={adminPanelSectionTitleClass}>Заключение для руководителя (ОД / ТУ)</h2>
+          <p className={`mt-2 ${adminPanelMutedTextClass}`}>
+            Отчёты ОД и ТУ; обработка пачками.
+          </p>
+        </div>
+      ) : (
+        <p className={adminPanelMutedTextClass}>ОД и ТУ; обработка пачками.</p>
+      )}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-4">
-        <input
-          type="checkbox"
-          className="mt-1 h-4 w-4"
-          checked={useAi}
-          onChange={(event) => setUseAi(event.target.checked)}
-          disabled={busy}
-        />
-        <span className={`text-[14px] leading-relaxed ${adminPanelMutedTextClass}`}>
-          Генерировать финальное «Заключение» через OpenAI (дольше, нужен ключ API; без галочки —
-          только правила).
-        </span>
-      </label>
-
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-4">
-        <input
-          type="checkbox"
-          className="mt-1 h-4 w-4"
-          checked={confirmed}
-          onChange={(event) => setConfirmed(event.target.checked)}
-          disabled={busy}
-        />
-        <span className={`text-[14px] leading-relaxed ${adminPanelMutedTextClass}`}>
-          Я понимаю, что в JSON отчётов будет пересобран полный объёмный отчёт и блок
-          managerBrief (заключение для руководителя).
-        </span>
-      </label>
+      <AdminListSwitchRow
+        title="Заключение через OpenAI"
+        subtitle="Без переключателя — только правила"
+        checked={useAi}
+        onChange={setUseAi}
+        disabled={busy}
+      />
 
       <Button
         type="button"
         disabled={busy}
         onClick={() => void runRegenerate()}
-        className={stepNavPrimaryButtonClass}
+        className={adminPrimaryButtonClass}
       >
-        {busy ? "Пересчёт…" : "Пересобрать заключения для руководителя"}
+        {busy ? "Пересчёт…" : "Запустить"}
       </Button>
 
       {progress ? (

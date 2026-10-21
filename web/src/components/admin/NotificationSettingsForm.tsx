@@ -3,12 +3,13 @@
 import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
-import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
+import { AdminListSwitchRow } from "@/components/admin/ui/AdminUi";
 import {
-  stepNavPrimaryButtonClass,
-  stepSecondaryTextClass,
-  stepSurfaceCardClass,
-} from "@/lib/stepPageTheme";
+  adminFieldLabelClass,
+  adminInputClass,
+  adminPanelMutedTextClass,
+  adminPrimaryButtonClass,
+} from "@/lib/admin/adminPanelTheme";
 
 type NotificationSettingsResponse = {
   notifyAdmin: boolean;
@@ -17,14 +18,20 @@ type NotificationSettingsResponse = {
   updatedAt: string | null;
 };
 
+export type NotificationSettingsFormProps = {
+  embedded?: boolean;
+  onSaved?: () => void;
+};
+
 /**
  * Настройки email-уведомлений о критическом ПИ (только для администратора).
  */
-export function NotificationSettingsForm(): React.ReactElement {
+export function NotificationSettingsForm({
+  onSaved,
+}: NotificationSettingsFormProps): React.ReactElement {
   const [notifyAdmin, setNotifyAdmin] = useState(true);
   const [notifyHrd, setNotifyHrd] = useState(true);
   const [notifyExtraEmailsRaw, setNotifyExtraEmailsRaw] = useState("");
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +54,6 @@ export function NotificationSettingsForm(): React.ReactElement {
       setNotifyAdmin(body.notifyAdmin);
       setNotifyHrd(body.notifyHrd);
       setNotifyExtraEmailsRaw(body.notifyExtraEmailsRaw ?? "");
-      setUpdatedAt(body.updatedAt);
     } catch {
       setError("Сеть недоступна. Попробуйте ещё раз.");
     } finally {
@@ -73,8 +79,8 @@ export function NotificationSettingsForm(): React.ReactElement {
       setNotifyAdmin(body.notifyAdmin);
       setNotifyHrd(body.notifyHrd);
       setNotifyExtraEmailsRaw(body.notifyExtraEmailsRaw ?? "");
-      setUpdatedAt(body.updatedAt);
-      setSuccess("Настройки уведомлений сохранены.");
+      setSuccess("Сохранено.");
+      onSaved?.();
     } catch {
       setError("Сеть недоступна. Попробуйте ещё раз.");
     } finally {
@@ -83,81 +89,42 @@ export function NotificationSettingsForm(): React.ReactElement {
   }
 
   if (loading) {
-    return <p className={stepSecondaryTextClass}>Загрузка уведомлений…</p>;
+    return <p className={adminPanelMutedTextClass}>Загрузка…</p>;
   }
 
   return (
-    <div className={`max-w-[640px] space-y-5 px-6 py-6 ${stepSurfaceCardClass}`}>
-      <div>
-        <h2 className="text-[20px] font-extrabold text-[#5F5E5E]">Уведомления о выгорании</h2>
-        <p className={`mt-2 ${stepSecondaryTextClass}`}>
-          При показателе психоэмоционального истощения (ПИ) 40 баллов и выше в отчёте значение
-          выделяется красным. Дополнительно можно отправлять письма администратору и HrD с
-          рекомендацией назначить тест на выгорание (Маслач).
-        </p>
-        <p className={`mt-2 ${stepSecondaryTextClass}`}>
-          Напоминания о повторном тесте через 3 месяца отправляются автоматически при работе
-          в админ-панели (раздел «Результаты»), при назначении теста и после его прохождения.
-          Внешний cron не обязателен.
-        </p>
-        <p className={`mt-2 text-[13px] ${stepSecondaryTextClass}`}>
-          Опционально: можно настроить ежедневный вызов{" "}
-          <code>/api/cron/burnout-reminders</code> с заголовком{" "}
-          <code>Authorization: Bearer CRON_SECRET</code>, чтобы письма уходили даже если в
-          админку долго никто не заходил.
-        </p>
-        {updatedAt ? (
-          <p className="mt-2 text-[14px] text-[#007A68]">
-            Обновлено: {formatMoscowDateTime(updatedAt)}
-          </p>
-        ) : null}
+    <div className="space-y-5">
+      <p className={`text-[13px] ${adminPanelMutedTextClass}`}>
+        Письма уходят при ПИ ≥ 40 с рекомендацией теста Маслач. Напоминания о повторном тесте — через
+        3 месяца, автоматически.
+      </p>
+
+      <div className="overflow-hidden rounded-xl ring-1 ring-[var(--admin-hairline)]">
+        <AdminListSwitchRow
+          title="Главный администратор"
+          checked={notifyAdmin}
+          onChange={setNotifyAdmin}
+        />
+        <AdminListSwitchRow title="HrD" checked={notifyHrd} onChange={setNotifyHrd} />
       </div>
 
-      <label className="flex cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          className="mt-1 h-5 w-5 rounded border-black/20"
-          checked={notifyAdmin}
-          onChange={(event) => setNotifyAdmin(event.target.checked)}
-        />
-        <span className={stepSecondaryTextClass}>
-          Уведомлять главного администратора (почта из <code>ADMIN_PANEL_EMAIL</code>)
-        </span>
-      </label>
-
-      <label className="flex cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          className="mt-1 h-5 w-5 rounded border-black/20"
-          checked={notifyHrd}
-          onChange={(event) => setNotifyHrd(event.target.checked)}
-        />
-        <span className={stepSecondaryTextClass}>
-          Уведомлять HrD (почта из настроек доступа HrD)
-        </span>
-      </label>
-
-      <div className="space-y-2">
-        <label
-          htmlFor="pi-notify-extra-emails"
-          className="block text-[14px] font-bold text-[#5F5E5E]"
-        >
-          Дополнительные получатели (как HrD)
+      <div>
+        <label htmlFor="pi-notify-extra-emails" className={adminFieldLabelClass}>
+          Дополнительные получатели
         </label>
-        <p className={stepSecondaryTextClass}>
-          Письма о критическом ПИ (40 баллов и выше) с рекомендацией теста Маслач. Укажите адреса
-          через запятую или с новой строки.
-        </p>
         <textarea
           id="pi-notify-extra-emails"
           rows={4}
           value={notifyExtraEmailsRaw}
           onChange={(event) => setNotifyExtraEmailsRaw(event.target.value)}
-          className="w-full rounded-xl border border-black/10 bg-white/80 px-3 py-2 text-[14px] text-[#5F5E5E] outline-none ring-[var(--admin-accent)] focus:ring-2"
-          placeholder={"hr.partner@company.ru\nsecurity@company.ru"}
+          className={`${adminInputClass} min-h-[120px] py-3`}
+          placeholder="name@company.ru"
           spellCheck={false}
           autoComplete="off"
         />
+        <p className={`mt-1.5 text-[13px] ${adminPanelMutedTextClass}`}>
+          Адреса через запятую или с новой строки
+        </p>
       </div>
 
       {error ? (
@@ -166,19 +133,16 @@ export function NotificationSettingsForm(): React.ReactElement {
         </p>
       ) : null}
       {success ? (
-        <p className="text-sm font-medium text-emerald-700" role="status">
+        <p className="text-sm font-medium text-[var(--admin-ok)]" role="status">
           {success}
         </p>
       ) : null}
 
-      <Button
-        type="button"
-        disabled={busy}
-        onClick={() => void saveSettings()}
-        className={stepNavPrimaryButtonClass}
-      >
-        {busy ? "Сохранение…" : "Сохранить уведомления"}
-      </Button>
+      <div className="flex justify-end pt-2">
+        <Button type="button" disabled={busy} onClick={() => void saveSettings()} className={adminPrimaryButtonClass}>
+          {busy ? "Сохранение…" : "Сохранить"}
+        </Button>
+      </div>
     </div>
   );
 }

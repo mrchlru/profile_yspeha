@@ -3,14 +3,12 @@
 import React, { useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
-import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
 import {
-  stepInputClass,
-  stepLabelClass,
-  stepNavPrimaryButtonClass,
-  stepSecondaryTextClass,
-  stepSurfaceCardClass,
-} from "@/lib/stepPageTheme";
+  adminFieldLabelClass,
+  adminInputClass,
+  adminPanelMutedTextClass,
+  adminPrimaryButtonClass,
+} from "@/lib/admin/adminPanelTheme";
 
 type HrdSettingsResponse = {
   configured: boolean;
@@ -18,14 +16,21 @@ type HrdSettingsResponse = {
   updatedAt: string | null;
 };
 
+export type HrdSettingsFormProps = {
+  embedded?: boolean;
+  onSaved?: () => void;
+};
+
 /**
  * Форма создания и обновления учётной записи HrD (только для администратора).
  */
-export function HrdSettingsForm(): React.ReactElement {
+export function HrdSettingsForm({
+  embedded = false,
+  onSaved,
+}: HrdSettingsFormProps): React.ReactElement {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [configured, setConfigured] = useState(false);
-  const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +52,6 @@ export function HrdSettingsForm(): React.ReactElement {
       }
       setConfigured(body.configured);
       setEmail(body.email ?? "");
-      setUpdatedAt(body.updatedAt);
     } catch {
       setError("Сеть недоступна. Попробуйте ещё раз.");
     } finally {
@@ -76,9 +80,9 @@ export function HrdSettingsForm(): React.ReactElement {
       }
       setConfigured(true);
       setEmail(body.email);
-      setUpdatedAt(body.updatedAt);
       setPassword("");
-      setSuccess(configured ? "Доступ HrD обновлён." : "Доступ HrD создан.");
+      setSuccess("Сохранено.");
+      onSaved?.();
     } catch {
       setError("Сеть недоступна. Попробуйте ещё раз.");
     } finally {
@@ -87,29 +91,19 @@ export function HrdSettingsForm(): React.ReactElement {
   }
 
   if (loading) {
-    return <p className={stepSecondaryTextClass}>Загрузка настроек…</p>;
+    return <p className={adminPanelMutedTextClass}>Загрузка…</p>;
   }
 
   return (
-    <div className={`max-w-[640px] space-y-6 px-6 py-6 ${stepSurfaceCardClass}`}>
-      <div>
-        <h2 className="text-[20px] font-extrabold text-[#5F5E5E]">Доступ HrD</h2>
-        <p className={`mt-2 ${stepSecondaryTextClass}`}>
-          Укажите почту и пароль, с которыми HrD сможет войти в админ-панель. При повторном
-          сохранении данные заменяются.
-        </p>
-        {configured && updatedAt ? (
-          <p className={`mt-2 text-[14px] text-[#007A68]`}>
-            Учётная запись настроена. Обновлено:{" "}
-            {formatMoscowDateTime(updatedAt)}
-          </p>
-        ) : (
-          <p className={`mt-2 text-[14px] text-amber-800`}>Учётная запись HrD ещё не создана.</p>
-        )}
-      </div>
+    <div className="space-y-5">
+      {!embedded ? (
+        <p className={adminPanelMutedTextClass}>При сохранении данные заменяются.</p>
+      ) : (
+        <p className={`text-[13px] ${adminPanelMutedTextClass}`}>При сохранении данные заменяются.</p>
+      )}
 
       <div>
-        <label htmlFor="hrd-email" className={`block ${stepLabelClass}`}>
+        <label htmlFor="hrd-email" className={adminFieldLabelClass}>
           Почта HrD
         </label>
         <input
@@ -118,13 +112,13 @@ export function HrdSettingsForm(): React.ReactElement {
           autoComplete="off"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className={`${stepInputClass} h-12 text-[16px]`}
+          className={adminInputClass}
         />
       </div>
 
       <div>
-        <label htmlFor="hrd-password" className={`block ${stepLabelClass}`}>
-          Пароль HrD
+        <label htmlFor="hrd-password" className={adminFieldLabelClass}>
+          {configured ? "Новый пароль" : "Пароль"}
         </label>
         <input
           id="hrd-password"
@@ -132,8 +126,7 @@ export function HrdSettingsForm(): React.ReactElement {
           autoComplete="new-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className={`${stepInputClass} h-12 text-[16px]`}
-          placeholder={configured ? "Новый пароль" : "Пароль для входа"}
+          className={adminInputClass}
         />
       </div>
 
@@ -143,19 +136,21 @@ export function HrdSettingsForm(): React.ReactElement {
         </p>
       ) : null}
       {success ? (
-        <p className="text-sm font-medium text-emerald-700" role="status">
+        <p className="text-sm font-medium text-[var(--admin-ok)]" role="status">
           {success}
         </p>
       ) : null}
 
-      <Button
-        type="button"
-        onClick={() => void saveSettings()}
-        disabled={busy}
-        className={stepNavPrimaryButtonClass}
-      >
-        {busy ? "Сохранение…" : configured ? "Обновить доступ HrD" : "Создать доступ HrD"}
-      </Button>
+      <div className="flex justify-end pt-2">
+        <Button
+          type="button"
+          onClick={() => void saveSettings()}
+          disabled={busy}
+          className={adminPrimaryButtonClass}
+        >
+          {busy ? "Сохранение…" : "Сохранить"}
+        </Button>
+      </div>
     </div>
   );
 }

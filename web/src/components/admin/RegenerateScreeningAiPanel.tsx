@@ -12,7 +12,8 @@ import type {
   RegenerateScreeningAiBatchResult,
   RegenerateScreeningAiResult,
 } from "@/lib/admin/regenerateStoredScreeningAiConclusions";
-import { stepNavPrimaryButtonClass } from "@/lib/stepPageTheme";
+import { AdminListSwitchRow } from "@/components/admin/ui/AdminUi";
+import { adminPrimaryButtonClass } from "@/lib/admin/adminPanelTheme";
 
 function _emptyAggregate(): RegenerateScreeningAiResult {
   return {
@@ -31,17 +32,25 @@ function _emptyAggregate(): RegenerateScreeningAiResult {
 /**
  * Перегенерация ИИ-заключения по скринингу кандидата (только главный админ).
  */
-export function RegenerateScreeningAiPanel(): React.ReactElement {
+export type RegenerateScreeningAiPanelProps = {
+  embedded?: boolean;
+};
+
+export function RegenerateScreeningAiPanel({
+  embedded = false,
+}: RegenerateScreeningAiPanelProps): React.ReactElement {
   const [busy, setBusy] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const [forceAll, setForceAll] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<string | null>(null);
   const [result, setResult] = useState<RegenerateScreeningAiResult | null>(null);
 
   async function runRegenerate(): Promise<void> {
-    if (!confirmed) {
-      setError("Отметьте подтверждение перед запуском.");
+    if (
+      !window.confirm(
+        "Сгенерировать ИИ-заключения для отчётов скрининга? Операция может занять несколько минут."
+      )
+    ) {
       return;
     }
     setBusy(true);
@@ -80,7 +89,7 @@ export function RegenerateScreeningAiPanel(): React.ReactElement {
           setError(
             res.ok
               ? "Сервер вернул не JSON (возможен обрыв соединения). Часть отчётов могла уже обновиться."
-              : `Ошибка сервера (${String(res.status)}). Проверьте логи Railway.`
+              : `Ошибка сервера (${String(res.status)}). Проверьте логи сервера.`
           );
           if (aggregate.updated > 0) {
             setResult(aggregate);
@@ -141,53 +150,35 @@ export function RegenerateScreeningAiPanel(): React.ReactElement {
   }
 
   return (
-    <div className={`space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
-      <div>
-        <h2 className={adminPanelSectionTitleClass}>ИИ-заключение по скринингу</h2>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          Генерирует развёрнутое заключение OpenAI для прохождений батареи «Скрининг»
-          (ПРОФ СБ + методики). Нужно, если при отправке закончились деньги на API и блок
-          остался пустым.
+    <div className={embedded ? "space-y-4" : `space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
+      {!embedded ? (
+        <div>
+          <h2 className={adminPanelSectionTitleClass}>ИИ-заключение по скринингу</h2>
+          <p className={`mt-2 ${adminPanelMutedTextClass}`}>
+            Отчёты без заключения; обработка пачками.
+          </p>
+        </div>
+      ) : (
+        <p className={adminPanelMutedTextClass}>
+          Для отчётов без заключения; обработка пачками.
         </p>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          По умолчанию обрабатываются только отчёты без заключения. Пачками по 2, чтобы не
-          обрывалось соединение.
-        </p>
-      </div>
+      )}
 
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-4">
-        <input
-          type="checkbox"
-          className="mt-1 h-4 w-4"
-          checked={forceAll}
-          onChange={(event) => setForceAll(event.target.checked)}
-          disabled={busy}
-        />
-        <span className={`text-[14px] leading-relaxed ${adminPanelMutedTextClass}`}>
-          Перегенерировать и те, где заключение уже есть (дольше и дороже).
-        </span>
-      </label>
-
-      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-black/10 bg-white/70 px-4 py-4">
-        <input
-          type="checkbox"
-          className="mt-1 h-4 w-4"
-          checked={confirmed}
-          onChange={(event) => setConfirmed(event.target.checked)}
-          disabled={busy}
-        />
-        <span className={`text-[14px] leading-relaxed ${adminPanelMutedTextClass}`}>
-          Я понимаю, что в JSON отчётов скрининга будет записано новое ИИ-заключение.
-        </span>
-      </label>
+      <AdminListSwitchRow
+        title="Включая готовые заключения"
+        subtitle="Дольше и дороже"
+        checked={forceAll}
+        onChange={setForceAll}
+        disabled={busy}
+      />
 
       <Button
         type="button"
         disabled={busy}
         onClick={() => void runRegenerate()}
-        className={stepNavPrimaryButtonClass}
+        className={adminPrimaryButtonClass}
       >
-        {busy ? "Генерация…" : "Сгенерировать заключения скрининга"}
+        {busy ? "Генерация…" : "Запустить"}
       </Button>
 
       {progress ? (

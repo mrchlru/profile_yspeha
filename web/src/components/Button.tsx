@@ -9,12 +9,12 @@ export type ButtonProps = {
 function getVariantClasses(variant: ButtonVariant | undefined): string {
   switch (variant) {
     case "secondary":
-      return "rounded-full border border-black/10 bg-white/70 px-5 py-3 text-foreground shadow-sm backdrop-blur transition hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed";
+      return "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface-muted)] px-5 text-[15px] font-medium text-[var(--admin-text)] transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
     case "ghost":
-      return "rounded-full bg-transparent px-3 py-2 text-foreground/90 transition hover:bg-black/5 disabled:opacity-50 disabled:cursor-not-allowed";
+      return "inline-flex h-11 items-center justify-center rounded-full bg-transparent px-3 text-[15px] font-medium text-[var(--admin-text)] transition hover:bg-[var(--admin-surface-muted)] disabled:cursor-not-allowed disabled:opacity-50";
     case "primary":
     default:
-      return "rounded-[51px] bg-[#00B596] px-5 py-3 text-white transition hover:opacity-95 disabled:opacity-50 disabled:cursor-not-allowed";
+      return "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-accent)] px-6 text-[15px] font-semibold text-white transition hover:bg-[var(--admin-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50";
   }
 }
 

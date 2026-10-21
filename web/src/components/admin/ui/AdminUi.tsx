@@ -13,6 +13,8 @@ type AdminSegmentControlProps<T extends string> = {
   onChange: (value: T) => void;
   ariaLabel: string;
   disabled?: boolean;
+  /** Префикс id вкладок и панелей для aria-controls / role=tabpanel. */
+  tabPanelIdPrefix?: string;
 };
 
 /**
@@ -24,6 +26,7 @@ export function AdminSegmentControl<T extends string>({
   onChange,
   ariaLabel,
   disabled = false,
+  tabPanelIdPrefix,
 }: AdminSegmentControlProps<T>): React.ReactElement {
   return (
     <div
@@ -33,12 +36,16 @@ export function AdminSegmentControl<T extends string>({
     >
       {options.map((option) => {
         const active = option.value === value;
+        const tabId = tabPanelIdPrefix ? `${tabPanelIdPrefix}-tab-${option.value}` : undefined;
+        const panelId = tabPanelIdPrefix ? `${tabPanelIdPrefix}-panel-${option.value}` : undefined;
         return (
           <button
             key={option.value}
             type="button"
             role="tab"
+            id={tabId}
             aria-selected={active}
+            aria-controls={panelId}
             disabled={disabled}
             onClick={() => onChange(option.value)}
             className={`h-[34px] shrink-0 rounded-[9px] px-4 text-[14px] transition disabled:opacity-50 ${

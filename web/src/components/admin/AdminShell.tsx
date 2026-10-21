@@ -8,6 +8,7 @@ import { AdminSettingsIcon } from "@/components/admin/AdminIconButton";
 import { AdminNavIcon } from "@/components/admin/AdminNavIcons";
 import {
   ADMIN_SETTINGS_HREF,
+  adminMobileNavItemsForRole,
   adminSidebarNavItemsForRole,
   canAccessAdminSettings,
   isAdminNavItemActive,
@@ -58,6 +59,7 @@ export function AdminShell({
   }
 
   const navItems = adminSidebarNavItemsForRole(session.role);
+  const mobileNavItems = adminMobileNavItemsForRole(session.role);
   const settingsActive = isAdminNavItemActive(pathname, ADMIN_SETTINGS_HREF);
   const showSettingsLink = canAccessAdminSettings(session.role);
   const initials = adminEmailInitials(session.email);
@@ -114,7 +116,7 @@ export function AdminShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="px-5 py-5 sm:px-8">
+          <header className="px-5 py-5 sm:px-8 lg:px-12">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0 flex-1">
                 {title ? <h1 className={adminPageTitleClass}>{title}</h1> : null}
@@ -136,7 +138,7 @@ export function AdminShell({
             className="flex gap-2 overflow-x-auto border-b border-[var(--admin-hairline)] px-4 py-3 lg:hidden"
             aria-label="Разделы"
           >
-            {navItems.map((item) => {
+            {mobileNavItems.map((item) => {
               const active = isAdminNavItemActive(pathname, item.href);
               return (
                 <Link
@@ -155,7 +157,7 @@ export function AdminShell({
             })}
           </div>
 
-          <main className="flex-1 px-5 py-6 sm:px-8 sm:py-8">{children}</main>
+          <main className="flex-1 px-5 py-6 sm:px-8 sm:py-8 lg:px-12">{children}</main>
         </div>
       </div>
     </div>

@@ -3,14 +3,15 @@
 import React, { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
+import { AdminSettingsGroup } from "@/components/admin/AdminSettingsGroup";
+import { AdminSettingsRow } from "@/components/admin/AdminSettingsRow";
+import { AdminSettingsSheet } from "@/components/admin/AdminSettingsSheet";
 import type { CommissionEvalSaveFailureLogView } from "@/lib/commission/logCommissionEvalSaveFailure";
-import { formatMoscowDateTime } from "@/lib/datetime/moscowTime";
+import { formatAdminDateTimeShort } from "@/lib/datetime/adminDateFormat";
 import {
-  adminPanelCardClass,
   adminPanelMutedTextClass,
-  adminPanelSectionTitleClass,
+  adminSecondaryButtonClass,
 } from "@/lib/admin/adminPanelTheme";
-import { stepNavPrimaryButtonClass } from "@/lib/stepPageTheme";
 
 const FAILURE_KIND_LABELS: Record<CommissionEvalSaveFailureLogView["failureKind"], string> = {
   ai_filter: "ИИ-фильтр",
@@ -27,6 +28,7 @@ export function CommissionEvalLogsPanel(): React.ReactElement {
   const [items, setItems] = useState<CommissionEvalSaveFailureLogView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const loadLogs = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -52,71 +54,86 @@ export function CommissionEvalLogsPanel(): React.ReactElement {
     void loadLogs();
   }, [loadLogs]);
 
+  const statusLabel = loading ? "…" : items.length === 0 ? "Пусто" : `${String(items.length)} записей`;
+
   return (
-    <div className={`${adminPanelCardClass} space-y-4 px-5 py-5 sm:px-6 sm:py-6`}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className={adminPanelSectionTitleClass}>Логи анкет комиссии</h2>
-          <p className={`mt-1 ${adminPanelMutedTextClass}`}>
-            Неудачные сохранения: участник, вопрос и причина ошибки. Участникам комиссии детали не
-            показываются.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          className={stepNavPrimaryButtonClass}
-          disabled={loading}
-          onClick={() => void loadLogs()}
-        >
-          Обновить
-        </Button>
-      </div>
+    <>
+      <AdminSettingsGroup title="Журнал" adminOnly>
+        <AdminSettingsRow
+          title="Ошибки сохранения анкет"
+          subtitle="Участник, вопрос и причина"
+          statusLabel={statusLabel}
+          statusTone={items.length > 0 ? "warn" : "neutral"}
+          onClick={() => setSheetOpen(true)}
+        />
+      </AdminSettingsGroup>
 
       {error ? (
-        <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</p>
+        <p className="text-sm font-medium text-[var(--admin-danger)]" role="alert">
+          {error}
+        </p>
       ) : null}
 
-      {loading ? (
-        <p className={adminPanelMutedTextClass}>Загрузка…</p>
-      ) : items.length === 0 ? (
-        <p className={adminPanelMutedTextClass}>Записей пока нет.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-separate border-spacing-y-2 text-left text-[14px]">
-            <thead>
-              <tr className="text-[12px] font-bold uppercase tracking-wide text-[#8C8C8C]">
-                <th className="px-3 py-2">Время</th>
-                <th className="px-3 py-2">Участник</th>
-                <th className="px-3 py-2">Вопрос</th>
-                <th className="px-3 py-2">Тип</th>
-                <th className="px-3 py-2">Ошибка</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => (
-                <tr key={item.id} className="rounded-2xl bg-white/70">
-                  <td className="whitespace-nowrap px-3 py-3 align-top text-[#5F5E5E]">
-                    {formatMoscowDateTime(item.createdAt)}
-                  </td>
-                  <td className="px-3 py-3 align-top font-semibold text-[#5F5E5E]">
-                    {item.memberLastName} {item.memberFirstName}
-                  </td>
-                  <td className="max-w-xs px-3 py-3 align-top break-words text-[#5F5E5E]">
-                    {item.questionText ?? "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-3 align-top text-[#5F5E5E]">
-                    {FAILURE_KIND_LABELS[item.failureKind] ?? item.failureKind}
-                  </td>
-                  <td className="max-w-md px-3 py-3 align-top break-words text-[#5F5E5E]">
-                    {item.errorMessage}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <AdminSettingsSheet
+        open={sheetOpen}
+        title="Ошибки сохранения анкет"
+        onClose={() => setSheetOpen(false)}
+      >
+        <div className="space-y-4">
+          <p className={adminPanelMutedTextClass}>
+            Участникам комиссии эти детали не показываются.
+          </p>
+          <Button
+            type="button"
+            disabled={loading}
+            onClick={() => void loadLogs()}
+            className={adminSecondaryButtonClass}
+          >
+            Обновить
+          </Button>
+
+          {loading ? (
+            <p className={adminPanelMutedTextClass}>Загрузка…</p>
+          ) : items.length === 0 ? (
+            <p className={adminPanelMutedTextClass}>Записей пока нет.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-separate border-spacing-y-2 text-left text-[14px]">
+                <thead>
+                  <tr className="text-[12px] font-semibold uppercase tracking-wide text-[var(--admin-text-3)]">
+                    <th className="px-3 py-2">Время</th>
+                    <th className="px-3 py-2">Участник</th>
+                    <th className="px-3 py-2">Вопрос</th>
+                    <th className="px-3 py-2">Тип</th>
+                    <th className="px-3 py-2">Ошибка</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => (
+                    <tr key={item.id} className="rounded-xl bg-[var(--admin-bg)]">
+                      <td className="whitespace-nowrap px-3 py-3 align-top text-[var(--admin-text-2)]">
+                        {formatAdminDateTimeShort(item.createdAt)}
+                      </td>
+                      <td className="px-3 py-3 align-top font-medium text-[var(--admin-text)]">
+                        {item.memberLastName} {item.memberFirstName}
+                      </td>
+                      <td className="max-w-xs px-3 py-3 align-top break-words text-[var(--admin-text-2)]">
+                        {item.questionText ?? "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-3 align-top text-[var(--admin-text-2)]">
+                        {FAILURE_KIND_LABELS[item.failureKind] ?? item.failureKind}
+                      </td>
+                      <td className="max-w-md px-3 py-3 align-top break-words text-[var(--admin-text-2)]">
+                        {item.errorMessage}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </AdminSettingsSheet>
+    </>
   );
 }

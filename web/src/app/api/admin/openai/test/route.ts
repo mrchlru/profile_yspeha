@@ -2,12 +2,32 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { requireFullAdminSession } from "@/lib/admin/requireAdminApi";
 import {
+  readOpenAiEnvStatus,
   runOpenAiConnectionTest,
   type OpenAiConnectionTestResult,
 } from "@/lib/ai/runOpenAiConnectionTest";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * Статус env OpenAI без тестового запроса.
+ */
+export async function GET(
+  req: NextRequest
+): Promise<
+  NextResponse<
+    | { configured: boolean; env: ReturnType<typeof readOpenAiEnvStatus> }
+    | { error: string }
+  >
+> {
+  const auth = await requireFullAdminSession(req);
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+  const env = readOpenAiEnvStatus();
+  return NextResponse.json({ configured: env.hasApiKey, env });
+}
 
 /**
  * Проверка связи с OpenAI (только главный администратор).

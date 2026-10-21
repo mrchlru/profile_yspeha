@@ -88,10 +88,17 @@ export function adminNavItemsForRole(role: AdminRole): ReadonlyArray<AdminNavIte
 }
 
 /**
- * Пункты бокового и мобильного меню (без «Настройки» — они в карточке профиля).
+ * Пункты бокового меню (без «Настройки» — они в карточке профиля).
  */
 export function adminSidebarNavItemsForRole(role: AdminRole): ReadonlyArray<AdminNavItem> {
   return adminNavItemsForRole(role).filter((item) => !item.profileOnly);
+}
+
+/**
+ * Нижняя мобильная полоса: основные разделы + настройки и логи из профиля.
+ */
+export function adminMobileNavItemsForRole(role: AdminRole): ReadonlyArray<AdminNavItem> {
+  return adminNavItemsForRole(role);
 }
 
 /**

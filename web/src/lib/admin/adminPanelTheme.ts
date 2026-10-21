@@ -40,6 +40,13 @@ export const adminIconCircleButtonClass =
 export const adminBadgeSoonClass =
   "inline-flex rounded-full bg-[var(--admin-warn-bg)] px-3 py-1 text-[12px] font-semibold text-[var(--admin-warn)]";
 
+/** Бейдж «Только администратор» на странице настроек. */
+export const adminBadgeAdminOnlyClass =
+  "inline-flex rounded-full bg-[#E8E8ED] px-3 py-1 text-[12px] font-medium text-[#6E6E73]";
+
+export const adminSettingsGroupTitleClass =
+  "text-[20px] font-semibold tracking-[-0.01em] text-[var(--admin-text)]";
+
 export const adminBadgeReadyClass =
   "inline-flex rounded-full bg-[var(--admin-ok-bg)] px-3 py-1 text-[12px] font-semibold text-[var(--admin-ok)]";
 

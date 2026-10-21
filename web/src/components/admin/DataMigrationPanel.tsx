@@ -7,22 +7,28 @@ import {
   adminPanelCardClass,
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
+  adminPrimaryButtonClass,
+  adminSecondaryButtonClass,
 } from "@/lib/admin/adminPanelTheme";
 import type { MigrationImportResult } from "@/lib/admin/migrationArchiveTypes";
-import {
-  stepNavPrimaryButtonClass,
-} from "@/lib/stepPageTheme";
 
 type ImportMode = "skip" | "overwrite";
 
+export type DataMigrationPanelProps = {
+  embedded?: boolean;
+};
+
 /**
- * Экспорт/импорт ZIP-архива БД для переноса Railway → Timeweb.
+ * Экспорт/импорт ZIP-архива БД для переноса между серверами.
  */
-export function DataMigrationPanel(): React.ReactElement {
+export function DataMigrationPanel({
+  embedded = false,
+}: DataMigrationPanelProps): React.ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exportBusy, setExportBusy] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const [mode, setMode] = useState<ImportMode>("skip");
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<MigrationImportResult | null>(null);
   const [exportHint, setExportHint] = useState<string | null>(null);
@@ -75,6 +81,7 @@ export function DataMigrationPanel(): React.ReactElement {
         return;
       }
       setImportResult(json);
+      setPendingFile(null);
     } catch {
       setError("Сеть недоступна или архив слишком большой для прокси.");
     } finally {
@@ -85,42 +92,39 @@ export function DataMigrationPanel(): React.ReactElement {
     }
   }
 
-  return (
-    <div className={`space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
-      <div>
-        <h2 className={adminPanelSectionTitleClass}>Миграция данных</h2>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          Перенос между инстансами (Railway → Timeweb): скачайте ZIP на источнике, загрузите на
-          приёмнике. Учётки HrD не входят в архив — их создайте заново в настройках. Прокторинг,
-          файлы папок и отчёты переносятся вместе с таблицами.
+  const content = (
+    <>
+      {!embedded ? (
+        <div>
+          <h2 className={adminPanelSectionTitleClass}>Миграция данных</h2>
+          <p className={`mt-2 ${adminPanelMutedTextClass}`}>
+            Скачайте архив на одном сервере и загрузите на другом.
+          </p>
+        </div>
+      ) : (
+        <p className={adminPanelMutedTextClass}>
+          Учётные записи HrD в архив не входят — создайте их в настройках на новом сервере.
         </p>
-      </div>
+      )}
 
-      <div className="flex flex-wrap gap-3">
-        <Button
-          type="button"
-          disabled={exportBusy || importBusy}
-          onClick={() => void downloadExport()}
-          className={stepNavPrimaryButtonClass}
-        >
-          {exportBusy ? "Сборка архива…" : "Скачать архив БД"}
-        </Button>
-      </div>
+      <Button
+        type="button"
+        disabled={exportBusy || importBusy}
+        onClick={() => void downloadExport()}
+        className={adminSecondaryButtonClass}
+      >
+        {exportBusy ? "Сборка…" : "Скачать архив"}
+      </Button>
 
       {exportHint ? (
-        <p className="text-sm font-medium text-emerald-700" role="status">
+        <p className="text-sm font-medium text-[var(--admin-ok)]" role="status">
           {exportHint}
         </p>
       ) : null}
 
-      <div className="space-y-3 border-t border-[#DDDDDD] pt-5">
-        <p className={adminPanelMutedTextClass}>
-          Импорт на этом сервере. Режим{" "}
-          <span className="font-semibold text-[#2F2F2F]">пропустить</span> — не трогать уже
-          существующие записи;{" "}
-          <span className="font-semibold text-[#2F2F2F]">перезаписать</span> — обновить по ключу.
-        </p>
-        <div className="flex flex-wrap gap-4 text-[14px]">
+      <fieldset className="space-y-3 border-t border-[var(--admin-hairline)] pt-4">
+        <legend className={`text-[14px] font-medium ${adminPanelMutedTextClass}`}>Импорт</legend>
+        <div className="flex flex-wrap gap-4 text-[14px] text-[var(--admin-text-2)]">
           <label className="inline-flex items-center gap-2">
             <input
               type="radio"
@@ -142,25 +146,38 @@ export function DataMigrationPanel(): React.ReactElement {
             Перезаписать
           </label>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".zip,application/zip"
-          className="block w-full text-[14px]"
-          disabled={importBusy || exportBusy}
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              void runImport(file);
+        <label className="block text-[13px] font-medium text-[var(--admin-text-3)]">
+          Файл архива (.zip)
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip,application/zip"
+            className="mt-2 block w-full rounded-xl bg-[var(--admin-field)] px-3 py-2 text-[14px]"
+            disabled={importBusy || exportBusy}
+            onChange={(event) => {
+              setPendingFile(event.target.files?.[0] ?? null);
+              setImportResult(null);
+            }}
+          />
+        </label>
+        <Button
+          type="button"
+          disabled={!pendingFile || importBusy || exportBusy}
+          onClick={() => {
+            if (pendingFile) {
+              void runImport(pendingFile);
             }
           }}
-        />
+          className={adminPrimaryButtonClass}
+        >
+          {importBusy ? "Импорт…" : "Импортировать"}
+        </Button>
         {importBusy ? (
-          <p className="text-sm font-medium text-[#5F5E5E]" role="status">
-            Импорт… это может занять несколько минут.
+          <p className={`text-sm ${adminPanelMutedTextClass}`} role="status">
+            Импорт может занять несколько минут.
           </p>
         ) : null}
-      </div>
+      </fieldset>
 
       {error ? (
         <p className="text-sm font-medium text-red-700/90" role="alert">
@@ -169,6 +186,12 @@ export function DataMigrationPanel(): React.ReactElement {
       ) : null}
 
       {importResult ? <ImportResultSummary result={importResult} /> : null}
+    </>
+  );
+
+  return (
+    <div className={embedded ? "space-y-4" : `space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
+      {content}
     </div>
   );
 }
@@ -190,12 +213,12 @@ function ImportResultSummary({ result }: ImportResultSummaryProps): React.ReactE
     <div
       className={`rounded-2xl border px-4 py-4 text-[14px] ${
         failed > 0
-          ? "border-amber-300 bg-amber-50 text-amber-950"
-          : "border-emerald-300 bg-emerald-50 text-emerald-950"
+          ? "border-[var(--admin-warn)]/40 bg-[var(--admin-warn-bg)] text-[var(--admin-text-1)]"
+          : "border-[var(--admin-ok)]/30 bg-[var(--admin-ok-bg)]"
       }`}
       role="status"
     >
-      <p className="font-extrabold">
+      <p className="font-semibold">
         {failed > 0 ? "Импорт завершён с ошибками" : "Импорт завершён"}
       </p>
       <p className="mt-2">
