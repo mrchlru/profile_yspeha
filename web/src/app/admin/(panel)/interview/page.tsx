@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 
 import { AdminShell } from "@/components/admin/AdminShell";
 import { InterviewFoldersBrowser } from "@/components/admin/InterviewFoldersBrowser";
@@ -6,7 +6,9 @@ import { InterviewFoldersBrowser } from "@/components/admin/InterviewFoldersBrow
 export default function AdminInterviewPage(): React.ReactElement {
   return (
     <AdminShell title="Собеседование">
-      <InterviewFoldersBrowser />
+      <Suspense fallback={null}>
+        <InterviewFoldersBrowser />
+      </Suspense>
     </AdminShell>
   );
 }

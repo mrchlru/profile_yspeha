@@ -48,7 +48,12 @@ export function buildInterviewFolderIdentity(
 }
 
 function _normalizePositionTitle(raw: string): string {
-  return raw.replace(/\s+/g, " ").trim();
+  const trimmed = raw.replace(/\s+/g, " ").trim();
+  if (trimmed.length === 0) {
+    return trimmed;
+  }
+  const first = trimmed.charAt(0).toLocaleUpperCase("ru-RU");
+  return first + trimmed.slice(1);
 }
 
 function _slugify(value: string): string {

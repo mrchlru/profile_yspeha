@@ -24,6 +24,10 @@ export const adminInputClass =
 export const adminPrimaryButtonClass =
   "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-accent)] px-6 text-[15px] font-semibold text-white transition hover:bg-[var(--admin-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50";
 
+/** Primary-кнопка формы «Создать приглашение» (52px). */
+export const adminPrimaryButtonLargeClass =
+  "inline-flex h-[52px] min-h-[52px] items-center justify-center rounded-full bg-[var(--admin-accent)] px-8 text-[16px] font-semibold text-white transition hover:bg-[var(--admin-accent-hover)] disabled:cursor-not-allowed disabled:opacity-40";
+
 export const adminSecondaryButtonClass =
   "inline-flex h-11 min-h-[44px] items-center justify-center rounded-full bg-[var(--admin-surface)] px-5 text-[15px] font-medium text-[var(--admin-text)] shadow-[var(--admin-shadow-card)] transition hover:bg-[var(--admin-surface-muted)] disabled:cursor-not-allowed disabled:opacity-50";
 

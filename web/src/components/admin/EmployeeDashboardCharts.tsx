@@ -21,6 +21,7 @@ import {
 
 import { DashboardMethodologyInfoButton } from "@/components/admin/DashboardMethodologyInfoButton";
 import { adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
+import { formatAdminDateTimeShort } from "@/lib/datetime/adminDateFormat";
 import { dashboardMethodologyInfoIdFromKey } from "@/lib/admin/dashboardMethodologyInfo";
 import type { DashboardMethodologyInfoId } from "@/lib/admin/dashboardMethodologyInfoTypes";
 import { formatDashboardSectarianPercent } from "@/lib/admin/formatDashboardSectarianPercent";
@@ -72,15 +73,12 @@ export function EmployeeDashboardCharts({
   return (
     <div className="space-y-5">
       {visual.sessionLabel ? (
-        <div className="flex flex-wrap items-center gap-2 text-[13px]">
-          <span className="font-semibold text-[#8C8C8C]">Источник данных:</span>
-          <span className="font-bold text-[#5F5E5E]">{visual.sessionLabel}</span>
-          {visual.previousSessionLabel ? (
-            <span className="rounded-full bg-[#FDE8E8] px-2 py-0.5 text-[11px] font-bold text-[#C71F1F]">
-              сравнение с: {visual.previousSessionLabel}
-            </span>
-          ) : null}
-        </div>
+        <p className={`text-[13px] ${adminPanelMutedTextClass}`}>
+          Источник данных: {_formatSessionSourceLabel(visual.sessionLabel)}
+          {visual.previousSessionLabel
+            ? ` · сравнение с ${_formatSessionSourceLabel(visual.previousSessionLabel)}`
+            : ""}
+        </p>
       ) : null}
 
       {visual.kpiCards.length > 0 ? <KpiCardsRow cards={visual.kpiCards} /> : null}
@@ -259,43 +257,27 @@ function SkeletonBlock({ className }: { className: string }): React.ReactElement
 // KPI-карточки
 // ---------------------------------------------------------------------------
 
-const ACCENT_HEX: Readonly<Record<DashboardKpiCard["accent"], string>> = {
-  brand: DASHBOARD_CHART_COLORS.brand,
-  blue: DASHBOARD_CHART_COLORS.blue,
-  amber: DASHBOARD_CHART_COLORS.amber,
-  coral: DASHBOARD_CHART_COLORS.coral,
-  danger: DASHBOARD_CHART_COLORS.danger,
-};
-
 function KpiCardsRow({ cards }: { cards: ReadonlyArray<DashboardKpiCard> }): React.ReactElement {
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       {cards.map((card) => (
         <div
           key={card.label}
-          className="rounded-2xl bg-white/85 px-4 py-4 ring-1 ring-black/6"
-          style={{ borderTop: `3px solid ${ACCENT_HEX[card.accent]}` }}
+          className="rounded-2xl bg-[var(--admin-field)] px-4 py-4 ring-1 ring-[var(--admin-hairline)]"
         >
-          <p className="text-[12px] font-bold uppercase tracking-wide text-[#8C8C8C]">
-            {card.label}
-          </p>
+          <p className="text-[14px] font-medium text-[var(--admin-text-3)]">{card.label}</p>
           <div className="mt-2 flex items-center gap-1.5">
-            <p
-              className="text-[22px] font-extrabold leading-tight"
-              style={{ color: ACCENT_HEX[card.accent] }}
-            >
-              {card.valueText}
-            </p>
+            <p className="text-[30px] font-bold leading-tight text-[#1D1D1F]">{card.valueText}</p>
             {card.infoId ? <DashboardMethodologyInfoButton infoId={card.infoId} /> : null}
           </div>
           <div className="mt-1 flex items-center justify-between gap-2">
-            <p className="text-[12px] text-[#8C8C8C]">{card.sublabel}</p>
+            <p className="text-[14px] text-[var(--admin-text-3)]">{card.sublabel}</p>
             {card.deltaPercent !== null ? (
               <span
-                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                   card.deltaGood === false
-                    ? "bg-[#FDE8E8] text-[#C71F1F]"
-                    : "bg-[var(--admin-accent-tint)] text-[#007A68]"
+                    ? "bg-[var(--admin-danger-bg)] text-[var(--admin-danger)]"
+                    : "bg-[var(--admin-ok-bg)] text-[var(--admin-ok)]"
                 }`}
               >
                 {card.deltaPercent > 0 ? "+" : ""}
@@ -309,6 +291,15 @@ function KpiCardsRow({ cards }: { cards: ReadonlyArray<DashboardKpiCard> }): Rea
   );
 }
 
+function _formatSessionSourceLabel(raw: string): string {
+  const isoMatch = /(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/.exec(raw);
+  if (isoMatch?.[1]) {
+    const formatted = formatAdminDateTimeShort(isoMatch[1]);
+    return raw.replace(isoMatch[1], formatted);
+  }
+  return raw.replace(/\d{2}:\d{2}:\d{2}/g, (time) => time.slice(0, 5));
+}
+
 // ---------------------------------------------------------------------------
 // Алерты
 // ---------------------------------------------------------------------------
@@ -317,9 +308,15 @@ function DashboardAlertsRow({
   alerts,
 }: {
   alerts: ReadonlyArray<DashboardAlertItem>;
-}): React.ReactElement | null {
+}): React.ReactElement {
   if (alerts.length === 0) {
-    return null;
+    return (
+      <div className="rounded-2xl bg-[var(--admin-field)] px-4 py-3 ring-1 ring-[var(--admin-hairline)]">
+        <p className="text-[14px] font-medium text-[var(--admin-text-2)]">
+          Критические показатели не выявлены
+        </p>
+      </div>
+    );
   }
   return (
     <div className="grid gap-3 sm:grid-cols-2">

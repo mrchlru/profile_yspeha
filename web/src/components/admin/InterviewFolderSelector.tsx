@@ -2,10 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 
+import { AdminSegmentControl } from "@/components/admin/ui/AdminUi";
 import type { InterviewFolderSummary } from "@/lib/admin/interviewFolderTypes";
-import { adminPanelCardClass, adminPanelMutedTextClass } from "@/lib/admin/adminPanelTheme";
+import {
+  adminFieldLabelClass,
+  adminInputClass,
+  adminPanelMutedTextClass,
+} from "@/lib/admin/adminPanelTheme";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
-import { stepInputClass, stepLabelClass } from "@/lib/stepPageTheme";
 
 export type InterviewFolderMode = "new" | "existing";
 
@@ -27,6 +31,11 @@ export type InterviewFolderSelectorProps = {
   value: InterviewFolderSelection;
   onChange: (value: InterviewFolderSelection) => void;
 };
+
+const MODE_OPTIONS = [
+  { value: "new" as const, label: "Новая вакансия" },
+  { value: "existing" as const, label: "Из «Собеседование»" },
+];
 
 /**
  * Выбор папки вакансии в разделе «Собеседование» или создание новой по должности.
@@ -76,53 +85,26 @@ export function InterviewFolderSelector({
   }, [debouncedQuery, value.mode]);
 
   return (
-    <div className={`space-y-4 px-5 py-5 ${adminPanelCardClass}`}>
-      <div>
-        <p className="text-[15px] font-extrabold text-[#5F5E5E]">Папка в разделе «Собеседование»</p>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          Название папки = должность и дата первого скрининга по этой вакансии. Для повторного
-          скрининга на ту же вакансию выберите существующую папку.
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() =>
-            onChange({
-              ...value,
-              mode: "new",
-              existingFolderKey: null,
-              selectedDisplayName: null,
-            })
-          }
-          className={`rounded-full px-4 py-2 text-[14px] font-bold ${
-            value.mode === "new" ? "bg-[var(--admin-accent)] text-white" : "bg-white/70 text-[#5F5E5E]"
-          }`}
-        >
-          Новая вакансия
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            onChange({
-              ...value,
-              mode: "existing",
-              positionTitle: "",
-            })
-          }
-          className={`rounded-full px-4 py-2 text-[14px] font-bold ${
-            value.mode === "existing" ? "bg-[var(--admin-accent)] text-white" : "bg-white/70 text-[#5F5E5E]"
-          }`}
-        >
-          Выбрать из «Собеседование»
-        </button>
-      </div>
+    <div className="space-y-4">
+      <AdminSegmentControl
+        ariaLabel="Папка вакансии"
+        options={MODE_OPTIONS}
+        value={value.mode}
+        onChange={(mode) =>
+          onChange({
+            ...value,
+            mode,
+            existingFolderKey: mode === "new" ? null : value.existingFolderKey,
+            selectedDisplayName: mode === "new" ? null : value.selectedDisplayName,
+            positionTitle: mode === "existing" ? "" : value.positionTitle,
+          })
+        }
+      />
 
       {value.mode === "new" ? (
         <div>
-          <label htmlFor="interview-position-title" className={`block ${stepLabelClass}`}>
-            Должность (название вакансии)
+          <label htmlFor="interview-position-title" className={adminFieldLabelClass}>
+            Должность
           </label>
           <input
             id="interview-position-title"
@@ -135,7 +117,7 @@ export function InterviewFolderSelector({
               })
             }
             placeholder="Например: Менеджер по продажам"
-            className={`${stepInputClass} mt-2 h-12 text-[16px]`}
+            className={adminInputClass}
           />
           <p className={`mt-2 text-[13px] ${adminPanelMutedTextClass}`}>
             Дата первого скрининга по этой должности будет добавлена к названию папки автоматически.
@@ -148,7 +130,7 @@ export function InterviewFolderSelector({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Поиск по должности или дате"
-            className={`${stepInputClass} h-12 text-[16px]`}
+            className={adminInputClass}
           />
           {loading ? <p className={adminPanelMutedTextClass}>Загрузка папок…</p> : null}
           {loadError ? (
@@ -161,7 +143,7 @@ export function InterviewFolderSelector({
               Папок пока нет. Создайте первый скрининг с новой должностью.
             </p>
           ) : null}
-          <ul className="max-h-[280px] space-y-2 overflow-y-auto">
+          <ul className="max-h-[240px] space-y-2 overflow-y-auto">
             {folders.map((folder) => {
               const selected = value.existingFolderKey === folder.key;
               return (
@@ -175,14 +157,15 @@ export function InterviewFolderSelector({
                         selectedDisplayName: folder.displayName,
                       })
                     }
-                    className={`w-full rounded-2xl px-4 py-3 text-left transition ${
-                      selected ? "bg-[var(--admin-accent-tint)] ring-2 ring-[var(--admin-accent)]/40" : "bg-white/60 hover:bg-white/80"
+                    className={`w-full rounded-xl px-4 py-3 text-left transition ${
+                      selected
+                        ? "bg-[#F1F8F6] ring-2 ring-[#007A68]"
+                        : "bg-[var(--admin-field)] hover:bg-[var(--admin-surface-muted)]"
                     }`}
                   >
-                    <p className="font-bold text-[#5F5E5E]">{folder.displayName}</p>
+                    <p className="font-semibold text-[var(--admin-text)]">{folder.displayName}</p>
                     <p className={`mt-1 text-[13px] ${adminPanelMutedTextClass}`}>
-                      Скринингов: {String(folder.screeningCount)} · кандидатов:{" "}
-                      {String(folder.candidateCount)}
+                      Кандидатов: {String(folder.candidateCount)}
                     </p>
                   </button>
                 </li>

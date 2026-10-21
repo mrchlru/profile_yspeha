@@ -151,16 +151,47 @@ export function AdminToggle({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-7 w-[46px] shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${
+      className={`relative h-8 w-[52px] shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${
         checked ? "bg-[var(--admin-accent)]" : "bg-[#c7c7cc]"
       }`}
     >
       <span
-        className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition ${
-          checked ? "left-[18px]" : "left-0.5"
+        className={`absolute top-1 size-6 rounded-full bg-white shadow transition ${
+          checked ? "left-[24px]" : "left-1"
         }`}
       />
     </button>
+  );
+}
+
+type AdminListSwitchRowProps = {
+  title: string;
+  subtitle?: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+};
+
+/**
+ * Строка iOS-списка с переключателем (прокторинг, DEV).
+ */
+export function AdminListSwitchRow({
+  title,
+  subtitle,
+  checked,
+  onChange,
+  disabled = false,
+}: AdminListSwitchRowProps): React.ReactElement {
+  return (
+    <div className="flex items-center gap-4 border-b border-[var(--admin-hairline)] px-4 py-3 last:border-b-0">
+      <div className="min-w-0 flex-1">
+        <p className="text-[16px] font-medium text-[var(--admin-text)]">{title}</p>
+        {subtitle ? (
+          <p className="mt-0.5 text-[13px] text-[var(--admin-text-3)]">{subtitle}</p>
+        ) : null}
+      </div>
+      <AdminToggle checked={checked} onChange={onChange} label={title} disabled={disabled} />
+    </div>
   );
 }
 

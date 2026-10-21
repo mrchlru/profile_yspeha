@@ -6,6 +6,9 @@ export type ResolvedInterviewFolder = {
   key: string;
   displayName: string;
   positionTitle: string;
+  firstScreeningAt: string;
+  screeningCount: number;
+  candidateCount: number;
 };
 
 /**
@@ -22,14 +25,15 @@ export async function createInterviewFolderForPosition(
 
   const existing = await prisma.interviewFolder.findUnique({
     where: { key: identity.key },
-    select: { key: true, displayName: true, positionTitle: true },
+    select: {
+      key: true,
+      displayName: true,
+      positionTitle: true,
+      firstScreeningAt: true,
+    },
   });
   if (existing) {
-    return {
-      key: existing.key,
-      displayName: existing.displayName,
-      positionTitle: existing.positionTitle,
-    };
+    return _enrichInterviewFolderRow(existing);
   }
 
   const row = await prisma.interviewFolder.create({
@@ -43,10 +47,11 @@ export async function createInterviewFolderForPosition(
       key: true,
       displayName: true,
       positionTitle: true,
+      firstScreeningAt: true,
     },
   });
 
-  return row;
+  return _enrichInterviewFolderRow(row);
 }
 
 /**
@@ -57,9 +62,17 @@ export async function getInterviewFolderByKey(
 ): Promise<ResolvedInterviewFolder | null> {
   const row = await prisma.interviewFolder.findUnique({
     where: { key: folderKey },
-    select: { key: true, displayName: true, positionTitle: true },
+    select: {
+      key: true,
+      displayName: true,
+      positionTitle: true,
+      firstScreeningAt: true,
+    },
   });
-  return row;
+  if (!row) {
+    return null;
+  }
+  return _enrichInterviewFolderRow(row);
 }
 
 /**
@@ -174,5 +187,30 @@ async function _countInterviewFolderCandidates(
 function _todayUtcNoon(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 12, 0, 0));
+}
+
+async function _enrichInterviewFolderRow(row: {
+  key: string;
+  displayName: string;
+  positionTitle: string;
+  firstScreeningAt: Date;
+}): Promise<ResolvedInterviewFolder> {
+  const [candidateCounts, screeningGrouped] = await Promise.all([
+    _countInterviewFolderCandidates([row.key]),
+    prisma.screeningSubmission.groupBy({
+      by: ["interviewFolderKey"],
+      where: { interviewFolderKey: row.key },
+      _count: { _all: true },
+    }),
+  ]);
+  const screeningCount = screeningGrouped[0]?._count._all ?? 0;
+  return {
+    key: row.key,
+    displayName: row.displayName,
+    positionTitle: row.positionTitle,
+    firstScreeningAt: row.firstScreeningAt.toISOString().slice(0, 10),
+    screeningCount,
+    candidateCount: candidateCounts.get(row.key) ?? 0,
+  };
 }
 

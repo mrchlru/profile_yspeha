@@ -25,6 +25,7 @@ import {
   adminTextBackLinkClass,
   adminBadgeReadyClass,
   adminCompactPrimaryLinkClass,
+  adminIconCircleButtonClass,
   adminFolderPersonNameClass,
   adminPanelCardClass,
   adminPanelMutedTextClass,
@@ -202,18 +203,6 @@ export function EmployeeFolderView(): React.ReactElement {
         />
       ) : null}
 
-      <div id="risks">
-        <SubtestSimilarityAlertsPanel
-          thresholdPercent={similarityThreshold}
-          softThresholdPercent={similaritySoftThreshold}
-          closeCompletionMinutes={similarityCloseMinutes}
-          summary={similaritySummary}
-          alerts={similarityAlerts}
-          loading={similarityLoading}
-          variant="folder"
-        />
-      </div>
-
       <section id="docs" className="space-y-4 scroll-mt-24">
         <h3 className={adminSectionHeadingClass}>Документы</h3>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -317,6 +306,22 @@ export function EmployeeFolderView(): React.ReactElement {
         </section>
       ) : null}
 
+      {hasRisks ? (
+        <section id="risks" className="scroll-mt-24">
+          <SubtestSimilarityAlertsPanel
+            thresholdPercent={similarityThreshold}
+            softThresholdPercent={similaritySoftThreshold}
+            closeCompletionMinutes={similarityCloseMinutes}
+            summary={similaritySummary}
+            alerts={similarityAlerts}
+            loading={similarityLoading}
+            variant="folder"
+          />
+        </section>
+      ) : (
+        <div id="risks" className="hidden" aria-hidden />
+      )}
+
       {isFullAdmin ? (
         <section id="danger" className="scroll-mt-24 pt-4">
           <EmployeeFolderAdminActions
@@ -348,19 +353,17 @@ function EmployeeDashboardPanel({
     <div className={`space-y-4 px-6 py-6 ${adminPanelCardClass}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h3 className={adminPanelSectionTitleClass}>{doc.title}</h3>
-        <div className="flex flex-wrap items-center gap-2">
-          {dashboardSessionId ? (
-            <RegenerateDocumentReportButton
-              folderKey={folderKey}
-              sessionId={dashboardSessionId}
-              kind="folder_document"
-              documentId="dashboard"
-              label="Перегенерировать дашборд"
-              onSuccess={onRegenerated}
-            />
-          ) : null}
-          <span className={adminBadgeReadyClass}>Есть данные</span>
-        </div>
+        {dashboardSessionId ? (
+          <RegenerateDocumentReportButton
+            folderKey={folderKey}
+            sessionId={dashboardSessionId}
+            kind="folder_document"
+            documentId="dashboard"
+            label="↻"
+            className={adminIconCircleButtonClass}
+            onSuccess={onRegenerated}
+          />
+        ) : null}
       </div>
       <EmployeeDashboardCharts visual={visual} />
     </div>

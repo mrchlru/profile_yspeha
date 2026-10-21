@@ -123,7 +123,7 @@ export async function listInterviewFolderCandidates(
   }
 
   const folderKeys = [...map.keys()];
-  const [statusMap, screeningReports] = await Promise.all([
+  const [statusMap, screeningReports, resumeFiles] = await Promise.all([
     loadCandidateFolderStatusMap(folderKeys),
     prisma.screeningSubmission.findMany({
       where: {
@@ -138,7 +138,26 @@ export async function listInterviewFolderCandidates(
         kotReport: true,
       },
     }),
+    folderKeys.length > 0
+      ? prisma.employeeFolderFile.findMany({
+          where: {
+            folderKey: { in: folderKeys },
+            OR: [
+              { mimeType: "application/pdf" },
+              { mimeType: "application/msword" },
+              {
+                mimeType:
+                  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+              },
+            ],
+          },
+          select: { folderKey: true },
+          distinct: ["folderKey"],
+        })
+      : Promise.resolve([]),
   ]);
+
+  const resumeFolderKeys = new Set(resumeFiles.map((file) => file.folderKey));
 
   const reportsByFolder = new Map<string, InterviewFolderScreeningReportSession[]>();
   for (const row of screeningReports) {
@@ -173,6 +192,7 @@ export async function listInterviewFolderCandidates(
         positionLevelLabel: row.positionLevel
           ? candidatePositionLevelLabel(row.positionLevel)
           : null,
+        hasResume: resumeFolderKeys.has(row.folderKey),
       };
     })
     .sort((a, b) => {

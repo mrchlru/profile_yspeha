@@ -2,8 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 
-import { AvProctorToggle } from "@/components/admin/AvProctorToggle";
 import { CreateInviteSuccessCard } from "@/components/admin/CreateInviteSuccessCard";
+import { AdminListSwitchRow } from "@/components/admin/ui/AdminUi";
 import {
   EmployeeInviteSelector,
   EMPTY_EMPLOYEE_INVITE,
@@ -23,7 +23,8 @@ import {
   adminPanelCardClass,
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
-  adminPrimaryButtonClass,
+  adminPrimaryButtonLargeClass,
+  adminSectionHeadingClass,
 } from "@/lib/admin/adminPanelTheme";
 import { CANDIDATE_POSITION_LEVEL_OPTIONS } from "@/lib/admin/candidatePositionLevels";
 import type { CandidateLookupMatch } from "@/lib/admin/candidateFolderTypes";
@@ -375,7 +376,7 @@ export function CreateTestPanel(): React.ReactElement {
               onClick={() => setSelectedId(item.id)}
               className={`${adminPanelCardClass} px-5 py-5 text-left transition ${
                 selectedCard
-                  ? "bg-[var(--admin-accent-tint-2)] ring-2 ring-[var(--admin-accent)]"
+                  ? "bg-[#F1F8F6] ring-2 ring-[#007A68]"
                   : "hover:bg-[var(--admin-surface-muted)]"
               }`}
             >
@@ -394,18 +395,14 @@ export function CreateTestPanel(): React.ReactElement {
       </div>
 
       {selected?.available ? (
-        <div className={`space-y-5 px-6 py-6 ${adminPanelCardClass}`}>
-          <div>
-            <h3 className={adminPanelSectionTitleClass}>Приглашение: {selected.title}</h3>
-            <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-              {isScreening
-                ? "Заполните данные соискателя и укажите должность (вакансию). Папка в разделе «Собеседование» создаётся из должности и даты первого скрининга. Код действует 3 суток."
-                : supportsEmployeePick
-                  ? "Выберите сотрудника из архива или создайте нового. Данные привяжутся к папке в системе. Код действует 3 суток."
-                  : "Код действует 3 суток с момента создания."}
-            </p>
-          </div>
+        <div className={`space-y-6 px-6 py-6 ${adminPanelCardClass}`}>
+          <section className="space-y-2">
+            <h3 className={adminSectionHeadingClass}>Тест</h3>
+            <p className="text-[16px] font-semibold text-[var(--admin-text)]">{selected.title}</p>
+          </section>
 
+          <section className="space-y-4">
+            <h3 className={adminSectionHeadingClass}>Кому</h3>
           {isScreening ? (
             <>
               <InterviewFolderSelector value={interviewFolder} onChange={setInterviewFolder} />
@@ -500,47 +497,30 @@ export function CreateTestPanel(): React.ReactElement {
           {supportsEmployeePick ? (
             <EmployeeInviteSelector value={employeeInvite} onChange={setEmployeeInvite} />
           ) : null}
+          </section>
 
-          {isPanelUser && inviteUsesProctor ? (
-            <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-black/8 bg-white/70 px-4 py-4">
-              <AvProctorToggle
-                avProctorDisabled={avProctorDisabledInvite}
-                onChange={setAvProctorDisabledInvite}
-                aria-label="Камера и микрофон при прокторинге"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-extrabold text-[#5F5E5E]">
-                  {avProctorDisabledInvite
-                    ? "Камера и микрофон выключены"
-                    : "Камера и микрофон включены"}
-                </p>
-                <p className={`mt-1 ${adminPanelMutedTextClass}`}>
-                  {avProctorDisabledInvite
-                    ? "Контроль полноэкранного режима и вкладки сохраняется; видео и аудио не пишутся."
-                    : "Прокторинг с камерой и микрофоном. Переключите влево, чтобы отключить AV-защиту."}
-                </p>
+          {(isPanelUser && inviteUsesProctor) || isFullAdmin ? (
+            <section className="space-y-3">
+              <h3 className={adminSectionHeadingClass}>Параметры</h3>
+              <div className={`overflow-hidden rounded-xl bg-[var(--admin-field)] ${adminPanelCardClass} !shadow-none ring-1 ring-[var(--admin-hairline)]`}>
+                {isPanelUser && inviteUsesProctor ? (
+                  <AdminListSwitchRow
+                    title="Прокторинг"
+                    subtitle="Камера и микрофон"
+                    checked={!avProctorDisabledInvite}
+                    onChange={(enabled) => setAvProctorDisabledInvite(!enabled)}
+                  />
+                ) : null}
+                {isFullAdmin ? (
+                  <AdminListSwitchRow
+                    title="DEV-режим"
+                    subtitle="Только администратор"
+                    checked={devModeInvite}
+                    onChange={setDevModeInvite}
+                  />
+                ) : null}
               </div>
-            </div>
-          ) : null}
-
-          {isFullAdmin ? (
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-amber-300/70 bg-amber-50 px-4 py-4">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4"
-                checked={devModeInvite}
-                onChange={(event) => setDevModeInvite(event.target.checked)}
-              />
-              <span>
-                <span className="block text-[14px] font-extrabold text-amber-950">
-                  DEV-режим (техтест)
-                </span>
-                <span className="mt-1 block text-[13px] leading-relaxed text-amber-900">
-                  Свободная навигация по шагам, текстовый отчёт без PDF и ИИ. Код не помечается
-                  использованным. Доступно только главному администратору.
-                </span>
-              </span>
-            </label>
+            </section>
           ) : null}
 
           {error ? (
@@ -549,17 +529,17 @@ export function CreateTestPanel(): React.ReactElement {
             </p>
           ) : null}
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center justify-end gap-4 border-t border-[var(--admin-hairline)] pt-5">
+            <p className="text-[14px] text-[var(--admin-text-3)]">Код действует 3 суток</p>
             <button
               type="button"
               onClick={() => void createInvite()}
               disabled={busy || !canCreate}
-              className={adminPrimaryButtonClass}
+              className={adminPrimaryButtonLargeClass}
             >
               {busy ? "Создание…" : "Создать приглашение"}
             </button>
           </div>
-          <p className="text-[14px] text-[var(--admin-text-3)]">Код действует 3 суток</p>
         </div>
       ) : (
         <div className={`px-6 py-6 ${adminPanelCardClass}`}>

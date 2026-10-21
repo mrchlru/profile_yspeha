@@ -59,4 +59,6 @@ export type InterviewFolderCandidateSummary = {
   screeningReportSessions: ReadonlyArray<InterviewFolderScreeningReportSession>;
   lastActivityAt: string | null;
   positionLevelLabel: string | null;
+  /** Загружено резюме (PDF/Word) в папку кандидата. */
+  hasResume: boolean;
 };
