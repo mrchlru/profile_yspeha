@@ -21,6 +21,7 @@ export async function changeAccessInviteAvProctor(
       code: true,
       usedAt: true,
       revokedAt: true,
+      expiresAt: true,
       avProctorDisabled: true,
     },
   });
@@ -30,7 +31,9 @@ export async function changeAccessInviteAvProctor(
   }
 
   if (!inviteCanChangeAvProctor(row)) {
-    throw new Error("Нельзя изменить режим прокторинга: код уже использован или отозван");
+    throw new Error(
+      "Нельзя изменить режим прокторинга: код использован, отозван или срок действия истёк"
+    );
   }
 
   if (row.avProctorDisabled === avProctorDisabled) {

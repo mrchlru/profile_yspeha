@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useCallback, useEffect, useState } from "react";
 
 import { Button } from "@/components/Button";
@@ -7,12 +8,14 @@ import {
   MAX_INTERVIEW_COMMISSION_MEMBERS,
   type InterviewCommissionMemberRecord,
 } from "@/lib/admin/interviewCommissionTypes";
+import { candidateAvatarInitials } from "@/lib/admin/interviewCandidateUi";
 import {
+  adminFieldLabelClass,
+  adminInputClass,
   adminPanelCardClass,
   adminPanelMutedTextClass,
   adminPanelSectionTitleClass,
 } from "@/lib/admin/adminPanelTheme";
-import { stepInputClass, stepLabelClass } from "@/lib/stepPageTheme";
 
 export type InterviewCommissionMembersPanelProps = {
   interviewFolderKey: string;
@@ -125,26 +128,56 @@ export function InterviewCommissionMembersPanel({
 
   return (
     <div className={`space-y-4 px-5 py-5 ${adminPanelCardClass}`}>
-      <div>
-        <h3 className={adminPanelSectionTitleClass}>Комиссия собеседования</h3>
-        <p className={`mt-2 ${adminPanelMutedTextClass}`}>
-          До {String(MAX_INTERVIEW_COMMISSION_MEMBERS)} участников на вакансию. После добавления им
-          будет отправлена ссылка на оценочный лист (на следующем этапе).
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className={adminPanelSectionTitleClass}>Комиссия</h3>
+          <p className={`mt-1 text-[13px] ${adminPanelMutedTextClass}`}>
+            До {String(MAX_INTERVIEW_COMMISSION_MEMBERS)} участников
+          </p>
+        </div>
+        <Link
+          href="/admin/settings"
+          className="text-[14px] font-medium text-[var(--admin-accent)] hover:underline"
+        >
+          Вопросы комиссии
+        </Link>
       </div>
 
       {loading ? <p className={adminPanelMutedTextClass}>Загрузка…</p> : null}
 
+      {!loading && members.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex -space-x-2">
+            {members.map((member) => (
+              <span
+                key={member.id}
+                title={member.displayName}
+                className="flex size-10 items-center justify-center rounded-full border-2 border-[var(--admin-surface)] bg-[var(--admin-avatar-bg-side)] text-[13px] font-semibold text-[var(--admin-accent)]"
+              >
+                {candidateAvatarInitials(member.displayName)}
+              </span>
+            ))}
+          </div>
+          <p className="text-[14px] text-[var(--admin-text-2)]">
+            {members.map((m) => m.displayName).join(", ")}
+          </p>
+        </div>
+      ) : !loading ? (
+        <p className={adminPanelMutedTextClass}>Участники комиссии ещё не назначены.</p>
+      ) : null}
+
       {members.length > 0 ? (
-        <ul className="space-y-2">
+        <ul className="space-y-2 border-t border-[var(--admin-hairline)] pt-3">
           {members.map((member) => (
             <li
               key={member.id}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white/60 px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--admin-field)] px-4 py-3"
             >
               <div>
-                <p className="text-[15px] font-bold text-[#4F4F4F]">{member.displayName}</p>
-                <p className="text-[13px] text-[#8C8C8C]">{member.email}</p>
+                <p className="text-[15px] font-semibold text-[var(--admin-text)]">
+                  {member.displayName}
+                </p>
+                <p className="text-[13px] text-[var(--admin-text-3)]">{member.email}</p>
               </div>
               <Button
                 type="button"
@@ -157,39 +190,37 @@ export function InterviewCommissionMembersPanel({
             </li>
           ))}
         </ul>
-      ) : !loading ? (
-        <p className={adminPanelMutedTextClass}>Участники комиссии ещё не назначены.</p>
       ) : null}
 
       {canAdd ? (
-        <div className="space-y-3 border-t border-black/10 pt-4">
-          <p className="text-[14px] font-bold text-[#5F5E5E]">Добавить участника</p>
+        <div className="space-y-3 border-t border-[var(--admin-hairline)] pt-4">
+          <p className="text-[14px] font-semibold text-[var(--admin-text)]">Добавить участника</p>
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <label htmlFor="commission-last-name" className={`block ${stepLabelClass}`}>
+              <label htmlFor="commission-last-name" className={adminFieldLabelClass}>
                 Фамилия
               </label>
               <input
                 id="commission-last-name"
                 value={lastName}
                 onChange={(event) => setLastName(event.target.value)}
-                className={`${stepInputClass} h-11 w-full text-[15px]`}
+                className={adminInputClass}
               />
             </div>
             <div>
-              <label htmlFor="commission-first-name" className={`block ${stepLabelClass}`}>
+              <label htmlFor="commission-first-name" className={adminFieldLabelClass}>
                 Имя
               </label>
               <input
                 id="commission-first-name"
                 value={firstName}
                 onChange={(event) => setFirstName(event.target.value)}
-                className={`${stepInputClass} h-11 w-full text-[15px]`}
+                className={adminInputClass}
               />
             </div>
           </div>
           <div>
-            <label htmlFor="commission-email" className={`block ${stepLabelClass}`}>
+            <label htmlFor="commission-email" className={adminFieldLabelClass}>
               Почта
             </label>
             <input
@@ -197,7 +228,7 @@ export function InterviewCommissionMembersPanel({
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className={`${stepInputClass} h-11 w-full text-[15px]`}
+              className={adminInputClass}
             />
           </div>
           <Button
@@ -209,11 +240,11 @@ export function InterviewCommissionMembersPanel({
             {busy ? "Добавление…" : "Добавить в комиссию"}
           </Button>
         </div>
-      ) : (
+      ) : !loading && members.length >= MAX_INTERVIEW_COMMISSION_MEMBERS ? (
         <p className={adminPanelMutedTextClass}>
           Достигнут лимит — в комиссии {String(MAX_INTERVIEW_COMMISSION_MEMBERS)} участника.
         </p>
-      )}
+      ) : null}
 
       {error ? (
         <p className="text-sm font-medium text-red-700/90" role="alert">

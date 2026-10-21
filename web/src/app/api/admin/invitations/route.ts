@@ -16,6 +16,7 @@ import {
 import { candidatePositionLevelLabel } from "@/lib/admin/candidatePositionLevels";
 import { requireAdminPanelSession } from "@/lib/admin/requireAdminApi";
 import { prisma } from "@/lib/prisma";
+import { isProctorTestKind, isTestKind } from "@/lib/access/testKinds";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ export async function GET(
           canChangeTestKind: boolean;
           avProctorDisabled: boolean;
           canChangeAvProctor: boolean;
+          proctorWithCamera: boolean;
           candidateDisplayName: string | null;
           positionLevelLabel: string | null;
           createdAt: string;
@@ -123,6 +125,7 @@ export async function GET(
           canChangeTestKind: inviteCanChangeTestKind(row),
           avProctorDisabled: row.avProctorDisabled,
           canChangeAvProctor: inviteCanChangeAvProctor(row),
+          proctorWithCamera: isTestKind(row.testKind) && isProctorTestKind(row.testKind),
           candidateDisplayName,
           positionLevelLabel,
           createdAt: row.createdAt.toISOString(),

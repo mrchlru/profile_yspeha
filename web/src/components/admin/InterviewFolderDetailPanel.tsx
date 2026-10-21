@@ -196,15 +196,7 @@ export function InterviewFolderDetailPanel({
         onMembersChanged={() => setCommissionEpoch((value) => value + 1)}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <p className="text-[13px] font-medium text-[var(--admin-text-3)]">Кандидаты</p>
-        <Link
-          href="/admin/settings"
-          className="text-[14px] font-medium text-[var(--admin-accent)] hover:underline"
-        >
-          Вопросы комиссии
-        </Link>
-      </div>
+      <p className="px-1 text-[13px] font-medium text-[var(--admin-text-3)]">Кандидаты</p>
 
       {error ? (
         <p className="text-sm font-medium text-red-700/90" role="alert">

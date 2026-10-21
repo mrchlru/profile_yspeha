@@ -59,12 +59,23 @@ export function inviteCanChangeTestKind(row: {
   return row.startedAt == null && row.usedAt == null && row.revokedAt == null;
 }
 
-/** Флаг «без камеры/микрофона» можно менять, пока код не использован и не отозван. */
+/** Флаг «без камеры/микрофона» можно менять, пока код ещё действует и не завершён. */
 export function inviteCanChangeAvProctor(row: {
   usedAt?: Date | string | null;
   revokedAt?: Date | string | null;
+  expiresAt?: Date | string;
 }): boolean {
-  return row.usedAt == null && row.revokedAt == null;
+  if (row.usedAt != null || row.revokedAt != null) {
+    return false;
+  }
+  if (row.expiresAt) {
+    const expires =
+      row.expiresAt instanceof Date ? row.expiresAt : new Date(row.expiresAt);
+    if (expires.getTime() < Date.now()) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**

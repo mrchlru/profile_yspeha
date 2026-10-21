@@ -40,6 +40,7 @@ type InvitationRow = {
   canChangeTestKind: boolean;
   avProctorDisabled: boolean;
   canChangeAvProctor: boolean;
+  proctorWithCamera: boolean;
   candidateDisplayName: string | null;
   positionLevelLabel: string | null;
   createdAt: string;
@@ -500,7 +501,11 @@ export function InvitationsTable({
                     {row.testKindLabel}
                   </div>
                   <div className="flex w-8 shrink-0 justify-center">
-                    <InviteCameraIcon enabled={!row.avProctorDisabled} code={row.code} />
+                    <InviteCameraControl
+                      row={row}
+                      busy={changingAvId === row.id}
+                      onToggle={() => void toggleAvProctor(row, !row.avProctorDisabled)}
+                    />
                   </div>
                   <div
                     className="min-w-0 flex-1 text-[14px] text-[var(--admin-text-3)]"
@@ -571,25 +576,78 @@ export function InvitationsTable({
   );
 }
 
-function InviteCameraIcon({
-  enabled,
-  code,
+function InviteCameraControl({
+  row,
+  busy,
+  onToggle,
 }: {
-  enabled: boolean;
-  code: string;
+  row: InvitationRow;
+  busy: boolean;
+  onToggle: () => void;
 }): React.ReactElement {
-  const label = enabled
-    ? `Камера и микрофон включены для ${code}`
-    : `Камера и микрофон выключены для ${code}`;
+  if (!row.proctorWithCamera) {
+    return (
+      <span className="text-[14px] text-[var(--admin-text-3)]" aria-hidden>
+        —
+      </span>
+    );
+  }
+
+  const cameraOn = !row.avProctorDisabled;
+  const canToggle = row.canChangeAvProctor;
+  const label = cameraOn
+    ? `Камера и микрофон включены для ${row.code}. Нажмите, чтобы отключить.`
+    : `Камера и микрофон выключены для ${row.code}.${canToggle ? " Нажмите, чтобы включить." : ""}`;
+
+  if (!canToggle) {
+    return (
+      <span
+        className={cameraOn ? "text-[var(--admin-accent)]" : "text-[var(--admin-text-3)]"}
+        aria-label={label}
+        title={label}
+      >
+        {cameraOn ? <CameraOnIcon /> : <CameraOffIcon />}
+      </span>
+    );
+  }
+
   return (
-    <span
-      className={enabled ? "text-[var(--admin-accent)]" : "text-[var(--admin-chevron)]"}
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onToggle}
+      className={`inline-flex size-9 items-center justify-center rounded-full transition hover:bg-[var(--admin-surface-muted)] disabled:opacity-50 ${
+        cameraOn ? "text-[var(--admin-accent)]" : "text-[var(--admin-text-3)]"
+      }`}
       aria-label={label}
       title={label}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-        <path d="M4 8h11v8H4zM15 11l5-3v8l-5-3" />
-      </svg>
-    </span>
+      {cameraOn ? <CameraOnIcon /> : <CameraOffIcon />}
+    </button>
+  );
+}
+
+function CameraOnIcon(): React.ReactElement {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path
+        d="M4 8.5A2.5 2.5 0 0 1 6.5 6h2.1l1.2-1.6A1.5 1.5 0 0 1 11 3.8h2a1.5 1.5 0 0 1 1.2.6L15.4 6h2.1A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12.5" r="3.2" />
+    </svg>
+  );
+}
+
+function CameraOffIcon(): React.ReactElement {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+      <path
+        d="M4 8.5A2.5 2.5 0 0 1 6.5 6h2.1l1.2-1.6A1.5 1.5 0 0 1 11 3.8h2a1.5 1.5 0 0 1 1.2.6L15.4 6h2.1A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12.5" r="3.2" />
+      <path d="M5 19.5 19 4.5" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }

@@ -1,14 +1,14 @@
-import React, { Suspense } from "react";
+import { redirect } from "next/navigation";
+import React from "react";
 
-import { AdminShell } from "@/components/admin/AdminShell";
-import { InterviewFolderDetailView } from "@/components/admin/InterviewFolderDetailView";
+type AdminInterviewFolderPageProps = {
+  params: { folderKey: string };
+};
 
-export default function AdminInterviewFolderPage(): React.ReactElement {
-  return (
-    <AdminShell title="Папка вакансии" description="Кандидаты и решения по собеседованию">
-      <Suspense fallback={<p className="text-[#8C8C8C]">Загрузка…</p>}>
-        <InterviewFolderDetailView />
-      </Suspense>
-    </AdminShell>
-  );
+/** Прямые ссылки на папку ведут на единый экран «Собеседование». */
+export default function AdminInterviewFolderPage({
+  params,
+}: AdminInterviewFolderPageProps): React.ReactElement {
+  const folderKey = decodeURIComponent(params.folderKey);
+  redirect(`/admin/interview?folder=${encodeURIComponent(folderKey)}`);
 }
