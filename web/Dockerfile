@@ -1,4 +1,4 @@
-# Timeweb buildctl ~1680s: prod npm ci + tailwind/lightningcss для сборки (без eslint).
+# Prod-образ Timeweb: npm ci по lockfile (все native optional deps), YOLO — при старте.
 
 FROM node:20-bookworm AS builder
 
@@ -10,18 +10,12 @@ ENV NPM_CONFIG_JOBS=2 \
 
 COPY package*.json .npmrc ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --no-audit --no-fund
-# Версии как в package-lock; optional-бинарник lightningcss обязателен для postcss на Linux.
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-save --no-audit --no-fund \
-    tailwindcss@4.2.2 \
-    @tailwindcss/postcss@4.2.2 \
-    lightningcss-linux-x64-gnu@1.32.0
+    npm ci --no-audit --no-fund
 
 COPY . .
 
 RUN npm run db:generate
-RUN npm run build
+RUN npx next build
 RUN npm prune --omit=dev
 
 FROM node:20-bookworm AS runner
@@ -51,7 +45,8 @@ RUN rm -rf \
   node_modules/onnxruntime-node/bin/napi-v3/win32 \
   node_modules/onnxruntime-node/bin/napi-v3/darwin \
   && test -d node_modules/prisma \
-  && test -d .next
+  && test -d .next \
+  && test -d models
 
 EXPOSE 8080
 
