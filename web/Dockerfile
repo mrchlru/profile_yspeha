@@ -1,4 +1,4 @@
-# Timeweb buildctl ~1680s: только prod npm ci + tailwind для postcss, без eslint/typescript.
+# Timeweb buildctl ~1680s: prod npm ci + tailwind/lightningcss для сборки (без eslint).
 
 FROM node:20-bookworm AS builder
 
@@ -9,12 +9,14 @@ ENV NPM_CONFIG_JOBS=2 \
     NPM_CONFIG_FETCH_RETRIES=5
 
 COPY package*.json .npmrc ./
-# Без devDependencies (eslint-config-next и т.д.) — основная экономия времени на стенде.
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev --no-audit --no-fund --omit=optional
+    npm ci --omit=dev --no-audit --no-fund
+# Версии как в package-lock; optional-бинарник lightningcss обязателен для postcss на Linux.
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --no-save --no-audit --no-fund --omit=optional \
-    tailwindcss@^4 @tailwindcss/postcss@^4
+    npm install --no-save --no-audit --no-fund \
+    tailwindcss@4.2.2 \
+    @tailwindcss/postcss@4.2.2 \
+    lightningcss-linux-x64-gnu@1.32.0
 
 COPY . .
 

@@ -1,7 +1,7 @@
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
-  typescript: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   productionBrowserSourceMaps: false,
   experimental: {
     serverComponentsExternalPackages: ["onnxruntime-node"],
