@@ -1,19 +1,20 @@
-# Рабочий прод-образ для Timeweb: полный node_modules после prune.
-# Лимит buildctl ~1680s — кэш npm/node_modules, без apt в runner, YOLO при старте.
+# Timeweb buildctl ~1680s: только prod npm ci + tailwind для postcss, без eslint/typescript.
 
 FROM node:20-bookworm AS builder
 
 WORKDIR /app
 
-ENV NPM_CONFIG_JOBS=1 \
+ENV NPM_CONFIG_JOBS=2 \
     NPM_CONFIG_FETCH_TIMEOUT=300000 \
     NPM_CONFIG_FETCH_RETRIES=5
 
 COPY package*.json .npmrc ./
-# Кэш npm + node_modules между деплоями; без optional — меньше трафика и RAM.
+# Без devDependencies (eslint-config-next и т.д.) — основная экономия времени на стенде.
 RUN --mount=type=cache,target=/root/.npm \
-    --mount=type=cache,id=web-npm-ci-v3,target=/app/node_modules \
-    npm ci --no-audit --no-fund --omit=optional --prefer-offline
+    npm ci --omit=dev --no-audit --no-fund --omit=optional
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --no-save --no-audit --no-fund --omit=optional \
+    tailwindcss@^4 @tailwindcss/postcss@^4
 
 COPY . .
 
@@ -21,7 +22,6 @@ RUN npm run db:generate
 RUN npm run build
 RUN npm prune --omit=dev
 
-# Полный bookworm — openssl/ca уже есть, без медленного apt-get на стенде.
 FROM node:20-bookworm AS runner
 
 WORKDIR /app
