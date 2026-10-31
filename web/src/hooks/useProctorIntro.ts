@@ -8,10 +8,27 @@ import {
 } from "@/lib/proctor/proctorMonitorState";
 import { useFormStore } from "@/store/useFormStore";
 
+/** Ждём validate, чтобы не запросить камеру по устаревшему localStorage. */
+export function useAccessInviteSettingsPending(): boolean {
+  const validatedAccessCode = useFormStore((s) => s.validatedAccessCode);
+  const synced = useFormStore((s) => s.accessInviteSettingsSynced);
+  const testKind = useFormStore((s) => s.activeTestKind);
+  return (
+    validatedAccessCode !== null &&
+    !synced &&
+    testKind !== null &&
+    isProctorTestKind(testKind)
+  );
+}
+
 /** Нужен ли блок запроса камеры на intro для активной батареи. */
 export function useProctorIntroRequired(): boolean {
   const testKind = useFormStore((s) => s.activeTestKind);
   const avProctorDisabled = useFormStore((s) => s.activeInviteAvProctorDisabled);
+  const invitePending = useAccessInviteSettingsPending();
+  if (invitePending) {
+    return false;
+  }
   return isProctorTestKind(testKind) && !avProctorDisabled;
 }
 
@@ -19,8 +36,12 @@ export function useProctorIntroRequired(): boolean {
 export function useProctorIntroReady(): boolean {
   const testKind = useFormStore((s) => s.activeTestKind);
   const avProctorDisabled = useFormStore((s) => s.activeInviteAvProctorDisabled);
+  const invitePending = useAccessInviteSettingsPending();
   const required = useProctorIntroRequired();
   const proctorMediaGranted = useFormStore((s) => s.proctorMediaGranted);
+  if (invitePending) {
+    return false;
+  }
   if (isProctorTestKind(testKind) && avProctorDisabled) {
     return true;
   }
@@ -32,12 +53,13 @@ export function useProctorMonitorEnabled(): boolean {
   const testKind = useFormStore((s) => s.activeTestKind);
   const proctorMediaGranted = useFormStore((s) => s.proctorMediaGranted);
   const avProctorDisabled = useFormStore((s) => s.activeInviteAvProctorDisabled);
+  const invitePending = useAccessInviteSettingsPending();
   const binding = useProctorBinding();
 
   return isProctorAvMonitorActive({
     testKind,
     proctorMediaGranted,
-    avProctorDisabled,
+    avProctorDisabled: avProctorDisabled || invitePending,
     ...binding,
   });
 }

@@ -7,9 +7,12 @@ import { BtsBrandLogoLink } from "@/components/BtsBrandLogoLink";
 import { MetaballBackground } from "@/components/MetaballBackground";
 import { ProctorMonitor } from "@/components/proctor/ProctorMonitor";
 import { ProctorSecurityGate } from "@/components/proctor/ProctorSecurityGate";
+import { useFormStoreHydrated } from "@/hooks/useAccessGate";
 import { useProctorUiActive } from "@/hooks/useProctorUiActive";
+import { useSyncAccessInviteFromValidate } from "@/hooks/useSyncAccessInviteFromValidate";
 import { useScreeningNoSelect } from "@/hooks/useScreeningNoSelect";
 import { screeningNoSelectContentClass } from "@/lib/stepPageTheme";
+import { useFormStore } from "@/store/useFormStore";
 
 export type StepLayoutProps = {
   children: React.ReactNode;
@@ -30,6 +33,12 @@ export function StepLayout({
 }: StepLayoutProps): React.ReactElement {
   const screeningNoSelect = useScreeningNoSelect();
   const proctorUiActive = useProctorUiActive();
+  const formHydrated = useFormStoreHydrated();
+  const validatedAccessCode = useFormStore((s) => s.validatedAccessCode);
+  useSyncAccessInviteFromValidate({
+    accessReady: formHydrated && validatedAccessCode !== null,
+    validatedAccessCode,
+  });
 
   return (
     <div

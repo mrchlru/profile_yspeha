@@ -10,6 +10,7 @@ import {
   stopProctorMediaStream,
 } from "@/lib/proctor/proctorMediaStream";
 import { stepNavPrimaryButtonClass, stepSecondaryTextClass } from "@/lib/stepPageTheme";
+import { useProctorIntroRequired } from "@/hooks/useProctorIntro";
 import { useFormStore } from "@/store/useFormStore";
 
 type ProctorIntroStatus = "idle" | "requesting" | "granted" | "denied";
@@ -18,7 +19,8 @@ type ProctorIntroStatus = "idle" | "requesting" | "granted" | "denied";
  * Запрос камеры и микрофона на intro до начала тестирования.
  * Поток сохраняется для мониторинга на шагах теста (без повторного getUserMedia).
  */
-export function ProctorIntroGate(): React.ReactElement {
+export function ProctorIntroGate(): React.ReactElement | null {
+  const proctorRequired = useProctorIntroRequired();
   const proctorMediaGranted = useFormStore((s) => s.proctorMediaGranted);
   const setProctorMediaGranted = useFormStore((s) => s.setProctorMediaGranted);
   const [status, setStatus] = useState<ProctorIntroStatus>(
@@ -32,7 +34,14 @@ export function ProctorIntroGate(): React.ReactElement {
   }, [proctorMediaGranted]);
 
   useEffect(() => {
-    if (!proctorMediaGranted || !hasActiveProctorMediaStream()) {
+    if (!proctorRequired) {
+      stopProctorMediaStream();
+      setProctorMediaGranted(false);
+    }
+  }, [proctorRequired, setProctorMediaGranted]);
+
+  useEffect(() => {
+    if (!proctorRequired || !proctorMediaGranted || !hasActiveProctorMediaStream()) {
       return;
     }
     const video = videoRef.current;
@@ -44,7 +53,7 @@ export function ProctorIntroGate(): React.ReactElement {
       video.muted = true;
       void video.play();
     });
-  }, [proctorMediaGranted]);
+  }, [proctorMediaGranted, proctorRequired]);
 
   useEffect(() => {
     return () => {
@@ -55,6 +64,9 @@ export function ProctorIntroGate(): React.ReactElement {
   }, []);
 
   async function requestAccess(): Promise<void> {
+    if (!proctorRequired) {
+      return;
+    }
     setStatus("requesting");
     try {
       const stream = await ensureProctorMediaStream();
@@ -71,6 +83,10 @@ export function ProctorIntroGate(): React.ReactElement {
       stopProctorMediaStream();
       setStatus("denied");
     }
+  }
+
+  if (!proctorRequired) {
+    return null;
   }
 
   return (

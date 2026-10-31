@@ -219,8 +219,8 @@ export function CreateTestPanel(): React.ReactElement {
       if (devModeInvite) {
         body.devMode = true;
       }
-      if (avProctorDisabledInvite) {
-        body.avProctorDisabled = true;
+      if (inviteUsesProctor) {
+        body.avProctorDisabled = avProctorDisabledInvite;
       }
 
       return body;
@@ -235,7 +235,7 @@ export function CreateTestPanel(): React.ReactElement {
             ? { positionLevelOverride: employeeInvite.candidate.positionLevel }
             : {}),
           ...(devModeInvite ? { devMode: true } : {}),
-          ...(avProctorDisabledInvite ? { avProctorDisabled: true } : {}),
+          ...(inviteUsesProctor ? { avProctorDisabled: avProctorDisabledInvite } : {}),
         };
       }
 
@@ -248,14 +248,14 @@ export function CreateTestPanel(): React.ReactElement {
           positionLevel: employeeInvite.candidate.positionLevel,
         },
         ...(devModeInvite ? { devMode: true } : {}),
-        ...(avProctorDisabledInvite ? { avProctorDisabled: true } : {}),
+        ...(inviteUsesProctor ? { avProctorDisabled: avProctorDisabledInvite } : {}),
       };
     }
 
     return {
       testKind: selected.inviteTestKind,
       ...(devModeInvite ? { devMode: true } : {}),
-      ...(avProctorDisabledInvite ? { avProctorDisabled: true } : {}),
+      ...(inviteUsesProctor ? { avProctorDisabled: avProctorDisabledInvite } : {}),
     };
   }
 

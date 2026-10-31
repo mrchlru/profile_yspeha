@@ -12,7 +12,11 @@ import {
   stepNavPrimaryButtonClass,
 } from "@/lib/stepPageTheme";
 import { useAuditAccessReady } from "@/hooks/useAuditAccessGate";
-import { useProctorIntroReady, useProctorIntroRequired } from "@/hooks/useProctorIntro";
+import {
+  useAccessInviteSettingsPending,
+  useProctorIntroReady,
+  useProctorIntroRequired,
+} from "@/hooks/useProctorIntro";
 import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useFormStore } from "@/store/useFormStore";
 import { AUDIT_STEPS, getAuditStepByIndex } from "@/lib/audit/auditSteps";
@@ -28,6 +32,7 @@ import {
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { ensureBatteryProfSbRouteCookie } from "@/lib/ensureBatteryProfSbRouteCookie";
 import { needsOdIdentityQuestionnaire } from "@/lib/identity/needsOdIdentityQuestionnaire";
+import { applyAccessValidateOkBody } from "@/lib/access/applyAccessValidateOkBody";
 import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
 
 /**
@@ -52,6 +57,7 @@ export default function AuditIntroPage(): React.ReactElement {
   const setAccessCodeSnapshot = useAuditFormStore((s) => s.setAccessCodeSnapshot);
   const proctorRequired = useProctorIntroRequired();
   const proctorReady = useProctorIntroReady();
+  const inviteSettingsPending = useAccessInviteSettingsPending();
   const setBatteryStepSequence = useAuditFormStore((s) => s.setBatteryStepSequence);
   const maxUnlockedStep = useAuditFormStore((s) => s.maxUnlockedStep);
   const batterySequenceUnlockedThrough = useAuditFormStore(
@@ -97,15 +103,6 @@ export default function AuditIntroPage(): React.ReactElement {
     if (!accessReady || !validatedAccessCode) {
       return;
     }
-    const auditState = useAuditFormStore.getState();
-    const battery = getAuditBatteryForTestKind(activeTestKind);
-    const isReturningSession =
-      auditState.maxUnlockedStep > 0 ||
-      (battery !== null &&
-        (auditState.currentStep > 0 || auditState.batterySequenceUnlockedThrough > 0));
-    if (isReturningSession) {
-      return;
-    }
     let cancelled = false;
     void (async () => {
       const res = await fetch("/api/access/validate", {
@@ -117,23 +114,24 @@ export default function AuditIntroPage(): React.ReactElement {
         testKind?: string;
         auditBatteryStepOrder?: number[];
         devMode?: boolean;
+        avProctorDisabled?: boolean;
         candidateFirstName?: string;
         candidateLastName?: string;
       };
-      if (cancelled || res.ok) {
+      if (cancelled) {
+        return;
+      }
+      if (res.ok) {
+        applyAccessValidateOkBody(body);
+        const auditState = useAuditFormStore.getState();
         if (
-          res.ok &&
           body.auditBatteryStepOrder !== undefined &&
           activeTestKind &&
           auditState.batteryStepSequence === null
         ) {
           setBatteryStepSequence(body.auditBatteryStepOrder, activeTestKind);
         }
-        if (
-          res.ok &&
-          body.candidateFirstName &&
-          body.candidateLastName
-        ) {
+        if (body.candidateFirstName && body.candidateLastName) {
           setAuditAssesseeName(body.candidateFirstName, body.candidateLastName);
           setFirstNameInput(body.candidateFirstName);
           setLastNameInput(body.candidateLastName);
@@ -360,7 +358,12 @@ export default function AuditIntroPage(): React.ReactElement {
               {continueLabel}
             </Button>
           </div>
-          {proctorRequired && !proctorReady && canStart ? (
+          {inviteSettingsPending ? (
+            <p className="mt-3 text-[14px] font-medium text-[#5F5E5E]" role="status">
+              Проверяем настройки приглашения…
+            </p>
+          ) : null}
+          {proctorRequired && !proctorReady && canStart && !inviteSettingsPending ? (
             <p className="mt-3 text-[14px] font-medium text-amber-900" role="status">
               Сначала разрешите камеру и микрофон — кнопка «{continueLabel}» станет активной.
             </p>

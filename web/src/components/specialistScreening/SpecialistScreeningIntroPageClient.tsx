@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/Button";
@@ -8,6 +8,7 @@ import { ProctorIntroGate } from "@/components/proctor/ProctorIntroGate";
 import { StepLayout } from "@/components/StepLayout";
 import { useSpecialistScreeningAccessReady } from "@/hooks/useSpecialistScreeningAccessGate";
 import { useProctorIntroReady, useProctorIntroRequired } from "@/hooks/useProctorIntro";
+import { useSyncAccessInviteFromValidate } from "@/hooks/useSyncAccessInviteFromValidate";
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
 import {
@@ -56,28 +57,17 @@ export function SpecialistScreeningIntroPageClient(): React.ReactElement {
     setAccessCodeSnapshot(validatedAccessCode);
   }, [accessReady, setAccessCodeSnapshot, validatedAccessCode]);
 
-  useEffect(() => {
-    if (!accessReady || !validatedAccessCode) {
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const res = await fetch("/api/access/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: validatedAccessCode }),
-      });
-      if (cancelled || res.ok) {
-        return;
-      }
-      leaveSession();
-      clearValidatedAccess();
-      router.replace("/");
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessReady, validatedAccessCode, clearValidatedAccess, leaveSession, router]);
+  const onInviteInvalid = useCallback(() => {
+    leaveSession();
+    clearValidatedAccess();
+    router.replace("/");
+  }, [clearValidatedAccess, leaveSession, router]);
+
+  useSyncAccessInviteFromValidate({
+    accessReady,
+    validatedAccessCode,
+    onInvalid: onInviteInvalid,
+  });
 
   if (!accessReady) {
     return (

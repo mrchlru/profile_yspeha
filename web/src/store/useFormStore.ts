@@ -103,6 +103,8 @@ type FormStore = {
   activeInviteDevMode: boolean;
   /** На приглашении отключены камера и микрофон прокторинга. */
   activeInviteAvProctorDisabled: boolean;
+  /** Флаги приглашения подтверждены сервером (после validate / ввод кода). */
+  accessInviteSettingsSynced: boolean;
   /** Имя и фамилия из карточки приглашения (если заданы при создании кода). */
   inviteCandidateFirstName: string | null;
   inviteCandidateLastName: string | null;
@@ -205,6 +207,7 @@ export const useFormStore = create<FormStore>()(
       activeTestKind: null,
       activeInviteDevMode: false,
       activeInviteAvProctorDisabled: false,
+      accessInviteSettingsSynced: true,
       inviteCandidateFirstName: null,
       inviteCandidateLastName: null,
 
@@ -237,21 +240,29 @@ export const useFormStore = create<FormStore>()(
         });
       },
 
-      setValidatedAccess: (code, testKind, options) =>
+      setValidatedAccess: (code, testKind, options) => {
+        const avDisabled = options?.avProctorDisabled === true;
+        if (avDisabled) {
+          stopProctorMediaStream();
+        }
         set({
           validatedAccessCode: code,
           activeTestKind: testKind,
           activeInviteDevMode: options?.devMode === true,
-          activeInviteAvProctorDisabled: options?.avProctorDisabled === true,
+          activeInviteAvProctorDisabled: avDisabled,
+          accessInviteSettingsSynced: true,
           inviteCandidateFirstName: options?.candidateFirstName?.trim() || null,
           inviteCandidateLastName: options?.candidateLastName?.trim() || null,
-        }),
+          ...(avDisabled ? { proctorMediaGranted: false } : {}),
+        });
+      },
       clearValidatedAccess: () =>
         set({
           validatedAccessCode: null,
           activeTestKind: null,
           activeInviteDevMode: false,
           activeInviteAvProctorDisabled: false,
+          accessInviteSettingsSynced: true,
           inviteCandidateFirstName: null,
           inviteCandidateLastName: null,
         }),
@@ -313,6 +324,7 @@ export const useFormStore = create<FormStore>()(
           activeTestKind: null,
           activeInviteDevMode: false,
           activeInviteAvProctorDisabled: false,
+          accessInviteSettingsSynced: true,
           inviteCandidateFirstName: null,
           inviteCandidateLastName: null,
           proctorMediaGranted: false,
@@ -489,6 +501,11 @@ export const useFormStore = create<FormStore>()(
         submitError: state.submitError,
       }),
       skipHydration: true,
+      onRehydrateStorage: () => (state) => {
+        if (state?.validatedAccessCode) {
+          state.accessInviteSettingsSynced = false;
+        }
+      },
     }
   )
 );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/Button";
@@ -8,6 +8,7 @@ import { ProctorIntroGate } from "@/components/proctor/ProctorIntroGate";
 import { StepLayout } from "@/components/StepLayout";
 import { useProfSbEducationAccessReady } from "@/hooks/useProfSbEducationAccessGate";
 import { useProctorIntroReady, useProctorIntroRequired } from "@/hooks/useProctorIntro";
+import { useSyncAccessInviteFromValidate } from "@/hooks/useSyncAccessInviteFromValidate";
 import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { PROF_SB_EDUCATION_SECTIONS } from "@/lib/profSbEducation/profSbEducationTypes";
 import { requestProctorFullscreen } from "@/lib/proctor/requestProctorFullscreen";
@@ -61,34 +62,17 @@ export function ProfSbEducationIntroPageClient(): React.ReactElement {
     setAccessCodeSnapshot(validatedAccessCode);
   }, [accessReady, setAccessCodeSnapshot, validatedAccessCode]);
 
-  useEffect(() => {
-    if (!accessReady || !validatedAccessCode) {
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const res = await fetch("/api/access/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: validatedAccessCode }),
-      });
-      if (cancelled || res.ok) {
-        return;
-      }
-      leaveProfSbEducationSession();
-      clearValidatedAccess();
-      router.replace("/");
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [
+  const onInviteInvalid = useCallback(() => {
+    leaveProfSbEducationSession();
+    clearValidatedAccess();
+    router.replace("/");
+  }, [clearValidatedAccess, leaveProfSbEducationSession, router]);
+
+  useSyncAccessInviteFromValidate({
     accessReady,
     validatedAccessCode,
-    clearValidatedAccess,
-    leaveProfSbEducationSession,
-    router,
-  ]);
+    onInvalid: onInviteInvalid,
+  });
 
   if (!accessReady) {
     return (
