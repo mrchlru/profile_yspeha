@@ -1,37 +1,29 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { CustomSurveyPlayer } from "@/components/survey/CustomSurveyPlayer";
 import type { SurveyDraftPayload } from "@/lib/survey/surveyTypes";
 
-type PageProps = {
-  params: Promise<{ surveyId: string }>;
-};
-
 /**
  * Предпросмотр черновика (только для авторизованной админ-сессии).
  */
-export default function CustomSurveyPreviewPage(props: PageProps): React.ReactElement {
-  const [surveyId, setSurveyId] = useState<string | null>(null);
+export default function CustomSurveyPreviewPage(): React.ReactElement {
+  const params = useParams();
+  const surveyIdRaw = params.surveyId;
+  const surveyId = typeof surveyIdRaw === "string" ? surveyIdRaw : "";
   const [draft, setDraft] = useState<SurveyDraftPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    void props.params.then((p) => setSurveyId(p.surveyId));
-  }, [props.params]);
-
-  useEffect(() => {
     if (!surveyId) {
+      setError("Некорректный адрес");
       return;
     }
     async function load(): Promise<void> {
       try {
-        const id = surveyId;
-        if (!id) {
-          return;
-        }
-        const res = await fetch(`/api/admin/surveys/${encodeURIComponent(id)}/draft`);
+        const res = await fetch(`/api/admin/surveys/${encodeURIComponent(surveyId)}/draft`);
         const body = (await res.json()) as SurveyDraftPayload & { error?: string };
         if (!res.ok) {
           setError(body.error ?? "Нет доступа к предпросмотру");
