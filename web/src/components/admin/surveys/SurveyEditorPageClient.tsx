@@ -52,7 +52,9 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "conflict">("idle");
   const [publishBusy, setPublishBusy] = useState(false);
   const [publishedVersion, setPublishedVersion] = useState<number | null>(null);
-  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+  const [collapsedQuestionIds, setCollapsedQuestionIds] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftRef = useRef<SurveyDraftPayload | null>(null);
 
@@ -70,16 +72,12 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
       setDraft(body);
       draftRef.current = body;
       setPublishedVersion(body.currentVersionNumber);
-      const ordered = orderedSurveyQuestions(body.schema);
-      if (ordered.length > 0 && !activeQuestionId) {
-        setActiveQuestionId(ordered[0].id);
-      }
     } catch {
       setError("Сеть недоступна");
     } finally {
       setLoading(false);
     }
-  }, [surveyId, activeQuestionId]);
+  }, [surveyId]);
 
   useEffect(() => {
     void loadDraft();
@@ -153,8 +151,24 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
       const sections = schema.sections.map((section, index) =>
         index === 0 ? { ...section, questionIds: [...section.questionIds, question.id] } : section
       );
-      setActiveQuestionId(question.id);
+      setCollapsedQuestionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(question.id);
+        return next;
+      });
       return { ...schema, questions: [...schema.questions, question], sections };
+    });
+  }
+
+  function toggleQuestionCollapsed(questionId: string): void {
+    setCollapsedQuestionIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(questionId)) {
+        next.delete(questionId);
+      } else {
+        next.add(questionId);
+      }
+      return next;
     });
   }
 
@@ -168,12 +182,10 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
   function deleteQuestion(questionId: string): void {
     patchSchema((schema) => {
       const next = removeQuestionFromSchema(schema, questionId);
-      setActiveQuestionId((prev) => {
-        if (prev !== questionId) {
-          return prev;
-        }
-        const remaining = orderedSurveyQuestions(next);
-        return remaining[0]?.id ?? null;
+      setCollapsedQuestionIds((prev) => {
+        const collapsed = new Set(prev);
+        collapsed.delete(questionId);
+        return collapsed;
       });
       return next;
     });
@@ -234,9 +246,6 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
   }
 
   const orderedQuestions = orderedSurveyQuestions(draft.schema);
-  const activeQuestion = orderedQuestions.find((q) => q.id === activeQuestionId) ?? null;
-  const activeCodeIndex =
-    orderedQuestions.findIndex((q) => q.id === activeQuestionId) + 1 || countSurveyQuestions(draft.schema);
 
   const publishLabel =
     publishedVersion !== null
@@ -370,36 +379,21 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
                 </p>
               ) : null}
 
-              {orderedQuestions.map((question) => (
-                <button
-                  key={question.id}
-                  type="button"
-                  className={`${surveyQuestionCardClass} block w-full p-4 text-left transition ${
-                    activeQuestionId === question.id ? "ring-2 ring-[#007A68]" : ""
-                  }`}
-                  onClick={() => setActiveQuestionId(question.id)}
-                >
-                  <p className="text-[12px] font-bold uppercase text-[#5F5E5E]">
-                    {question.code} · {SURVEY_QUESTION_TYPE_LABELS[question.type]}
-                  </p>
-                  <p className="mt-1 text-[15px] font-semibold text-[#1D1D1F]">
-                    {question.title.trim() || "Без текста — нажмите и заполните ниже"}
-                  </p>
-                </button>
-              ))}
-
-              {activeQuestion ? (
+              {orderedQuestions.map((question, index) => (
                 <SurveyQuestionInspector
+                  key={question.id}
                   mode={draft.mode}
                   schema={draft.schema}
-                  question={activeQuestion}
-                  codeIndex={activeCodeIndex}
+                  question={question}
+                  codeIndex={index + 1}
+                  collapsed={collapsedQuestionIds.has(question.id)}
+                  onToggleCollapsed={() => toggleQuestionCollapsed(question.id)}
                   onUpdate={setQuestion}
                   onDelete={deleteQuestion}
                   onDuplicate={duplicateQuestion}
                   onMove={moveQuestion}
                 />
-              ) : null}
+              ))}
             </div>
           ) : null}
 

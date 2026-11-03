@@ -24,6 +24,8 @@ type SurveyQuestionInspectorProps = {
   schema: SurveySchemaDocument;
   question: SurveyQuestion;
   codeIndex: number;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
   onUpdate: (questionId: string, next: SurveyQuestion) => void;
   onDelete: (questionId: string) => void;
   onDuplicate: (questionId: string) => void;
@@ -38,6 +40,8 @@ export function SurveyQuestionInspector({
   schema,
   question,
   codeIndex,
+  collapsed,
+  onToggleCollapsed,
   onUpdate,
   onDelete,
   onDuplicate,
@@ -51,12 +55,29 @@ export function SurveyQuestionInspector({
     onUpdate(question.id, { ...question, ...partial } as SurveyQuestion);
   }
 
+  const titlePreview = question.title.trim() || "Без текста";
+
   return (
     <div className={`${surveyQuestionCardClass} space-y-4`}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[12px] font-bold uppercase text-[#5F5E5E]">
-          {question.code} · {SURVEY_QUESTION_TYPE_LABELS[question.type]}
-        </span>
+        <button
+          type="button"
+          className="inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-[#E5E5E5] bg-white text-[#1D1D1F] hover:bg-[#F5F5F5]"
+          onClick={onToggleCollapsed}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Развернуть блок" : "Свернуть блок"}
+          title={collapsed ? "Развернуть" : "Свернуть"}
+        >
+          <CollapseChevronIcon collapsed={collapsed} />
+        </button>
+        <div className="min-w-0 flex-1">
+          <span className="text-[12px] font-bold uppercase text-[#5F5E5E]">
+            {question.code} · {SURVEY_QUESTION_TYPE_LABELS[question.type]}
+          </span>
+          {collapsed ? (
+            <p className="mt-0.5 truncate text-[15px] font-semibold text-[#1D1D1F]">{titlePreview}</p>
+          ) : null}
+        </div>
         <div className="ml-auto flex flex-wrap gap-2">
           <button type="button" className={surveyOutlineButtonClass} onClick={() => onMove(question.id, "up")}>
             ↑
@@ -77,6 +98,8 @@ export function SurveyQuestionInspector({
         </div>
       </div>
 
+      {collapsed ? null : (
+        <>
       <label className="block">
         <span className={`mb-1 block text-[13px] font-semibold ${adminPanelMutedTextClass}`}>
           Тип вопроса
@@ -145,7 +168,28 @@ export function SurveyQuestionInspector({
         </p>
         <QuestionRespondentPreview question={question} />
       </div>
+        </>
+      )}
     </div>
+  );
+}
+
+function CollapseChevronIcon({ collapsed }: { collapsed: boolean }): React.ReactElement {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={`transition-transform ${collapsed ? "-rotate-90" : "rotate-0"}`}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
   );
 }
 
