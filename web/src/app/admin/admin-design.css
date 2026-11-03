@@ -49,6 +49,12 @@
   background: var(--admin-bg);
 }
 
+/** Конструктор опросов — палитра референса (#F4F6F5, Manrope в layout). */
+.admin-app .survey-constructor-scope {
+  --admin-bg: #f4f6f5;
+  --admin-accent-tint: #ddf1ec;
+}
+
 .admin-app .admin-mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }

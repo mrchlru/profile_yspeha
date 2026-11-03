@@ -18,6 +18,7 @@ import {
   isBurnoutTestKind,
   isProfSbEducationTestKind,
   isAttestationTestKind,
+  isCustomSurveyTestKind,
   isSpecialistScreeningTestKind,
   isTestKind,
 } from "@/lib/access/testKinds";
@@ -90,6 +91,10 @@ function AccessPageContent(): React.ReactElement {
     }
     if (validatedAccessCode && isAttestationTestKind(activeTestKind)) {
       router.replace("/attestation/intro");
+      return;
+    }
+    if (validatedAccessCode && isCustomSurveyTestKind(activeTestKind)) {
+      router.replace("/custom-survey/intro");
     }
   }, [activeTestKind, hydrated, validatedAccessCode, router]);
 
@@ -146,6 +151,10 @@ function AccessPageContent(): React.ReactElement {
         router.push("/specialist-screening/intro");
       } else if (isAttestationTestKind(kind)) {
         router.push("/attestation/intro");
+      } else if (isCustomSurveyTestKind(kind)) {
+        router.push("/custom-survey/intro");
+      } else if (kind === "screening") {
+        router.push("/intro");
       } else {
         setError("Неизвестный тип приглашения.");
       }

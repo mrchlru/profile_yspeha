@@ -11,6 +11,8 @@ export const TEST_KIND_PROF_SB_EDUCATION = "prof_sb_education" as const;
 export const TEST_KIND_SPECIALIST_SCREENING = "specialist_screening" as const;
 /** Аттестация: батарея из 7 методик. */
 export const TEST_KIND_ATTESTATION = "attestation" as const;
+/** Собственный опрос / тест из конструктора. */
+export const TEST_KIND_CUSTOM_SURVEY = "custom_survey" as const;
 
 export type TestKind =
   | typeof TEST_KIND_SCREENING
@@ -21,7 +23,8 @@ export type TestKind =
   | typeof TEST_KIND_BURNOUT
   | typeof TEST_KIND_PROF_SB_EDUCATION
   | typeof TEST_KIND_SPECIALIST_SCREENING
-  | typeof TEST_KIND_ATTESTATION;
+  | typeof TEST_KIND_ATTESTATION
+  | typeof TEST_KIND_CUSTOM_SURVEY;
 
 export const TEST_KIND_LABELS: Record<TestKind, string> = {
   screening: "Скрининг кандидата",
@@ -33,6 +36,7 @@ export const TEST_KIND_LABELS: Record<TestKind, string> = {
   prof_sb_education: "ПРОФ СБ + ПРОФ образование",
   specialist_screening: "Скрининг депрессивных симптомов",
   attestation: "Аттестация",
+  custom_survey: "Собственный опрос",
 };
 
 /** Подпись типа прохождения в админке (таблица audit_submission, не отдельный продукт «аудит»). */
@@ -48,6 +52,7 @@ const ALL_TEST_KINDS: ReadonlyArray<TestKind> = [
   TEST_KIND_PROF_SB_EDUCATION,
   TEST_KIND_SPECIALIST_SCREENING,
   TEST_KIND_ATTESTATION,
+  TEST_KIND_CUSTOM_SURVEY,
 ];
 
 export function isTestKind(value: string): value is TestKind {
@@ -116,6 +121,11 @@ export function isSpecialistScreeningTestKind(kind: TestKind | null | undefined)
 /** Доступ к маршрутам `/attestation/*` и отправка ответов аттестации. */
 export function isAttestationTestKind(kind: TestKind | null | undefined): boolean {
   return kind === TEST_KIND_ATTESTATION;
+}
+
+/** Доступ к маршрутам `/custom-survey/*` и прохождение конструктора. */
+export function isCustomSurveyTestKind(kind: TestKind | null | undefined): boolean {
+  return kind === TEST_KIND_CUSTOM_SURVEY;
 }
 
 /** Батареи с камерой, микрофоном и отчётом по нарушениям. */

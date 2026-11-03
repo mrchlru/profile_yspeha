@@ -310,8 +310,12 @@ model AccessInvite {
   devMode               Boolean   @default(false) @map("dev_mode")
   /** Без камеры и микрофона: только контроль полноэкранного режима и вкладки. */
   avProctorDisabled     Boolean   @default(false) @map("av_proctor_disabled")
+  /** Опубликованная версия собственного опроса (test_kind = custom_survey). */
+  surveyVersionId       String?   @map("survey_version_id")
+  surveyVersion         SurveyVersion? @relation(fields: [surveyVersionId], references: [id], onDelete: SetNull)
 
   @@index([candidateFolderKey], map: "access_invite_candidate_folder_idx")
+  @@index([surveyVersionId], map: "access_invite_survey_version_idx")
   @@index([interviewFolderKey], map: "access_invite_interview_folder_idx")
   @@map("access_invite")
 }
@@ -560,5 +564,126 @@ model ProctorSnapshot {
   data      Bytes
 
   @@map("proctor_snapshot")
+}
+
+/** Собственный опрос / тест (конструктор). Папка в «Результаты» = survey.id. */
+model Survey {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  title          String @default("Без названия")
+  /** survey | test */
+  mode           String @default("survey")
+  /** draft | published | archived */
+  status         String @default("draft")
+  createdByEmail String? @map("created_by_email")
+
+  currentVersionId String?        @unique @map("current_version_id")
+  currentVersion   SurveyVersion? @relation("SurveyCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  draftVersionId   String?        @unique @map("draft_version_id")
+  draftVersion     SurveyVersion? @relation("SurveyDraftVersion", fields: [draftVersionId], references: [id], onDelete: SetNull)
+
+  versions  SurveyVersion[] @relation("SurveyVersions")
+  responses SurveyResponse[]
+
+  @@index([status, updatedAt], map: "survey_status_updated_idx")
+  @@map("survey")
+}
+
+/** Версия схемы опроса: черновик (version_number = null) или опубликованный снимок. */
+model SurveyVersion {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  surveyId String @map("survey_id")
+  survey   Survey @relation("SurveyVersions", fields: [surveyId], references: [id], onDelete: Cascade)
+
+  /** null — редактируемый черновик; 1+ — опубликованная версия (immutable). */
+  versionNumber Int? @map("version_number")
+  schema        Json
+  settings      Json
+  revision      Int  @default(1)
+
+  publishedAt      DateTime? @map("published_at")
+  publishedByEmail String?   @map("published_by_email")
+
+  surveyAsCurrent Survey? @relation("SurveyCurrentVersion")
+  surveyAsDraft   Survey? @relation("SurveyDraftVersion")
+
+  responses     SurveyResponse[]
+  accessInvites AccessInvite[]
+
+  @@unique([surveyId, versionNumber], map: "survey_version_survey_number_key")
+  @@index([surveyId], map: "survey_version_survey_idx")
+  @@map("survey_version")
+}
+
+/** Прохождение собственного опроса (source = custom, не смешивается с методиками). */
+model SurveyResponse {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  surveyVersionId String        @map("survey_version_id")
+  surveyVersion   SurveyVersion @relation(fields: [surveyVersionId], references: [id], onDelete: Cascade)
+  surveyId        String        @map("survey_id")
+  survey          Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  accessInviteCode  String? @map("access_invite_code")
+  employeeFolderKey String? @map("employee_folder_key")
+  /** in_progress | submitted | pending_review */
+  status            String  @default("in_progress")
+  source            String  @default("custom")
+
+  startedAt   DateTime  @default(now()) @map("started_at")
+  submittedAt DateTime? @map("submitted_at")
+  score       Float?
+  maxScore    Float?    @map("max_score")
+  zone        String?
+  scaleScores Json?     @map("scale_scores")
+
+  answers SurveyAnswer[]
+
+  @@index([surveyId, submittedAt], map: "survey_response_survey_submitted_idx")
+  @@index([surveyVersionId], map: "survey_response_version_idx")
+  @@map("survey_response")
+}
+
+/** Ответ на один вопрос (или строку сетки). */
+model SurveyAnswer {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  responseId String         @map("response_id")
+  response   SurveyResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  questionId String @map("question_id")
+  value      Json
+  isCorrect  Boolean? @map("is_correct")
+  points     Float?
+  gradedBy   String?  @map("graded_by")
+  comment    String?
+
+  files SurveyFile[]
+
+  @@index([responseId], map: "survey_answer_response_idx")
+  @@map("survey_answer")
+}
+
+/** Файл, загруженный в ответ на вопрос. */
+model SurveyFile {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  answerId String       @map("answer_id")
+  answer   SurveyAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  storageKey String @map("storage_key")
+  name       String
+  sizeBytes  Int    @map("size_bytes")
+  mimeType   String @map("mime_type")
+
+  @@map("survey_file")
 }
 

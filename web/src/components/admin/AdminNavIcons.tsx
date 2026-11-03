@@ -13,6 +13,8 @@ export function AdminNavIcon({ iconId }: AdminNavIconProps): React.ReactElement 
   switch (iconId) {
     case "create-test":
       return <CreateTestNavIcon />;
+    case "surveys":
+      return <SurveysNavIcon />;
     case "interview":
       return <InterviewNavIcon />;
     case "invitations":
@@ -54,6 +56,19 @@ function CreateTestNavIcon(): React.ReactElement {
       <path d="M14 2v6h6" />
       <path d="M12 18v-6" />
       <path d="M9 15h6" />
+    </NavIconSvg>
+  );
+}
+
+/** Опросы — список с галочками. */
+function SurveysNavIcon(): React.ReactElement {
+  return (
+    <NavIconSvg>
+      <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4" />
+      <path d="M9 11V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6" />
+      <path d="M9 7h6" />
+      <path d="M9 15h2" />
+      <path d="M13 15h2" />
     </NavIconSvg>
   );
 }

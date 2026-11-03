@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { CreateInviteSuccessCard } from "@/components/admin/CreateInviteSuccessCard";
 import { AdminListSwitchRow } from "@/components/admin/ui/AdminUi";
@@ -34,6 +35,10 @@ import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import { isProctorTestKind } from "@/lib/access/testKinds";
 import { useAdminSession } from "@/hooks/useAdminSession";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import {
+  CustomSurveyAssignModeSwitch,
+  CustomSurveyAssignPanel,
+} from "@/components/admin/surveys/CustomSurveyAssignPanel";
 
 const CREATABLE_TEST_CATALOG = ADMIN_TEST_CATALOG.filter((item) => item.available);
 type ScreeningCandidateForm = {
@@ -56,6 +61,11 @@ const EMPTY_CANDIDATE: ScreeningCandidateForm = {
  * Раздел «А) Создать тестирование»: выпуск приглашений и карточки тестов.
  */
 export function CreateTestPanel(): React.ReactElement {
+  const searchParams = useSearchParams();
+  const surveyIdFromQuery = searchParams.get("surveyId");
+  const [assignKind, setAssignKind] = useState<"builtin" | "custom">(
+    surveyIdFromQuery ? "custom" : "builtin"
+  );
   const { session } = useAdminSession();
   const isFullAdmin = session.status === "authenticated" && session.role === ADMIN_ROLE_ADMIN;
   const isPanelUser = session.status === "authenticated";
@@ -351,7 +361,11 @@ export function CreateTestPanel(): React.ReactElement {
 
   return (
     <div className="mx-auto max-w-[920px] space-y-6">
-      {issuedCode && issuedExpiresAt && selected ? (
+      <CustomSurveyAssignModeSwitch mode={assignKind} onChange={setAssignKind} />
+      {assignKind === "custom" ? (
+        <CustomSurveyAssignPanel initialSurveyId={surveyIdFromQuery} />
+      ) : null}
+      {assignKind === "builtin" && issuedCode && issuedExpiresAt && selected ? (
         <CreateInviteSuccessCard
           testTitle={selected.title}
           personLabel={invitePersonLabel}
@@ -366,6 +380,8 @@ export function CreateTestPanel(): React.ReactElement {
           interviewFolderName={issuedInterviewFolderName}
         />
       ) : null}
+      {assignKind === "builtin" ? (
+      <>
       <div className="grid gap-4 lg:grid-cols-2">
         {CREATABLE_TEST_CATALOG.map((item) => {
           const selectedCard = item.id === selectedId;
@@ -548,6 +564,8 @@ export function CreateTestPanel(): React.ReactElement {
           </p>
         </div>
       )}
+      </>
+      ) : null}
     </div>
   );
 }

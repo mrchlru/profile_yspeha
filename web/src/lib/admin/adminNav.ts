@@ -3,6 +3,7 @@ import { ADMIN_ROLE_ADMIN, ADMIN_ROLE_HRD } from "@/lib/admin/adminRoles";
 
 export type AdminNavIconId =
   | "create-test"
+  | "surveys"
   | "interview"
   | "invitations"
   | "results"
@@ -33,6 +34,13 @@ export const ADMIN_NAV_ITEMS: ReadonlyArray<AdminNavItem> = [
     label: "Создать тестирование",
     roles: [ADMIN_ROLE_ADMIN, ADMIN_ROLE_HRD],
     description: "Выпуск приглашений на прохождение тестов",
+  },
+  {
+    iconId: "surveys",
+    href: "/admin/surveys",
+    label: "Опросы",
+    roles: [ADMIN_ROLE_ADMIN, ADMIN_ROLE_HRD],
+    description: "Конструктор собственных опросов и тестов",
   },
   {
     iconId: "interview",
@@ -125,6 +133,9 @@ export function canAccessTimewebLogs(role: AdminRole): boolean {
 export function isAdminNavItemActive(pathname: string, href: string): boolean {
   if (href === "/admin/results") {
     return pathname === href || pathname.startsWith("/admin/results/");
+  }
+  if (href === "/admin/surveys") {
+    return pathname === href || pathname.startsWith("/admin/surveys/");
   }
   if (href === "/admin/interview") {
     return pathname === href || pathname.startsWith("/admin/interview/");
