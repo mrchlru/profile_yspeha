@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
+import { useAdminSidebarCollapsed } from "@/hooks/useAdminSidebarCollapsed";
+
 import { AdminSettingsIcon } from "@/components/admin/AdminIconButton";
 import { AdminNavIcon } from "@/components/admin/AdminNavIcons";
 import {
@@ -36,6 +38,8 @@ export function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
   const { session } = useAdminSession();
+  const { collapsed: sidebarCollapsed, hydrated: sidebarHydrated, toggle: toggleSidebar } =
+    useAdminSidebarCollapsed();
 
   useEffect(() => {
     if (session.status === "guest") {
@@ -67,25 +71,44 @@ export function AdminShell({
   return (
     <div className="min-h-screen bg-[var(--admin-bg)]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1440px]">
-        <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-[var(--admin-hairline)] bg-[var(--admin-surface)] px-4 py-6 lg:flex">
-          <div className="flex items-center gap-3 px-2">
-            <span className="flex size-10 items-center justify-center rounded-[12px] bg-[var(--admin-accent)] text-[18px] font-bold text-white">
+        <aside
+          className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-[var(--admin-hairline)] bg-[var(--admin-surface)] py-6 transition-[width,padding] duration-200 lg:flex ${
+            sidebarHydrated && sidebarCollapsed ? "w-[76px] px-2" : "w-[248px] px-4"
+          }`}
+        >
+          <div
+            className={`flex items-center gap-3 ${sidebarHydrated && sidebarCollapsed ? "justify-center px-0" : "px-2"}`}
+          >
+            <span
+              className="flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--admin-accent)] text-[18px] font-bold text-white"
+              title="DriveS"
+            >
               D
             </span>
-            <div className="min-w-0">
-              <p className="truncate text-[15px] font-semibold text-[var(--admin-text)]">DriveS</p>
-              <p className="text-[12px] font-medium text-[var(--admin-text-3)]">Админ-панель</p>
-            </div>
+            {!(sidebarHydrated && sidebarCollapsed) ? (
+              <div className="min-w-0">
+                <p className="truncate text-[15px] font-semibold text-[var(--admin-text)]">DriveS</p>
+                <p className="text-[12px] font-medium text-[var(--admin-text-3)]">Админ-панель</p>
+              </div>
+            ) : null}
           </div>
 
-          <nav className="mt-8 flex flex-1 flex-col gap-0.5 overflow-y-auto" aria-label="Разделы">
+          <nav
+            className={`mt-8 flex flex-1 flex-col gap-0.5 overflow-y-auto ${sidebarHydrated && sidebarCollapsed ? "items-center" : ""}`}
+            aria-label="Разделы"
+          >
             {navItems.map((item) => {
               const active = isAdminNavItemActive(pathname, item.href);
+              const compact = sidebarHydrated && sidebarCollapsed;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-[15px] transition ${
+                  title={compact ? item.label : undefined}
+                  aria-label={compact ? item.label : undefined}
+                  className={`flex items-center rounded-[12px] text-[15px] transition ${
+                    compact ? "size-11 justify-center p-0" : "gap-3 px-3 py-2.5"
+                  } ${
                     active
                       ? "bg-[var(--admin-surface)] font-semibold text-[var(--admin-accent)] shadow-[var(--admin-shadow-nav-active)]"
                       : "font-medium text-[var(--admin-text-2)] hover:bg-[var(--admin-surface-muted)]"
@@ -100,11 +123,29 @@ export function AdminShell({
                   >
                     <AdminNavIcon iconId={item.iconId} />
                   </span>
-                  <span className="leading-snug">{item.label}</span>
+                  {!compact ? <span className="leading-snug">{item.label}</span> : null}
                 </Link>
               );
             })}
           </nav>
+
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            className={`mb-3 flex items-center rounded-[12px] text-[var(--admin-text-3)] transition hover:bg-[var(--admin-surface-muted)] hover:text-[var(--admin-text)] ${
+              sidebarHydrated && sidebarCollapsed
+                ? "mx-auto size-11 justify-center"
+                : "gap-2 px-3 py-2.5 text-[13px] font-semibold"
+            }`}
+            aria-expanded={!(sidebarHydrated && sidebarCollapsed)}
+            aria-label={
+              sidebarHydrated && sidebarCollapsed ? "Развернуть меню" : "Свернуть меню"
+            }
+            title={sidebarHydrated && sidebarCollapsed ? "Развернуть меню" : "Свернуть меню"}
+          >
+            <SidebarCollapseIcon collapsed={Boolean(sidebarHydrated && sidebarCollapsed)} />
+            {!(sidebarHydrated && sidebarCollapsed) ? <span>Свернуть меню</span> : null}
+          </button>
 
           <AdminSidebarProfile
             email={session.email}
@@ -112,6 +153,7 @@ export function AdminShell({
             initials={initials}
             showSettingsLink={showSettingsLink}
             settingsActive={settingsActive}
+            collapsed={Boolean(sidebarHydrated && sidebarCollapsed)}
           />
         </aside>
 
@@ -170,6 +212,7 @@ type AdminSidebarProfileProps = {
   initials: string;
   showSettingsLink: boolean;
   settingsActive: boolean;
+  collapsed: boolean;
 };
 
 function AdminSidebarProfile({
@@ -178,7 +221,35 @@ function AdminSidebarProfile({
   initials,
   showSettingsLink,
   settingsActive,
+  collapsed,
 }: AdminSidebarProfileProps): React.ReactElement {
+  if (collapsed) {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <span
+          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--admin-avatar-bg-side)] text-[13px] font-semibold text-[var(--admin-accent)]"
+          title={`${roleLabel} · ${email}`}
+        >
+          {initials}
+        </span>
+        {showSettingsLink ? (
+          <Link
+            href={ADMIN_SETTINGS_HREF}
+            aria-label="Настройки"
+            title="Настройки"
+            className={`inline-flex size-9 shrink-0 items-center justify-center rounded-full transition [&_svg]:size-4 ${
+              settingsActive
+                ? "bg-[var(--admin-surface)] text-[var(--admin-accent)] shadow-[var(--admin-shadow-card)]"
+                : "text-[var(--admin-text-3)] hover:bg-[var(--admin-surface)]"
+            }`}
+          >
+            <AdminSettingsIcon />
+          </Link>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4 rounded-[14px] bg-[var(--admin-surface-muted)] p-3 pr-2">
       <div className="flex items-start gap-2">
@@ -207,6 +278,26 @@ function AdminSidebarProfile({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function SidebarCollapseIcon({ collapsed }: { collapsed: boolean }): React.ReactElement {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={collapsed ? "rotate-180" : ""}
+    >
+      <path d="M15 18l-6-6 6-6" />
+      <path d="M19 6v12" opacity={collapsed ? 0.35 : 0} />
+    </svg>
   );
 }
 
