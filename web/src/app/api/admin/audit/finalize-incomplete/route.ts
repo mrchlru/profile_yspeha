@@ -20,8 +20,8 @@ const bodySchema = z
     accessCode: z.string().min(8).max(80).optional(),
   })
   .strict()
-  .refine((value) => Boolean(value.sessionId || value.assesseeKey), {
-    message: "sessionId или assesseeKey",
+  .refine((value) => Boolean(value.sessionId || value.assesseeKey || value.accessCode), {
+    message: "sessionId, assesseeKey или accessCode",
   });
 
 /**
@@ -45,7 +45,7 @@ export async function POST(
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Нужны confirm:true и sessionId или assesseeKey (опционально accessCode)" },
+      { error: "Нужны confirm:true и sessionId, assesseeKey или accessCode" },
       { status: 400 }
     );
   }

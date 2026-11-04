@@ -12,6 +12,7 @@ import { buildAuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { runAuditSubmitReportPipeline } from "@/lib/audit/runAuditSubmitReportPipeline";
 import { parseAuditAnswersPayload } from "@/lib/audit/report/parseAuditAnswersPayload";
 import { parseStoredAuditReportJson } from "@/lib/admin/buildEmployeeDashboardPreview";
+import { findAuditSessionIdForAccessInvite } from "@/lib/admin/findAuditSessionIdForAccessInvite";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 import { prisma } from "@/lib/prisma";
@@ -36,7 +37,11 @@ export async function finalizeIncompleteAuditSubmission(input: {
   assesseeKey?: string;
   accessCode?: string;
 }): Promise<FinalizeIncompleteAuditResult> {
-  const sessionId = await _resolveSessionId(input);
+  const sessionId = await _resolveSessionId({
+    sessionId: input.sessionId,
+    assesseeKey: input.assesseeKey,
+    accessCode: input.accessCode,
+  });
 
   const row = await prisma.auditSubmission.findUnique({
     where: { sessionId },
@@ -188,9 +193,18 @@ export async function finalizeIncompleteAuditSubmission(input: {
 async function _resolveSessionId(input: {
   sessionId?: string;
   assesseeKey?: string;
+  accessCode?: string;
 }): Promise<string> {
   const rawSession = input.sessionId?.trim() ?? "";
   const rawKey = input.assesseeKey?.trim().toLowerCase() ?? "";
+  const rawCode = input.accessCode?.trim() ?? "";
+
+  if (rawCode.length >= 8) {
+    const byCode = await findAuditSessionIdForAccessInvite(rawCode);
+    if (byCode !== null) {
+      return byCode;
+    }
+  }
 
   if (rawSession.length >= 20) {
     return rawSession;
@@ -218,7 +232,7 @@ async function _resolveSessionId(input: {
     }
   }
 
-  throw new Error("Укажите sessionId или assesseeKey прохождения");
+  throw new Error("Укажите sessionId, assesseeKey или accessCode прохождения");
 }
 
 async function _resolveAccessCodeForSubmission(input: {

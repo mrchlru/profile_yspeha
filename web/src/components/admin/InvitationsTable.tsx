@@ -29,6 +29,7 @@ import {
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useBulkSelection } from "@/hooks/useBulkSelection";
 import { useAdminSession } from "@/hooks/useAdminSession";
+import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 import type { CandidateSearchStatusFilter } from "@/components/admin/CandidateSearchPanel";
 import { AdminStatusChip, type AdminStatusChipTone } from "@/components/admin/ui/AdminUi";
 
@@ -96,16 +97,20 @@ export function InvitationsTable({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [changingKindId, setChangingKindId] = useState<string | null>(null);
   const [changingAvId, setChangingAvId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const [extendMessage, setExtendMessage] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const canDeleteInvites = session.status === "authenticated";
+  const isFullAdmin =
+    session.status === "authenticated" && session.role === ADMIN_ROLE_ADMIN;
   const selection = useBulkSelection(rows, (row) => row.id);
   const rowActionBusy =
     bulkBusy ||
     extendingId !== null ||
     deletingId !== null ||
     changingKindId !== null ||
-    changingAvId !== null;
+    changingAvId !== null ||
+    completingId !== null;
 
   async function loadRows(search: string, status: CandidateSearchStatusFilter): Promise<void> {
     setLoading(true);
@@ -142,6 +147,53 @@ export function InvitationsTable({
 
   function canExtendInvite(status: string): boolean {
     return status === INVITE_STATUS_ACTIVE || status === INVITE_STATUS_EXPIRED;
+  }
+
+  function canCompleteInvite(status: string): boolean {
+    return status === INVITE_STATUS_IN_PROGRESS;
+  }
+
+  async function completeInviteSession(row: InvitationRow): Promise<void> {
+    const name = row.candidateDisplayName ?? row.code;
+    if (
+      !window.confirm(
+        `Завершить прохождение для «${name}» (${row.code})?\n\nБудут собраны отчёты из сохранённых ответов, код станет «Пройден». Это может занять несколько минут.`
+      )
+    ) {
+      return;
+    }
+
+    setCompletingId(row.id);
+    setError(null);
+    setExtendMessage(null);
+    try {
+      const res = await fetch("/api/admin/invitations/complete-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true, inviteId: row.id, forceMarkUsed: true }),
+      });
+      const body = (await res.json()) as {
+        inviteMarkedUsed?: boolean;
+        warnings?: string[];
+        error?: string;
+      };
+      if (!res.ok) {
+        throw new Error(body.error ?? "Не удалось завершить прохождение.");
+      }
+      const warnings = body.warnings ?? [];
+      if (warnings.length > 0) {
+        setExtendMessage(
+          `Код ${row.code}: ${body.inviteMarkedUsed ? "помечен пройденным" : "обновлён частично"}. ${warnings.join(" ")}`
+        );
+      } else {
+        setExtendMessage(`Прохождение ${row.code} завершено.`);
+      }
+      await loadRows(debouncedQuery, statusFilter);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Сеть недоступна. Попробуйте ещё раз.");
+    } finally {
+      setCompletingId(null);
+    }
   }
 
   async function postExtendInvite(inviteId: string): Promise<void> {
@@ -526,6 +578,17 @@ export function InvitationsTable({
                         }
                         disabled={rowActionBusy}
                         onClick={() => void extendInvite(row)}
+                      />
+                    ) : null}
+                    {isFullAdmin && canCompleteInvite(row.status) ? (
+                      <AdminRowMenuItem
+                        label={
+                          completingId === row.id
+                            ? "Завершение…"
+                            : "Завершить прохождение"
+                        }
+                        disabled={rowActionBusy}
+                        onClick={() => void completeInviteSession(row)}
                       />
                     ) : null}
                     {row.canChangeAvProctor ? (

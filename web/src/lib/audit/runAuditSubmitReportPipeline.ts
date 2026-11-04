@@ -1,7 +1,13 @@
 import { Prisma } from "@/generated/prisma/client";
 import type { AccessInviteCheckResult } from "@/lib/access/findActiveInvite";
 import { normalizeAccessCode } from "@/lib/access/accessCode";
-import { isTestKind, TEST_KIND_LABELS, TEST_KIND_STATE_AUDIT, type TestKind } from "@/lib/access/testKinds";
+import {
+  isTestKind,
+  TEST_KIND_LABELS,
+  TEST_KIND_SCREENING,
+  TEST_KIND_STATE_AUDIT,
+  type TestKind,
+} from "@/lib/access/testKinds";
 import type { AuditAssesseeKey } from "@/lib/audit/auditAssesseeKey";
 import { buildAuditAiPipelinePayload } from "@/lib/ai/audit/buildAuditAiPipelinePayload";
 import { renderAuditHrReport } from "@/lib/ai/audit/renderAuditHrReport";
@@ -27,6 +33,7 @@ import { scheduleAuditGoogleSheetsExport } from "@/lib/googleSheets/exportSubmis
 import { screeningServerLog } from "@/lib/logging/screeningServerLog";
 import { saveProfSbEducationFromAuditSubmit } from "@/lib/profSbEducation/saveProfSbEducationFromAuditSubmit";
 import { prisma } from "@/lib/prisma";
+import { runScreeningReportPipelineForStoredInvite } from "@/lib/screening/runScreeningReportPipelineForStoredInvite";
 import { generateAuditManagerPdfBuffer, generateAuditPdfBuffer } from "@/lib/report/generateAuditPdf";
 import type { Step4Data } from "@/lib/step4/step4Types";
 import type { z } from "zod";
@@ -303,6 +310,20 @@ export async function runAuditSubmitReportPipeline(
     sessionRef,
     totalDurationMs: Date.now() - pipelineStartedAt,
   });
+
+  if (submitTestKind === TEST_KIND_SCREENING) {
+    try {
+      await runScreeningReportPipelineForStoredInvite(payload.accessCode, {
+        sessionRef,
+        pipelineStartedAt,
+      });
+    } catch (err) {
+      screeningServerLog("audit_submit", "screening_stored_pipeline_failed", {
+        sessionRef,
+        errorName: err instanceof Error ? err.name : "unknown",
+      });
+    }
+  }
 
   if (submitTestKind !== null) {
     const inviteDevRow = await prisma.accessInvite.findFirst({
