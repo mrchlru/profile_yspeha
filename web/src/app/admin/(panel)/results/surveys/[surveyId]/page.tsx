@@ -5,7 +5,11 @@ import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { AdminShell } from "@/components/admin/AdminShell";
-import { surveyCardClass, surveyMutedTextClass } from "@/lib/survey/surveyConstructorTheme";
+import {
+  surveyCardClass,
+  surveyMutedTextClass,
+  surveyPrimaryButtonClass,
+} from "@/lib/survey/surveyConstructorTheme";
 
 type ResponseRow = {
   id: string;
@@ -75,15 +79,26 @@ export default function AdminSurveyResultsPage(): React.ReactElement {
         {!loading && items.length > 0 ? (
           <ul className="space-y-3">
             {items.map((item) => (
-              <li key={item.id} className={surveyCardClass}>
-                <div className="text-[15px] font-bold">
-                  {item.submittedAt
-                    ? new Date(item.submittedAt).toLocaleString("ru-RU")
-                    : "Без даты"}
+              <li key={item.id} className={`${surveyCardClass} flex flex-wrap items-center gap-3`}>
+                <div className="min-w-0 flex-1">
+                  <div className="text-[15px] font-bold">
+                    {item.submittedAt
+                      ? new Date(item.submittedAt).toLocaleString("ru-RU")
+                      : "Без даты"}
+                  </div>
+                  <div className={`text-[13px] ${surveyMutedTextClass}`}>
+                    {item.accessInviteCode
+                      ? `Код: ${item.accessInviteCode}`
+                      : "Общая ссылка"}{" "}
+                    · вопросов с ответом: {String(item.answerCount)}
+                  </div>
                 </div>
-                <div className={`text-[13px] ${surveyMutedTextClass}`}>
-                  Код: {item.accessInviteCode ?? "—"} · ответов: {String(item.answerCount)}
-                </div>
+                <Link
+                  href={`/admin/results/surveys/${encodeURIComponent(surveyId)}/${encodeURIComponent(item.id)}`}
+                  className={surveyPrimaryButtonClass}
+                >
+                  Открыть
+                </Link>
               </li>
             ))}
           </ul>

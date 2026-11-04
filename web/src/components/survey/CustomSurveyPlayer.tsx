@@ -60,9 +60,9 @@ export function CustomSurveyPlayer({
 
   if (done) {
     return (
-      <div className="mx-auto max-w-[640px] rounded-2xl border border-[#E5E5E5] bg-white p-8 text-center">
-        <h1 className="text-[22px] font-extrabold text-[#1D1D1F]">Спасибо!</h1>
-        <p className="mt-2 text-[15px] text-[#5F5E5E]">Ответы отправлены.</p>
+      <div className="mx-auto w-full max-w-[720px] rounded-2xl border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
+        <h1 className="text-[24px] font-extrabold text-[#1D1D1F] sm:text-[28px]">Спасибо!</h1>
+        <p className="mt-2 text-[16px] text-[#5F5E5E]">Ответы отправлены.</p>
       </div>
     );
   }
@@ -70,13 +70,13 @@ export function CustomSurveyPlayer({
   const displayTitle = schema.title.trim() || "Без названия";
 
   return (
-    <div className="mx-auto flex max-w-[640px] flex-col gap-4">
-      <header className="rounded-2xl border border-[#E5E5E5] border-t-[10px] border-t-[#007A68] bg-white p-6">
-        <h1 className="m-0 text-[26px] font-extrabold tracking-[-0.02em] text-[#1D1D1F]">
+    <div className="mx-auto flex w-full max-w-[720px] flex-col gap-5 sm:max-w-[840px] lg:max-w-[920px]">
+      <header className="rounded-2xl border border-[#E5E5E5] border-t-[10px] border-t-[#007A68] bg-white p-6 shadow-sm sm:p-8">
+        <h1 className="m-0 text-[26px] font-extrabold tracking-[-0.02em] text-[#1D1D1F] sm:text-[32px]">
           {displayTitle}
         </h1>
         {schema.description ? (
-          <p className="mt-2 text-[15px] leading-relaxed text-[#5F5E5E]">{schema.description}</p>
+          <p className="mt-3 text-[16px] leading-relaxed text-[#5F5E5E]">{schema.description}</p>
         ) : null}
       </header>
 
@@ -120,7 +120,7 @@ export function CustomSurveyPlayer({
         <button
           type="button"
           disabled={busy}
-          className="min-h-[48px] rounded-full bg-[#007A68] text-[15px] font-bold text-white disabled:opacity-50"
+          className="min-h-[52px] rounded-full bg-[#007A68] text-[16px] font-bold text-white shadow-sm disabled:opacity-50 sm:max-w-[320px] sm:self-center"
           onClick={() => void handleSubmit()}
         >
           {busy ? "Отправка…" : "Отправить"}
@@ -148,7 +148,7 @@ function QuestionBlock({
   const label = SURVEY_QUESTION_TYPE_LABELS[question.type] ?? question.type;
 
   return (
-    <section className="rounded-2xl border border-[#E5E5E5] bg-white p-5">
+    <section className="rounded-2xl border border-[#E5E5E5] bg-white p-5 shadow-sm sm:p-6">
       <p className="text-[12px] font-bold uppercase text-[#5F5E5E]">
         {String(index)} · {label}
       </p>

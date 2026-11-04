@@ -13,6 +13,7 @@ import type {
   SurveySettingsDocument,
   SurveyStatus,
 } from "@/lib/survey/surveyTypes";
+import { generateSurveyPublicLinkToken } from "@/lib/survey/surveyPublicLinkToken";
 import {
   validateSurveyDraft,
   type SurveyDraftValidationIssue,
@@ -29,7 +30,15 @@ function _parseSchema(raw: unknown): SurveySchemaDocument {
 }
 
 function _parseSettings(raw: unknown): SurveySettingsDocument {
-  return raw as SurveySettingsDocument;
+  const defaults = createDefaultSurveySettings();
+  const parsed = raw as Partial<SurveySettingsDocument>;
+  return {
+    ...defaults,
+    ...parsed,
+    publicLinkEnabled: parsed.publicLinkEnabled === true,
+    publicLinkToken: parsed.publicLinkToken ?? null,
+    allowMultipleResponses: parsed.allowMultipleResponses === true,
+  };
 }
 
 /**
@@ -302,7 +311,10 @@ export async function publishSurveyAdmin(
   }
 
   const schema = _parseSchema(row.draftVersion.schema);
-  const settings = _parseSettings(row.draftVersion.settings);
+  let settings = _parseSettings(row.draftVersion.settings);
+  if (settings.publicLinkEnabled && !settings.publicLinkToken?.trim()) {
+    settings = { ...settings, publicLinkToken: generateSurveyPublicLinkToken() };
+  }
   const validation = validateSurveyDraft({
     mode: row.mode as SurveyMode,
     schema,
@@ -339,6 +351,10 @@ export async function publishSurveyAdmin(
         title: schema.title.trim() || row.title,
         updatedAt: publishedAt,
       },
+    });
+    await tx.surveyVersion.update({
+      where: { id: row.draftVersion!.id },
+      data: { settings: settings as unknown as Prisma.InputJsonValue },
     });
     return version;
   });

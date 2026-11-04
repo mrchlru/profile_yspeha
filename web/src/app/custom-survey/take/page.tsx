@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { CustomSurveyPlayer } from "@/components/survey/CustomSurveyPlayer";
-import { StepLayout } from "@/components/StepLayout";
+import { CustomSurveyRespondentLayout } from "@/components/survey/CustomSurveyRespondentLayout";
 import { isCustomSurveyTestKind } from "@/lib/access/testKinds";
 import { useFormStoreHydrated } from "@/hooks/useAccessGate";
 import { useFormStore } from "@/store/useFormStore";
@@ -72,16 +72,14 @@ export default function CustomSurveyTakePage(): React.ReactElement {
   }
 
   return (
-    <StepLayout>
-      <div className="flex flex-1 flex-col px-4 py-8">
-        {error ? (
-          <p className="text-center text-[15px] text-red-700">{error}</p>
-        ) : schema ? (
-          <CustomSurveyPlayer schema={schema} onSubmit={submitAnswers} />
-        ) : (
-          <p className="text-center text-[#5F5E5E]">Загрузка…</p>
-        )}
-      </div>
-    </StepLayout>
+    <CustomSurveyRespondentLayout>
+      {error ? (
+        <p className="text-center text-[15px] text-red-700">{error}</p>
+      ) : schema ? (
+        <CustomSurveyPlayer schema={schema} onSubmit={submitAnswers} />
+      ) : (
+        <p className="text-center text-[#5F5E5E]">Загрузка…</p>
+      )}
+    </CustomSurveyRespondentLayout>
   );
 }

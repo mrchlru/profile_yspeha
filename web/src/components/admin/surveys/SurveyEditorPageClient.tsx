@@ -27,6 +27,7 @@ import {
   orderedSurveyQuestions,
   removeQuestionFromSchema,
 } from "@/lib/survey/surveySchemaMutations";
+import { surveyPublicLinkUrl } from "@/lib/survey/surveyPublicLink";
 import type {
   SurveyDraftPayload,
   SurveyQuestion,
@@ -57,6 +58,12 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
   );
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const draftRef = useRef<SurveyDraftPayload | null>(null);
+  const [pageOrigin, setPageOrigin] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  useEffect(() => {
+    setPageOrigin(window.location.origin);
+  }, []);
 
   const loadDraft = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -458,6 +465,80 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
                   }}
                 />
               </label>
+              <label className="flex items-start gap-2 text-[14px]">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={draft.settings.allowMultipleResponses}
+                  onChange={(e) =>
+                    patchSettings((settings) => ({
+                      ...settings,
+                      allowMultipleResponses: e.target.checked,
+                    }))
+                  }
+                />
+                <span>
+                  Повторное прохождение по тому же коду приглашения
+                  <span className={`mt-0.5 block text-[12px] ${surveyMutedTextClass}`}>
+                    По умолчанию код одноразовый; новые коды всегда можно выдавать отдельно.
+                  </span>
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-[14px]">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={draft.settings.publicLinkEnabled}
+                  onChange={(e) => {
+                    const enabled = e.target.checked;
+                    patchSettings((settings) => {
+                      const next = { ...settings, publicLinkEnabled: enabled };
+                      if (enabled && !next.publicLinkToken) {
+                        next.publicLinkToken = _randomPublicLinkToken();
+                      }
+                      return next;
+                    });
+                  }}
+                />
+                <span>
+                  Общая ссылка для всех респондентов
+                  <span className={`mt-0.5 block text-[12px] ${surveyMutedTextClass}`}>
+                    Без персонального кода; каждый запуск «Начать опрос» создаёт новый ответ.
+                  </span>
+                </span>
+              </label>
+              {draft.settings.publicLinkEnabled && draft.settings.publicLinkToken ? (
+                <div className="rounded-xl border border-[#E5E5E5] bg-[#F4F6F5] p-4">
+                  <p className={`text-[12px] font-bold ${surveyMutedTextClass}`}>
+                    {draft.status === "published"
+                      ? "Ссылка активна после публикации этих настроек"
+                      : "Сначала опубликуйте опрос, затем отправьте ссылку"}
+                  </p>
+                  <p className="mt-2 break-all text-[13px] font-semibold text-[#1D1D1F]">
+                    {pageOrigin
+                      ? surveyPublicLinkUrl(pageOrigin, draft.settings.publicLinkToken)
+                      : "…"}
+                  </p>
+                  <button
+                    type="button"
+                    className={`${surveyOutlineButtonClass} mt-3`}
+                    disabled={!pageOrigin || draft.status !== "published"}
+                    onClick={() => {
+                      if (!pageOrigin || !draft.settings.publicLinkToken) {
+                        return;
+                      }
+                      void navigator.clipboard
+                        .writeText(surveyPublicLinkUrl(pageOrigin, draft.settings.publicLinkToken))
+                        .then(() => {
+                          setLinkCopied(true);
+                          setTimeout(() => setLinkCopied(false), 2000);
+                        });
+                    }}
+                  >
+                    {linkCopied ? "Скопировано" : "Скопировать ссылку"}
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -486,4 +567,10 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
       </div>
     </div>
   );
+}
+
+function _randomPublicLinkToken(): string {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }

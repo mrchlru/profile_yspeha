@@ -45,5 +45,7 @@ export function createDefaultSurveySettings(): SurveySettingsDocument {
     finishTitle: "Спасибо",
     finishText: "Ваши ответы сохранены.",
     allowMultipleResponses: false,
+    publicLinkEnabled: false,
+    publicLinkToken: null,
   };
 }

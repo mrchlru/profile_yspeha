@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
-import { CustomSurveyPlayer } from "@/components/survey/CustomSurveyPlayer";
-import { StepLayout } from "@/components/StepLayout";
+import { CustomSurveyRespondentLayout } from "@/components/survey/CustomSurveyRespondentLayout";
 import { isCustomSurveyTestKind } from "@/lib/access/testKinds";
 import { useFormStore } from "@/store/useFormStore";
 import { useFormStoreHydrated } from "@/hooks/useAccessGate";
@@ -20,7 +19,6 @@ export default function CustomSurveyIntroPage(): React.ReactElement {
   const kind = useFormStore((s) => s.activeTestKind);
   const [schema, setSchema] = useState<SurveySchemaDocument | null>(null);
   const [settings, setSettings] = useState<SurveySettingsDocument | null>(null);
-  const [responseId, setResponseId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,7 +48,6 @@ export default function CustomSurveyIntroPage(): React.ReactElement {
         }
         setSchema(body.schema);
         setSettings(body.settings ?? null);
-        setResponseId(body.responseId);
       } catch {
         setError("Сеть недоступна");
       }
@@ -58,52 +55,35 @@ export default function CustomSurveyIntroPage(): React.ReactElement {
     void load();
   }, [hydrated, code, kind, router]);
 
+  const welcomeTitle =
+    settings?.welcomeTitle?.trim() || schema?.title?.trim() || "Опрос";
+
   if (!hydrated || !schema) {
     return (
-      <StepLayout>
-        <div className="flex flex-1 items-center justify-center px-4 text-[#5F5E5E]">
-          {error ?? "Загрузка…"}
-        </div>
-      </StepLayout>
+      <CustomSurveyRespondentLayout>
+        <p className="text-center text-[#5F5E5E]">{error ?? "Загрузка…"}</p>
+      </CustomSurveyRespondentLayout>
     );
   }
 
   return (
-    <StepLayout>
-      <div className="flex flex-1 flex-col gap-6 px-4 py-8">
-        {settings?.welcomeTitle || settings?.welcomeText ? (
-          <div className="mx-auto max-w-[640px] rounded-2xl border border-[#E5E5E5] bg-white p-6">
-            {settings.welcomeTitle ? (
-              <h1 className="text-[22px] font-extrabold text-[#1D1D1F]">{settings.welcomeTitle}</h1>
-            ) : null}
-            {settings.welcomeText ? (
-              <p className="mt-2 text-[15px] text-[#5F5E5E]">{settings.welcomeText}</p>
-            ) : null}
-            <button
-              type="button"
-              className="mt-4 min-h-[44px] rounded-full bg-[#007A68] px-6 text-[14px] font-bold text-white"
-              onClick={() => router.push("/custom-survey/take")}
-            >
-              Начать
-            </button>
-          </div>
-        ) : (
-          <CustomSurveyPlayer
-            schema={schema}
-            readOnly
-          />
-        )}
-        {!settings?.welcomeTitle && !settings?.welcomeText ? (
-          <button
-            type="button"
-            className="mx-auto min-h-[44px] rounded-full bg-[#007A68] px-6 text-[14px] font-bold text-white"
-            onClick={() => router.push("/custom-survey/take")}
-          >
-            Начать опрос
-          </button>
+    <CustomSurveyRespondentLayout>
+      <div className="mx-auto max-w-[720px] rounded-2xl border border-[#E5E5E5] border-t-[10px] border-t-[#007A68] bg-white p-8 shadow-sm sm:p-10">
+        <h1 className="text-[28px] font-extrabold text-[#1D1D1F] sm:text-[32px]">{welcomeTitle}</h1>
+        {schema.description ? (
+          <p className="mt-3 text-[16px] leading-relaxed text-[#5F5E5E]">{schema.description}</p>
         ) : null}
-        {responseId ? null : null}
+        {settings?.welcomeText ? (
+          <p className="mt-3 text-[16px] leading-relaxed text-[#5F5E5E]">{settings.welcomeText}</p>
+        ) : null}
+        <button
+          type="button"
+          className="mt-8 min-h-[52px] rounded-full bg-[#007A68] px-10 text-[16px] font-bold text-white"
+          onClick={() => router.push("/custom-survey/take")}
+        >
+          Начать опрос
+        </button>
       </div>
-    </StepLayout>
+    </CustomSurveyRespondentLayout>
   );
 }

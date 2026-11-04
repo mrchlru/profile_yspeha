@@ -13,6 +13,7 @@ import {
   surveySegmentTrackClass,
 } from "@/lib/survey/surveyConstructorTheme";
 import { buildInviteCopyMessage, inviteEntryUrl } from "@/lib/access/inviteMessage";
+import { surveyPublicLinkUrl } from "@/lib/survey/surveyPublicLink";
 import { formatInviteValidThroughRu } from "@/lib/access/inviteValidity";
 import type { SurveyMode } from "@/lib/survey/surveyTypes";
 
@@ -44,6 +45,10 @@ export function CustomSurveyAssignPanel({
   const [issuedExpiresAt, setIssuedExpiresAt] = useState<Date | null>(null);
   const [issuedTitle, setIssuedTitle] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [publicLink, setPublicLink] = useState<{ enabled: boolean; token: string | null } | null>(
+    null
+  );
+  const [publicCopied, setPublicCopied] = useState(false);
 
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -66,6 +71,37 @@ export function CustomSurveyAssignPanel({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setPublicLink(null);
+      return;
+    }
+    const surveyId = selectedId;
+    async function loadPublic(): Promise<void> {
+      try {
+        const res = await fetch(
+          `/api/admin/surveys/${encodeURIComponent(surveyId)}/public-link`
+        );
+        const body = (await res.json()) as {
+          enabled?: boolean;
+          token?: string | null;
+          published?: boolean;
+        };
+        if (!res.ok) {
+          setPublicLink(null);
+          return;
+        }
+        setPublicLink({
+          enabled: body.enabled === true && body.published === true,
+          token: body.token ?? null,
+        });
+      } catch {
+        setPublicLink(null);
+      }
+    }
+    void loadPublic();
+  }, [selectedId]);
 
   async function issueInvite(): Promise<void> {
     if (!selectedId) {
@@ -172,13 +208,39 @@ export function CustomSurveyAssignPanel({
 
           {error ? <p className="text-[14px] font-semibold text-red-700">{error}</p> : null}
 
+          {publicLink?.enabled && publicLink.token && origin ? (
+            <div className={`${surveyCardClass} space-y-2`}>
+              <p className="text-[14px] font-extrabold text-[#1D1D1F]">Общая ссылка на опрос</p>
+              <p className={`text-[13px] ${surveyMutedTextClass}`}>
+                Одна ссылка для всех — без персональных кодов. Включено в настройках опроса.
+              </p>
+              <p className="break-all text-[13px] font-semibold">
+                {surveyPublicLinkUrl(origin, publicLink.token)}
+              </p>
+              <button
+                type="button"
+                className={surveyOutlineButtonClass}
+                onClick={() => {
+                  void navigator.clipboard
+                    .writeText(surveyPublicLinkUrl(origin, publicLink.token!))
+                    .then(() => {
+                      setPublicCopied(true);
+                      setTimeout(() => setPublicCopied(false), 2000);
+                    });
+                }}
+              >
+                {publicCopied ? "Скопировано" : "Скопировать общую ссылку"}
+              </button>
+            </div>
+          ) : null}
+
           <button
             type="button"
             disabled={!selected || busy}
             className={surveyPrimaryButtonClass}
             onClick={() => void issueInvite()}
           >
-            {busy ? "Создание…" : "Создать приглашение"}
+            {busy ? "Создание…" : "Создать персональное приглашение"}
           </button>
 
           {issuedCode && issuedExpiresAt ? (

@@ -140,7 +140,11 @@ export type SurveySettingsDocument = {
   welcomeText?: string;
   finishTitle?: string;
   finishText?: string;
+  /** Повторное прохождение по тому же коду приглашения. */
   allowMultipleResponses: boolean;
+  /** Единая ссылка для всех респондентов (без персонального кода). */
+  publicLinkEnabled: boolean;
+  publicLinkToken: string | null;
 };
 
 export type SurveyListItem = {
