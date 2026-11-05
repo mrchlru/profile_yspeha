@@ -2,6 +2,11 @@
 
 import React, { useMemo, useState } from "react";
 
+import {
+  surveyRespondentCardClass,
+  surveyRespondentDesktopCenterClass,
+  surveyRespondentPrimaryCtaClass,
+} from "@/lib/survey/surveyConstructorTheme";
 import { SURVEY_QUESTION_TYPE_LABELS } from "@/lib/survey/surveyQuestionTypeLabels";
 import type { SurveyQuestion, SurveySchemaDocument } from "@/lib/survey/surveyTypes";
 
@@ -60,9 +65,11 @@ export function CustomSurveyPlayer({
 
   if (done) {
     return (
-      <div className="mx-auto w-full max-w-[720px] rounded-2xl border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
-        <h1 className="text-[24px] font-extrabold text-[#1D1D1F] sm:text-[28px]">Спасибо!</h1>
-        <p className="mt-2 text-[16px] text-[#5F5E5E]">Ответы отправлены.</p>
+      <div className={surveyRespondentDesktopCenterClass}>
+        <div className={`${surveyRespondentCardClass} p-10 text-center`}>
+          <h1 className="text-[24px] font-extrabold text-[#1D1D1F] sm:text-[28px]">Спасибо!</h1>
+          <p className="mt-2 text-[16px] text-[#5F5E5E]">Ответы отправлены.</p>
+        </div>
       </div>
     );
   }
@@ -120,7 +127,7 @@ export function CustomSurveyPlayer({
         <button
           type="button"
           disabled={busy}
-          className="min-h-[52px] rounded-full bg-[#007A68] text-[16px] font-bold text-white shadow-sm disabled:opacity-50 sm:max-w-[320px] sm:self-center"
+          className={`${surveyRespondentPrimaryCtaClass} mt-0 shadow-sm`}
           onClick={() => void handleSubmit()}
         >
           {busy ? "Отправка…" : "Отправить"}

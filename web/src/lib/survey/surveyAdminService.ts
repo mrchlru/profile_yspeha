@@ -73,7 +73,7 @@ export async function listSurveysAdmin(filter: ListSurveysFilter): Promise<Surve
     const settings = _parseSettings(settingsSource);
     const versionNumber = row.currentVersion?.versionNumber ?? null;
     const versionLabel =
-      versionNumber !== null ? `версия ${String(versionNumber)}` : "не опубликован";
+      versionNumber !== null ? `Версия ${String(versionNumber)}` : "Не опубликован";
     return {
       id: row.id,
       title: row.title,
@@ -312,6 +312,19 @@ export async function publishSurveyAdmin(
 
   const schema = _parseSchema(row.draftVersion.schema);
   let settings = _parseSettings(row.draftVersion.settings);
+  if (row.currentVersion) {
+    const publishedSettings = _parseSettings(row.currentVersion.settings);
+    if (
+      settings.publicLinkEnabled &&
+      publishedSettings.publicLinkToken?.trim() &&
+      !settings.publicLinkToken?.trim()
+    ) {
+      settings = {
+        ...settings,
+        publicLinkToken: publishedSettings.publicLinkToken,
+      };
+    }
+  }
   if (settings.publicLinkEnabled && !settings.publicLinkToken?.trim()) {
     settings = { ...settings, publicLinkToken: generateSurveyPublicLinkToken() };
   }
@@ -396,17 +409,25 @@ export async function listPublishedSurveysForAssign(): Promise<
     });
 }
 
-export async function deleteSurveyAdmin(surveyId: string): Promise<"deleted" | "has_responses" | "not_found"> {
+/**
+ * Полностью удаляет опрос/тест, ответы и отзывает связанные приглашения.
+ */
+export async function deleteSurveyAdmin(
+  surveyId: string
+): Promise<"deleted" | "not_found"> {
   const row = await prisma.survey.findUnique({
     where: { id: surveyId },
-    include: { _count: { select: { responses: true } } },
+    select: { id: true },
   });
   if (!row) {
     return "not_found";
   }
-  if (row._count.responses > 0) {
-    return "has_responses";
-  }
-  await prisma.survey.delete({ where: { id: surveyId } });
+  await prisma.$transaction(async (tx) => {
+    await tx.accessInvite.updateMany({
+      where: { surveyVersion: { surveyId } },
+      data: { revokedAt: new Date() },
+    });
+    await tx.survey.delete({ where: { id: surveyId } });
+  });
   return "deleted";
 }

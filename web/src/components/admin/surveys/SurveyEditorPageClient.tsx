@@ -60,6 +60,7 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
   const draftRef = useRef<SurveyDraftPayload | null>(null);
   const [pageOrigin, setPageOrigin] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [publishNotice, setPublishNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setPageOrigin(window.location.origin);
@@ -212,6 +213,7 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
     }
     setPublishBusy(true);
     setError(null);
+    setPublishNotice(null);
     try {
       await persistDraft(draftRef.current);
       const res = await fetch(`/api/admin/surveys/${encodeURIComponent(surveyId)}/publish`, {
@@ -228,8 +230,23 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
         setError(detail);
         return;
       }
-      setPublishedVersion(body.versionNumber ?? null);
+      const versionNumber = body.versionNumber ?? 1;
+      setPublishedVersion(versionNumber);
       await loadDraft();
+      const latest = draftRef.current;
+      const kindLabel = latest?.mode === "test" ? "теста" : "опроса";
+      if (
+        latest?.settings.publicLinkEnabled &&
+        latest.settings.publicLinkToken &&
+        pageOrigin
+      ) {
+        const url = surveyPublicLinkUrl(pageOrigin, latest.settings.publicLinkToken);
+        setPublishNotice(
+          `Опубликована версия ${String(versionNumber)} ${kindLabel}. Общая ссылка та же — респонденты увидят актуальную версию после публикации. ${url}`
+        );
+      } else {
+        setPublishNotice(`Опубликована версия ${String(versionNumber)} ${kindLabel}.`);
+      }
     } catch {
       setError("Сеть недоступна при публикации");
     } finally {
@@ -243,10 +260,13 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
 
   if (!draft) {
     return (
-      <div>
-        <p className="text-[14px] font-semibold text-red-700">{error ?? "Опрос не найден"}</p>
-        <Link href="/admin/surveys" className={`${surveyOutlineButtonClass} mt-4 inline-block`} aria-label="Назад">
-          ←
+      <div className={`${surveyQuestionCardClass} max-w-lg space-y-3 p-6`}>
+        <h2 className="text-[18px] font-extrabold text-[#1D1D1F]">Опрос или тест не найден</h2>
+        <p className={`text-[14px] ${surveyMutedTextClass}`}>
+          {error ?? "Возможно, его удалили или ссылка устарела."}
+        </p>
+        <Link href="/admin/surveys" className={`${surveyOutlineButtonClass} inline-block`}>
+          К списку опросов
         </Link>
       </div>
     );
@@ -343,6 +363,14 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
 
       <div className="mx-auto flex w-full max-w-[900px] flex-col gap-4 py-7 lg:flex-row">
         <div className="min-w-0 flex-1 space-y-4">
+          {publishNotice ? (
+            <div
+              className="rounded-xl border border-[#007A68]/30 bg-[#DDF1EC] px-4 py-3 text-[14px] leading-relaxed text-[#1D1D1F]"
+              role="status"
+            >
+              {publishNotice}
+            </div>
+          ) : null}
           {error ? (
             <p className="text-[14px] font-semibold text-red-700">
               {error}{" "}
@@ -550,7 +578,7 @@ export function SurveyEditorPageClient({ surveyId }: SurveyEditorPageClientProps
         </div>
 
         {tab === "questions" ? (
-          <aside className="h-fit w-full shrink-0 space-y-2 rounded-[14px] border border-[#E5E5E5] bg-white p-4 lg:w-[240px]">
+          <aside className="h-fit w-full shrink-0 space-y-2 rounded-[14px] border border-[#E5E5E5] bg-white p-4 lg:sticky lg:top-6 lg:z-10 lg:max-h-[calc(100dvh-3rem)] lg:w-[240px] lg:self-start lg:overflow-y-auto">
             <p className="text-[13px] font-bold text-[#5F5E5E]">Добавить вопрос</p>
             {SURVEY_ADDABLE_QUESTION_TYPES.map((type) => (
               <button

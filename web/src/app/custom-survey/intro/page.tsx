@@ -4,6 +4,10 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { CustomSurveyRespondentLayout } from "@/components/survey/CustomSurveyRespondentLayout";
+import {
+  surveyRespondentCardClass,
+  surveyRespondentPrimaryCtaClass,
+} from "@/lib/survey/surveyConstructorTheme";
 import { isCustomSurveyTestKind } from "@/lib/access/testKinds";
 import { useFormStore } from "@/store/useFormStore";
 import { useFormStoreHydrated } from "@/hooks/useAccessGate";
@@ -67,8 +71,10 @@ export default function CustomSurveyIntroPage(): React.ReactElement {
   }
 
   return (
-    <CustomSurveyRespondentLayout>
-      <div className="mx-auto max-w-[720px] rounded-2xl border border-[#E5E5E5] border-t-[10px] border-t-[#007A68] bg-white p-8 shadow-sm sm:p-10">
+    <CustomSurveyRespondentLayout centerOnDesktop>
+      <div
+        className={`${surveyRespondentCardClass} border-t-[10px] border-t-[#007A68] p-8 sm:p-10`}
+      >
         <h1 className="text-[28px] font-extrabold text-[#1D1D1F] sm:text-[32px]">{welcomeTitle}</h1>
         {schema.description ? (
           <p className="mt-3 text-[16px] leading-relaxed text-[#5F5E5E]">{schema.description}</p>
@@ -78,7 +84,7 @@ export default function CustomSurveyIntroPage(): React.ReactElement {
         ) : null}
         <button
           type="button"
-          className="mt-8 min-h-[52px] rounded-full bg-[#007A68] px-10 text-[16px] font-bold text-white"
+          className={surveyRespondentPrimaryCtaClass}
           onClick={() => router.push("/custom-survey/take")}
         >
           Начать опрос

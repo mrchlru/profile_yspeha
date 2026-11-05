@@ -2,6 +2,16 @@
 
 export const surveyPageBgClass = "bg-[#F4F6F5] text-[#1D1D1F]";
 
+/** Центрирование карточки приветствия / финиша на больших экранах. */
+export const surveyRespondentDesktopCenterClass =
+  "flex w-full flex-col lg:min-h-[calc(100dvh-6rem)] lg:items-center lg:justify-center";
+
+export const surveyRespondentCardClass =
+  "w-full max-w-[720px] rounded-2xl border border-[#E5E5E5] bg-white shadow-sm";
+
+export const surveyRespondentPrimaryCtaClass =
+  "mt-8 flex min-h-[52px] w-full items-center justify-center rounded-full bg-[#007A68] px-10 text-[16px] font-bold text-white transition hover:bg-[#005A4C] disabled:opacity-50";
+
 export const surveyPrimaryButtonClass =
   "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border-0 bg-[#007A68] px-5 text-[14px] font-bold text-white transition hover:bg-[#005A4C] disabled:cursor-not-allowed disabled:opacity-50";
 

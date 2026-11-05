@@ -161,15 +161,23 @@ export function SurveysBrowser(): React.ReactElement {
     }
   }
 
-  async function archiveSurvey(id: string): Promise<void> {
+  async function deleteSurvey(id: string, title: string, mode: SurveyMode): Promise<void> {
+    const kindLabel = mode === "test" ? "тест" : "опрос";
+    if (
+      !window.confirm(
+        `Удалить ${kindLabel} «${title}»?\n\nОтветы и ссылки перестанут работать. Это нельзя отменить.`
+      )
+    ) {
+      return;
+    }
     setBusyId(id);
     setMenuOpenId(null);
     try {
-      const res = await fetch(`/api/admin/surveys/${encodeURIComponent(id)}/archive`, {
+      const res = await fetch(`/api/admin/surveys/${encodeURIComponent(id)}/delete`, {
         method: "POST",
       });
       if (!res.ok) {
-        setError("Не удалось отправить в архив");
+        setError("Не удалось удалить");
         return;
       }
       await load();
@@ -285,7 +293,6 @@ export function SurveysBrowser(): React.ReactElement {
               <option value="all">Все статусы</option>
               <option value="published">Опубликован</option>
               <option value="draft">Черновик</option>
-              <option value="archived">Архив</option>
             </select>
           </div>
         </div>
@@ -359,6 +366,12 @@ export function SurveysBrowser(): React.ReactElement {
                   <span className={`flex-1 text-[12px] ${surveyMutedTextClass}`}>
                     Изменён {formatUpdatedAt(item.updatedAt)}
                   </span>
+                  <Link
+                    href={`/admin/surveys/${encodeURIComponent(item.id)}`}
+                    className={surveyPrimaryButtonClass}
+                  >
+                    Редактировать
+                  </Link>
                   {item.status === "published" ? (
                     <Link
                       href={`/admin/create-test?surveyId=${encodeURIComponent(item.id)}`}
@@ -378,7 +391,7 @@ export function SurveysBrowser(): React.ReactElement {
                   <div className="relative" ref={menuOpenId === item.id ? menuRef : undefined}>
                     <button
                       type="button"
-                      aria-label="Ещё: дублировать, архивировать"
+                      aria-label="Ещё: дублировать, удалить"
                       disabled={busyId === item.id}
                       className="inline-flex size-10 items-center justify-center rounded-full border border-[#E5E5E5] bg-white"
                       onClick={(e) => {
@@ -389,13 +402,7 @@ export function SurveysBrowser(): React.ReactElement {
                       <DotsIcon />
                     </button>
                     {menuOpenId === item.id ? (
-                      <div className="absolute bottom-full right-0 z-10 mb-1 min-w-[160px] rounded-xl border border-[#E5E5E5] bg-white py-1 shadow-lg">
-                        <Link
-                          href={`/admin/surveys/${encodeURIComponent(item.id)}`}
-                          className="block px-4 py-2 text-[13px] font-semibold text-[#1D1D1F] hover:bg-[#F5F5F5]"
-                        >
-                          Открыть
-                        </Link>
+                      <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-xl border border-[#E5E5E5] bg-white py-1 shadow-lg">
                         <button
                           type="button"
                           className="block w-full px-4 py-2 text-left text-[13px] font-semibold text-[#1D1D1F] hover:bg-[#F5F5F5]"
@@ -403,15 +410,13 @@ export function SurveysBrowser(): React.ReactElement {
                         >
                           Дублировать
                         </button>
-                        {item.status !== "archived" ? (
-                          <button
-                            type="button"
-                            className="block w-full px-4 py-2 text-left text-[13px] font-semibold text-[#1D1D1F] hover:bg-[#F5F5F5]"
-                            onClick={() => void archiveSurvey(item.id)}
-                          >
-                            В архив
-                          </button>
-                        ) : null}
+                        <button
+                          type="button"
+                          className="block w-full px-4 py-2 text-left text-[13px] font-semibold text-red-700 hover:bg-[#F5F5F5]"
+                          onClick={() => void deleteSurvey(item.id, item.title, item.mode)}
+                        >
+                          Удалить
+                        </button>
                       </div>
                     ) : null}
                   </div>

@@ -22,7 +22,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const result = await loadSurveyPublicPreview(parsed.data.token);
   if (!result.ok) {
-    return NextResponse.json({ error: "Ссылка недействительна" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Опрос или тест не найден. Возможно, ссылка устарела или материал удалён." },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json(result.payload);

@@ -5,6 +5,10 @@ import React, { useEffect, useState } from "react";
 
 import { CustomSurveyPlayer } from "@/components/survey/CustomSurveyPlayer";
 import { CustomSurveyRespondentLayout } from "@/components/survey/CustomSurveyRespondentLayout";
+import {
+  surveyRespondentCardClass,
+  surveyRespondentPrimaryCtaClass,
+} from "@/lib/survey/surveyConstructorTheme";
 import type { SurveySchemaDocument, SurveySettingsDocument } from "@/lib/survey/surveyTypes";
 
 type Phase = "welcome" | "take" | "done";
@@ -43,7 +47,10 @@ export default function CustomSurveyOpenPage(): React.ReactElement {
           error?: string;
         };
         if (!res.ok || !body.schema) {
-          setError(body.error ?? "Ссылка недействительна или опрос снят с публикации");
+          setError(
+            body.error ??
+              "Опрос или тест не найден. Возможно, ссылка устарела или материал удалён."
+          );
           return;
         }
         setSchema(body.schema);
@@ -106,8 +113,11 @@ export default function CustomSurveyOpenPage(): React.ReactElement {
 
   if (error) {
     return (
-      <CustomSurveyRespondentLayout>
-        <p className="text-center text-[15px] text-red-700">{error}</p>
+      <CustomSurveyRespondentLayout centerOnDesktop>
+        <div className={`${surveyRespondentCardClass} p-10 text-center`}>
+          <h1 className="text-[22px] font-extrabold text-[#1D1D1F]">Опрос недоступен</h1>
+          <p className="mt-3 text-[15px] leading-relaxed text-[#5F5E5E]">{error}</p>
+        </div>
       </CustomSurveyRespondentLayout>
     );
   }
@@ -122,8 +132,8 @@ export default function CustomSurveyOpenPage(): React.ReactElement {
 
   if (phase === "done") {
     return (
-      <CustomSurveyRespondentLayout>
-        <div className="mx-auto max-w-[720px] rounded-2xl border border-[#E5E5E5] bg-white p-10 text-center shadow-sm">
+      <CustomSurveyRespondentLayout centerOnDesktop>
+        <div className={`${surveyRespondentCardClass} p-10 text-center`}>
           <h1 className="text-[24px] font-extrabold text-[#1D1D1F]">
             {settings?.finishTitle ?? "Спасибо!"}
           </h1>
@@ -147,8 +157,10 @@ export default function CustomSurveyOpenPage(): React.ReactElement {
   const welcomeText = settings?.welcomeText?.trim();
 
   return (
-    <CustomSurveyRespondentLayout>
-      <div className="mx-auto max-w-[720px] rounded-2xl border border-[#E5E5E5] border-t-[10px] border-t-[#007A68] bg-white p-8 shadow-sm sm:p-10">
+    <CustomSurveyRespondentLayout centerOnDesktop>
+      <div
+        className={`${surveyRespondentCardClass} border-t-[10px] border-t-[#007A68] p-8 sm:p-10`}
+      >
         <h1 className="text-[28px] font-extrabold tracking-[-0.02em] text-[#1D1D1F] sm:text-[32px]">
           {welcomeTitle}
         </h1>
@@ -161,7 +173,7 @@ export default function CustomSurveyOpenPage(): React.ReactElement {
         <button
           type="button"
           disabled={busy}
-          className="mt-8 min-h-[52px] rounded-full bg-[#007A68] px-10 text-[16px] font-bold text-white disabled:opacity-50"
+          className={surveyRespondentPrimaryCtaClass}
           onClick={() => void beginSurvey()}
         >
           {busy ? "Подготовка…" : "Начать опрос"}
