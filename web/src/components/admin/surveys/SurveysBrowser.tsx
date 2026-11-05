@@ -22,6 +22,8 @@ import {
 } from "@/lib/survey/surveyConstructorTheme";
 import type { SurveyListItem, SurveyMode, SurveyStatus } from "@/lib/survey/surveyTypes";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useAdminSession } from "@/hooks/useAdminSession";
+import { ADMIN_ROLE_ADMIN } from "@/lib/admin/adminRoles";
 
 const STATUS_LABELS: Record<SurveyStatus, string> = {
   draft: "Черновик",
@@ -69,6 +71,9 @@ function formatUpdatedAt(iso: string): string {
  * Список собственных опросов (макет «Опросы — список»).
  */
 export function SurveysBrowser(): React.ReactElement {
+  const { session } = useAdminSession();
+  const isMainAdmin =
+    session.status === "authenticated" && session.role === ADMIN_ROLE_ADMIN;
   const [items, setItems] = useState<SurveyListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,12 +191,16 @@ export function SurveysBrowser(): React.ReactElement {
     }
   }
 
-  function onStarterClick(index: number): void {
-    if (index === 0) {
+  const visibleStarterTemplates = STARTER_TEMPLATES.filter(
+    (starter) => isMainAdmin || !starter.disabled
+  );
+
+  function onStarterClick(title: string): void {
+    if (title === "Пустой опрос") {
       void createSurvey("survey");
       return;
     }
-    if (index === 1) {
+    if (title === "Пустой тест") {
       void createSurvey("test");
     }
   }
@@ -223,13 +232,13 @@ export function SurveysBrowser(): React.ReactElement {
           Начать с
         </h2>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3.5">
-          {STARTER_TEMPLATES.map((starter, index) => (
+          {visibleStarterTemplates.map((starter) => (
             <button
               key={starter.title}
               type="button"
               disabled={starter.disabled}
               className="flex flex-col overflow-hidden rounded-[14px] border border-[#E5E5E5] bg-white text-left text-[#1D1D1F] transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-55"
-              onClick={() => onStarterClick(index)}
+              onClick={() => onStarterClick(starter.title)}
             >
               <div
                 className="flex h-24 items-center justify-center"
