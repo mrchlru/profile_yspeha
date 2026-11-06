@@ -14,9 +14,9 @@ import {
   surveyOutlineButtonClass,
   surveyPrimaryButtonClass,
   surveySearchInputClass,
-  surveySegmentActiveClass,
-  surveySegmentIdleClass,
-  surveySegmentTrackClass,
+  surveyTemplateActiveClass,
+  surveyTemplateIdleClass,
+  surveyTemplateTrackClass,
   surveySelectClass,
   surveyTintButtonClass,
 } from "@/lib/survey/surveyConstructorTheme";
@@ -273,10 +273,10 @@ export function SurveysBrowser(): React.ReactElement {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <div role="group" aria-label="Тип" className={surveySegmentTrackClass}>
+            <div role="group" aria-label="Шаблоны" className={surveyTemplateTrackClass}>
               {(
                 [
-                  ["all", "Все"],
+                  ["all", "Все шаблоны"],
                   ["survey", "Опросы"],
                   ["test", "Тесты"],
                 ] as const
@@ -285,7 +285,7 @@ export function SurveysBrowser(): React.ReactElement {
                   key={value}
                   type="button"
                   aria-pressed={modeFilter === value}
-                  className={modeFilter === value ? surveySegmentActiveClass : surveySegmentIdleClass}
+                  className={modeFilter === value ? surveyTemplateActiveClass : surveyTemplateIdleClass}
                   onClick={() => setModeFilter(value)}
                 >
                   {label}

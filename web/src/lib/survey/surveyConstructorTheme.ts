@@ -47,13 +47,14 @@ export const surveyChipDraftClass =
 export const surveyChipAnonClass =
   "inline-flex rounded-full bg-[#EEF0FB] px-[9px] py-[3px] text-[12px] font-bold text-[#2F3A8F]";
 
-export const surveySegmentTrackClass =
+/** Переключатель вида шаблона (все / опрос / тест). */
+export const surveyTemplateTrackClass =
   "inline-flex rounded-[10px] border border-[#E5E5E5] bg-white p-[3px]";
 
-export const surveySegmentActiveClass =
+export const surveyTemplateActiveClass =
   "min-h-[38px] rounded-[8px] bg-[#1D1D1F] px-[14px] text-[13px] font-semibold text-white";
 
-export const surveySegmentIdleClass =
+export const surveyTemplateIdleClass =
   "min-h-[38px] rounded-[8px] bg-transparent px-[14px] text-[13px] font-semibold text-[#5F5E5E] hover:bg-[#F5F5F5]";
 
 export const surveyEditorTabActiveClass =

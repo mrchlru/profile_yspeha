@@ -8,9 +8,9 @@ import {
   surveyMutedTextClass,
   surveyOutlineButtonClass,
   surveyPrimaryButtonClass,
-  surveySegmentActiveClass,
-  surveySegmentIdleClass,
-  surveySegmentTrackClass,
+  surveyTemplateActiveClass,
+  surveyTemplateIdleClass,
+  surveyTemplateTrackClass,
 } from "@/lib/survey/surveyConstructorTheme";
 import { buildInviteCopyMessage, inviteEntryUrl } from "@/lib/access/inviteMessage";
 import { surveyPublicLinkUrl } from "@/lib/survey/surveyPublicLink";
@@ -270,17 +270,17 @@ export function CustomSurveyAssignModeSwitch(props: {
   onChange: (mode: "builtin" | "custom") => void;
 }): React.ReactElement {
   return (
-    <div role="group" aria-label="Тип назначения" className={`${surveySegmentTrackClass} mb-4`}>
+    <div role="group" aria-label="Тип назначения" className={`${surveyTemplateTrackClass} mb-4`}>
       <button
         type="button"
-        className={props.mode === "builtin" ? surveySegmentActiveClass : surveySegmentIdleClass}
+        className={props.mode === "builtin" ? surveyTemplateActiveClass : surveyTemplateIdleClass}
         onClick={() => props.onChange("builtin")}
       >
         Встроенные методики
       </button>
       <button
         type="button"
-        className={props.mode === "custom" ? surveySegmentActiveClass : surveySegmentIdleClass}
+        className={props.mode === "custom" ? surveyTemplateActiveClass : surveyTemplateIdleClass}
         onClick={() => props.onChange("custom")}
       >
         Собственные опросы
