@@ -12,6 +12,7 @@ import { useProctorUiActive } from "@/hooks/useProctorUiActive";
 import { useSyncAccessInviteFromValidate } from "@/hooks/useSyncAccessInviteFromValidate";
 import { useScreeningNoSelect } from "@/hooks/useScreeningNoSelect";
 import { screeningNoSelectContentClass } from "@/lib/stepPageTheme";
+import { TestSessionUiChrome } from "@/components/TestSessionUiChrome";
 import { useFormStore } from "@/store/useFormStore";
 
 export type StepLayoutProps = {
@@ -46,6 +47,7 @@ export function StepLayout({
         proctorUiActive ? "pt-9" : ""
       }`}
     >
+      <TestSessionUiChrome />
       <MetaballBackground />
 
       <header className="relative z-50 w-full shrink-0">

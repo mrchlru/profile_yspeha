@@ -12,7 +12,10 @@ import {
   type AuditBatteryId,
 } from "@/lib/audit/auditBatteries";
 import { BATTERY_PROF_SB_STEP_MARKER } from "@/lib/audit/batteryStepMarkers";
-import { queueAuditStepSync } from "@/lib/audit/syncAuditAnswersClient";
+import {
+  queueAuditStepSync,
+  queueAuditStepSyncDebounced,
+} from "@/lib/audit/syncAuditAnswersClient";
 import { isBatteryWithProfSbId } from "@/lib/audit/isBatteryWithProfSb";
 import { setScreeningMaxStepCookie } from "@/lib/screeningProgressCookie";
 import type { TestKind } from "@/lib/access/testKinds";
@@ -559,6 +562,7 @@ export const useAuditFormStore = create<AuditFormStore>()(
             },
           };
         });
+        queueAuditStepSyncDebounced(safe);
       },
 
       replaceStepAnswers: (stepIndex, stepAnswers) => {

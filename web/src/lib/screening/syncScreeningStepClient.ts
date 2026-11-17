@@ -1,3 +1,6 @@
+import { screeningClientLog } from "@/lib/logging/screeningClientLog";
+import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
+import { postJsonWithSyncOutbox } from "@/lib/sync/syncOutbox";
 import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useFormStore } from "@/store/useFormStore";
 
@@ -17,9 +20,7 @@ async function _syncScreeningStep(step: ScreeningSyncStep): Promise<void> {
 
   const inAuditBattery = audit.batteryId !== null && audit.sessionId !== null;
   const sessionId =
-    inAuditBattery && step === 4
-      ? audit.sessionId
-      : form.sessionId;
+    inAuditBattery && step === 4 ? audit.sessionId : form.sessionId;
 
   if (!sessionId || accessCode.length < 8) {
     return;
@@ -41,22 +42,22 @@ async function _syncScreeningStep(step: ScreeningSyncStep): Promise<void> {
           ? form.step3Data
           : form.step4Data;
 
-  try {
-    await fetch("/api/submit/sync-answers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      keepalive: true,
-      body: JSON.stringify({
-        sessionId,
-        accessCode,
-        profileName,
-        step,
-        stepData,
-        personalDataConsent: form.personalDataConsent || audit.personalDataConsent,
-        consentRecordedAt: form.consentRecordedAt ?? audit.consentRecordedAt ?? undefined,
-      }),
-    });
-  } catch {
-    /* localStorage остаётся резервной копией */
+  const sessionRef = shortSessionRef(sessionId);
+  const body = {
+    sessionId,
+    accessCode,
+    profileName,
+    step,
+    stepData,
+    personalDataConsent: form.personalDataConsent || audit.personalDataConsent,
+    consentRecordedAt: form.consentRecordedAt ?? audit.consentRecordedAt ?? undefined,
+  };
+  const outboxId = `screening:${accessCode}:${sessionId}:step${String(step)}`;
+
+  const ok = await postJsonWithSyncOutbox("/api/submit/sync-answers", body, outboxId);
+  if (ok) {
+    screeningClientLog("screening_step_sync_ok", { sessionRef, step: String(step) });
+  } else {
+    screeningClientLog("screening_step_sync_queued", { sessionRef, step: String(step) });
   }
 }

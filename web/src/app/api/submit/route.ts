@@ -4,7 +4,7 @@ import {
   isSubmitRateLimitExceeded,
   recordSuccessfulSubmit,
 } from "@/lib/api/submitRateLimit";
-import { checkAccessInvite } from "@/lib/access/findActiveInvite";
+import { checkAccessInviteForStartedAudit } from "@/lib/access/findActiveInvite";
 import { normalizeAccessCode } from "@/lib/access/accessCode";
 import { markAccessCodeUsed } from "@/lib/access/markAccessCodeUsed";
 import { TEST_KIND_SCREENING } from "@/lib/access/testKinds";
@@ -103,7 +103,7 @@ export async function POST(
     return jsonError("Incomplete payload", 400);
   }
 
-  const accessCheck = await checkAccessInvite(payload.accessCode);
+  const accessCheck = await checkAccessInviteForStartedAudit(payload.accessCode);
   if (accessCheck.status === "expired") {
     screeningServerLog("submit", "access_code_expired", { sessionRef });
     return jsonError(

@@ -17,6 +17,7 @@ import { useScreeningStepLog } from "@/lib/logging/useScreeningStepLog";
 import { TOTAL_QUESTIONS_COUNT, getAllAnsweredCount } from "@/lib/progress";
 import { setScreeningMaxStepCookie } from "@/lib/screeningProgressCookie";
 import { queueScreeningStepSync } from "@/lib/screening/syncScreeningStepClient";
+import { runPendingBackgroundSync } from "@/lib/sync/debouncedBackgroundSync";
 import { getContinueButtonLabel } from "@/lib/testMotivation";
 import { BATTERY_PROF_SB_STEP_MARKER } from "@/lib/audit/batteryStepMarkers";
 import { getBatteryNextRouteAfterStep } from "@/lib/audit/batteryNavigation";
@@ -1365,6 +1366,7 @@ export default function Step4Page(): React.ReactElement {
             }`}
             onClick={() => {
               if (complete) {
+                runPendingBackgroundSync("screening-step4-draft");
                 queueScreeningStepSync(4);
                 if (tuBatteryMode && batteryStepSequence !== null) {
                   markStepCompleted(BATTERY_PROF_SB_STEP_MARKER);

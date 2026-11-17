@@ -235,9 +235,13 @@ export const useFormStore = create<FormStore>()(
       setStep3Data: (data) => set({ step3Data: data }),
       setStep4Data: (data) => {
         set({ step4Data: data });
-        debouncedBackgroundSync("screening-step4-draft", () => {
-          queueScreeningStepSync(4);
-        });
+        debouncedBackgroundSync(
+          "screening-step4-draft",
+          () => {
+            queueScreeningStepSync(4);
+          },
+          600
+        );
       },
 
       setValidatedAccess: (code, testKind, options) => {
