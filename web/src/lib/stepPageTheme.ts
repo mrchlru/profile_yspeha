@@ -41,4 +41,4 @@ export const screeningNoSelectContentClass =
  * до прокрутки страницы.
  */
 export const auditTimerBadgeFixedClass =
-  "pointer-events-auto fixed right-3 top-[124px] z-40 sm:right-6";
+  "pointer-events-auto fixed right-3 top-[148px] z-40 sm:right-6";

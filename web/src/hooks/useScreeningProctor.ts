@@ -77,10 +77,10 @@ const EVENT_COOLDOWN_MS: Record<ClientProctorEventKind, number> = {
   gaze_away: 15_000,
 };
 /** Порог RMS (выше = менее чувствительно к щелчкам и фоновому шуму). */
-const AUDIO_RMS_THRESHOLD = 0.072;
-const AUDIO_SUSTAIN_MS = 750;
+const AUDIO_RMS_THRESHOLD = 0.034;
+const AUDIO_SUSTAIN_MS = 420;
 const AUDIO_QUIET_MS = 1400;
-const AUDIO_RMS_SMOOTHING = 0.88;
+const AUDIO_RMS_SMOOTHING = 0.78;
 const SNAPSHOT_JPEG_QUALITY = 0.85;
 const AUDIO_SLICE_MS = 1000;
 const AUDIO_ROLLING_SLICES = 4;
@@ -572,6 +572,22 @@ export function useScreeningProctor(options: UseScreeningProctorOptions): UseScr
     let flushTimer: ReturnType<typeof setInterval> | null = null;
     let scanTimer: ReturnType<typeof setInterval> | null = null;
     let audioFrame = 0;
+    let audioContext: AudioContext | null = null;
+
+    function resumeAudioContextIfNeeded(): void {
+      if (!audioContext || audioContext.state === "running") {
+        return;
+      }
+      void audioContext.resume().catch(() => {
+        /* браузер может отклонить без жеста */
+      });
+    }
+
+    function onVisibilityForAudio(): void {
+      if (document.visibilityState === "visible") {
+        resumeAudioContextIfNeeded();
+      }
+    }
 
     async function start(): Promise<void> {
       setStatus("requesting");
@@ -629,18 +645,24 @@ export function useScreeningProctor(options: UseScreeningProctorOptions): UseScr
           mediaRecorderRef.current = recorder;
         }
 
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048;
-        source.connect(analyser);
-        const data = new Uint8Array(analyser.fftSize);
+        if (audioTrack) {
+          audioContext = new AudioContext();
+          resumeAudioContextIfNeeded();
+          document.addEventListener("visibilitychange", onVisibilityForAudio);
 
-        function sampleAudio(): void {
-          if (cancelled) {
-            return;
-          }
-          analyser.getByteTimeDomainData(data);
+          const audioOnlyStream = new MediaStream([audioTrack]);
+          const source = audioContext.createMediaStreamSource(audioOnlyStream);
+          const analyser = audioContext.createAnalyser();
+          analyser.fftSize = 2048;
+          source.connect(analyser);
+          const data = new Uint8Array(analyser.fftSize);
+
+          function sampleAudio(): void {
+            if (cancelled) {
+              return;
+            }
+            resumeAudioContextIfNeeded();
+            analyser.getByteTimeDomainData(data);
           let sum = 0;
           for (let i = 0; i < data.length; i += 1) {
             const normalized = (data[i]! - 128) / 128;
@@ -685,9 +707,10 @@ export function useScreeningProctor(options: UseScreeningProctorOptions): UseScr
             }
           }
 
+            audioFrame = requestAnimationFrame(sampleAudio);
+          }
           audioFrame = requestAnimationFrame(sampleAudio);
         }
-        audioFrame = requestAnimationFrame(sampleAudio);
 
         faceTimer = setInterval(() => {
           const videoEl = videoRef.current;
@@ -780,6 +803,11 @@ export function useScreeningProctor(options: UseScreeningProctorOptions): UseScr
         bannerHideTimerRef.current = null;
       }
       cancelAnimationFrame(audioFrame);
+      document.removeEventListener("visibilitychange", onVisibilityForAudio);
+      if (audioContext) {
+        void audioContext.close();
+        audioContext = null;
+      }
       void (async () => {
         await stopSessionRecorder();
         mediaRecorderRef.current = null;

@@ -12,6 +12,7 @@ import { useProctorUiActive } from "@/hooks/useProctorUiActive";
 import { useSyncAccessInviteFromValidate } from "@/hooks/useSyncAccessInviteFromValidate";
 import { useScreeningNoSelect } from "@/hooks/useScreeningNoSelect";
 import { screeningNoSelectContentClass } from "@/lib/stepPageTheme";
+import { ConnectionStatusPill } from "@/components/ConnectionStatusPill";
 import { TestSessionUiChrome } from "@/components/TestSessionUiChrome";
 import { useFormStore } from "@/store/useFormStore";
 
@@ -79,7 +80,10 @@ export function StepLayout({
             </h1>
           ) : null}
 
-          <FaqMenu />
+          <div className="flex shrink-0 flex-col items-end gap-2.5 pt-1 sm:gap-3 sm:pt-2">
+            <ConnectionStatusPill layout="header" />
+            <FaqMenu />
+          </div>
         </div>
       </header>
 

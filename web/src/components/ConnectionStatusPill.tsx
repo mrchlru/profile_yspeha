@@ -6,8 +6,14 @@ import {
   getSyncOutboxPendingCount,
   subscribeSyncOutbox,
 } from "@/lib/sync/syncOutbox";
+import { useProctorUiActive } from "@/hooks/useProctorUiActive";
 
 type ConnectionQuality = "stable" | "unstable" | "offline";
+
+type ConnectionStatusPillProps = {
+  /** В шапке справа (не fixed) или плавающий fallback для экранов без StepLayout. */
+  layout?: "header" | "fixed";
+};
 
 function WifiIcon({ className }: { className: string }): React.ReactElement {
   return (
@@ -33,10 +39,13 @@ function WifiIcon({ className }: { className: string }): React.ReactElement {
 /**
  * Компактный индикатор качества связи и очереди sync (скрининг / батарея).
  */
-export function ConnectionStatusPill(): React.ReactElement | null {
+export function ConnectionStatusPill({
+  layout = "header",
+}: ConnectionStatusPillProps): React.ReactElement | null {
   const [quality, setQuality] = useState<ConnectionQuality>("stable");
   const [pending, setPending] = useState(0);
   const [showVpnHint, setShowVpnHint] = useState(false);
+  const proctorBannerActive = useProctorUiActive();
 
   useEffect(() => {
     return subscribeSyncOutbox(setPending);
@@ -92,21 +101,28 @@ export function ConnectionStatusPill(): React.ReactElement | null {
 
   const unstable = quality === "unstable" || quality === "offline" || pending > 0;
 
+  const positionClass =
+    layout === "fixed"
+      ? proctorBannerActive
+        ? "fixed right-3 top-[5.25rem] z-[68] sm:right-4 sm:top-[5.5rem]"
+        : "fixed right-3 top-[4.75rem] z-[68] sm:right-4 sm:top-[5rem]"
+      : "relative z-[62] w-full max-w-[min(100vw-8rem,18rem)]";
+
   return (
     <div
-      className="pointer-events-none fixed right-3 top-3 z-[70] flex max-w-[min(100vw-1.5rem,20rem)] flex-col items-end gap-1 sm:right-4 sm:top-4"
+      className={`pointer-events-none flex flex-col items-end gap-1 ${positionClass}`}
       role="status"
       aria-live="polite"
     >
       <div
-        className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] leading-tight shadow-sm backdrop-blur-sm sm:text-xs ${
+        className={`flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] leading-tight shadow-sm backdrop-blur-sm sm:text-xs ${
           unstable
             ? "border-red-400/35 bg-red-500/12 text-red-900"
             : "border-emerald-400/35 bg-emerald-500/12 text-emerald-900"
         }`}
       >
-        <WifiIcon className={unstable ? "text-red-600" : "text-emerald-600"} />
-        <span>
+        <WifiIcon className={unstable ? "shrink-0 text-red-600" : "shrink-0 text-emerald-600"} />
+        <span className="text-right">
           {quality === "offline"
             ? "Нет сети. Ответы в очереди."
             : unstable

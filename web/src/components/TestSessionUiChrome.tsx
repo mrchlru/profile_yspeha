@@ -2,13 +2,12 @@
 
 import React from "react";
 
-import { ConnectionStatusPill } from "@/components/ConnectionStatusPill";
 import { SyncOutboxBootstrap } from "@/components/SyncOutboxBootstrap";
 import { useFormStoreHydrated } from "@/hooks/useAccessGate";
 import { useFormStore } from "@/store/useFormStore";
 
 /**
- * Индикатор сети и догоняющая очередь sync во время прохождения теста.
+ * Фоновая догонка очереди sync во время прохождения теста.
  */
 export function TestSessionUiChrome(): React.ReactElement | null {
   const hydrated = useFormStoreHydrated();
@@ -16,10 +15,5 @@ export function TestSessionUiChrome(): React.ReactElement | null {
   if (!hydrated || validatedAccessCode === null) {
     return null;
   }
-  return (
-    <>
-      <SyncOutboxBootstrap />
-      <ConnectionStatusPill />
-    </>
-  );
+  return <SyncOutboxBootstrap />;
 }

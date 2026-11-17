@@ -2,7 +2,6 @@
 
 import type { ReactElement, ReactNode } from "react";
 import { AuditDevStepNavLayer } from "@/components/audit/AuditDevStepNavLayer";
-import { TestSessionUiChrome } from "@/components/TestSessionUiChrome";
 import { useAuditDevNavEnabled } from "@/hooks/useAuditDevNavEnabled";
 
 export default function AuditRouteLayout({
@@ -14,7 +13,6 @@ export default function AuditRouteLayout({
 
   return (
     <div className={devNav ? "pb-[120px] sm:pb-28" : undefined}>
-      <TestSessionUiChrome />
       {children}
       <AuditDevStepNavLayer />
     </div>

@@ -109,10 +109,13 @@ export function MetaballBackground(): React.ReactElement {
 
 function MetaballCssFallback(): React.ReactElement {
   return (
-    <>
+    <div
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      aria-hidden
+    >
       <div className="pointer-events-none absolute right-[-90px] bottom-[-100px] h-[620px] w-[620px] rounded-full bg-[radial-gradient(circle,_rgba(120,230,205,0.75)_0%,_rgba(120,230,205,0.28)_55%,_rgba(120,230,205,0)_78%)] blur-[28px]" />
       <div className="pointer-events-none absolute left-[10px] top-[20px] h-[260px] w-[480px] rounded-full bg-[radial-gradient(circle,_rgba(255,255,255,0.8)_0%,_rgba(255,255,255,0.28)_58%,_rgba(255,255,255,0)_78%)] blur-[44px]" />
-    </>
+    </div>
   );
 }
 
