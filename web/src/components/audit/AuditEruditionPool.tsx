@@ -74,8 +74,7 @@ function _AllAnsweredCard({ total }: { total: number }): React.ReactElement {
         Вы ответили на все вопросы пула
       </p>
       <p className="text-[15px] text-[#5F5E5E]">
-        {`Всего: ${String(total)}. Дождитесь окончания таймера или нажмите «Завершить шаг»,
-        чтобы перейти к финалу.`}
+        {`Всего: ${String(total)}. Нажмите «Завершить шаг», чтобы перейти дальше.`}
       </p>
     </article>
   );

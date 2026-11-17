@@ -1156,12 +1156,6 @@ function Step24EruditionBody({
           ? `Все вопросы пройдены (${String(total)} из ${String(total)})`
           : `Вопрос ${String(Math.min(answered + 1, total))} из ${String(total)}`
       }
-      belowProgress={
-        <p className="text-[13px] text-[#5F5E5E]">
-          Тест завершится автоматически по истечении таймера. Отвечайте, сколько успеете —
-          можно не пытаться пройти весь пул.
-        </p>
-      }
     >
       <AuditEruditionPool
         questions={AUDIT_STEP_24_QUESTIONS}
