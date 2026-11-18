@@ -6,7 +6,8 @@ WORKDIR /app
 
 ENV NPM_CONFIG_JOBS=2 \
     NPM_CONFIG_FETCH_TIMEOUT=300000 \
-    NPM_CONFIG_FETCH_RETRIES=5
+    NPM_CONFIG_FETCH_RETRIES=5 \
+    onnxruntime-node-install-cuda=skip
 
 COPY package*.json .npmrc ./
 RUN --mount=type=cache,target=/root/.npm \
