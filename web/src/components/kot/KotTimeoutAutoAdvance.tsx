@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useKotBlockAnswersFromTimer } from "@/components/kot/KotTimeGate";
 import { clientSessionRef, screeningClientLog } from "@/lib/logging/screeningClientLog";
 import { finalizeKotStep1AfterTimeout } from "@/lib/kot/kotStep1Finalize";
-import { queueScreeningStepSync } from "@/lib/screening/syncScreeningStepClient";
+import { syncScreeningStepNow } from "@/lib/screening/syncScreeningStepClient";
 import { setScreeningMaxStepCookie } from "@/lib/screeningProgressCookie";
 import { useFormStore } from "@/store/useFormStore";
 
@@ -29,8 +29,14 @@ export function KotTimeoutAutoAdvance(): null {
       sessionRef: clientSessionRef(sessionId) ?? "none",
     });
     setScreeningMaxStepCookie(2);
-    queueScreeningStepSync(1);
-    router.replace("/step-2");
+    void (async () => {
+      try {
+        await syncScreeningStepNow(1);
+        router.replace("/step-2");
+      } catch {
+        firedRef.current = false;
+      }
+    })();
   }, [blockAnswers, router]);
 
   return null;

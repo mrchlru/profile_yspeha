@@ -12,14 +12,15 @@ import {
   type AuditBatteryId,
 } from "@/lib/audit/auditBatteries";
 import { BATTERY_PROF_SB_STEP_MARKER } from "@/lib/audit/batteryStepMarkers";
-import {
-  queueAuditStepSync,
-  queueAuditStepSyncDebounced,
-} from "@/lib/audit/syncAuditAnswersClient";
 import { isBatteryWithProfSbId } from "@/lib/audit/isBatteryWithProfSb";
 import { setScreeningMaxStepCookie } from "@/lib/screeningProgressCookie";
 import type { TestKind } from "@/lib/access/testKinds";
 import { generateSessionId } from "@/lib/sessionId";
+import {
+  UNSTABLE_CONNECTION_MESSAGE,
+  UnstableConnectionError,
+  assertBrowserOnline,
+} from "@/lib/sync/unstableConnection";
 import type {
   AuditAnswerEntry,
   AuditAnswersMap,
@@ -314,7 +315,8 @@ export const useAuditFormStore = create<AuditFormStore>()(
           typeof performance !== "undefined" ? performance.now() : Date.now();
 
         try {
-          const profSbPayload = _buildProfSbSubmitPayload(state);
+          assertBrowserOnline();
+          const profSbPayload = _buildProfSbSubmitPayload(get());
           const response = await fetch("/api/audit/submit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -343,10 +345,13 @@ export const useAuditFormStore = create<AuditFormStore>()(
           });
 
           if (!response.ok) {
-            let message = `Ошибка ${String(response.status)}`;
+            if (response.status >= 500) {
+              throw new UnstableConnectionError();
+            }
+            let message = UNSTABLE_CONNECTION_MESSAGE;
             try {
               const body = (await response.json()) as { error?: string };
-              if (body.error) {
+              if (body.error && response.status < 500) {
                 message = body.error;
               }
             } catch {
@@ -364,7 +369,11 @@ export const useAuditFormStore = create<AuditFormStore>()(
           set({ submissionStatus: "submitted", submitError: null });
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : "Неизвестная ошибка";
+            error instanceof UnstableConnectionError
+              ? error.message
+              : error instanceof Error && error.message.length > 0
+                ? error.message
+                : UNSTABLE_CONNECTION_MESSAGE;
           screeningClientLog("audit_submit_client_exception", {
             sessionRef,
             errorName: error instanceof Error ? error.name : "unknown",
@@ -535,7 +544,6 @@ export const useAuditFormStore = create<AuditFormStore>()(
                 ),
                 currentStep: safe,
               });
-              queueAuditStepSync(safe);
             }
             return;
           }
@@ -545,7 +553,6 @@ export const useAuditFormStore = create<AuditFormStore>()(
           maxUnlockedStep: Math.max(state.maxUnlockedStep, nextStep),
           currentStep: nextStep > 0 ? nextStep : state.currentStep,
         });
-        queueAuditStepSync(safe);
       },
 
       setAuditAnswer: (stepIndex, questionId, value) => {
@@ -562,7 +569,6 @@ export const useAuditFormStore = create<AuditFormStore>()(
             },
           };
         });
-        queueAuditStepSyncDebounced(safe);
       },
 
       replaceStepAnswers: (stepIndex, stepAnswers) => {

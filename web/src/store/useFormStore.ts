@@ -12,8 +12,11 @@ import {
   type KotStep1Data,
 } from "@/lib/kot/step1Types";
 import { getFormPersistStateStorage } from "@/store/formPersistStorage";
-import { debouncedBackgroundSync } from "@/lib/sync/debouncedBackgroundSync";
-import { queueScreeningStepSync } from "@/lib/screening/syncScreeningStepClient";
+import {
+  UNSTABLE_CONNECTION_MESSAGE,
+  UnstableConnectionError,
+  assertBrowserOnline,
+} from "@/lib/sync/unstableConnection";
 import { clientSessionRef, screeningClientLog } from "@/lib/logging/screeningClientLog";
 import {
   getStep1AnsweredCount,
@@ -233,16 +236,7 @@ export const useFormStore = create<FormStore>()(
           step2Data: { ...state.step2Data, [questionId]: value },
         })),
       setStep3Data: (data) => set({ step3Data: data }),
-      setStep4Data: (data) => {
-        set({ step4Data: data });
-        debouncedBackgroundSync(
-          "screening-step4-draft",
-          () => {
-            queueScreeningStepSync(4);
-          },
-          600
-        );
-      },
+      setStep4Data: (data) => set({ step4Data: data }),
 
       setValidatedAccess: (code, testKind, options) => {
         const avDisabled = options?.avProctorDisabled === true;
@@ -431,6 +425,7 @@ export const useFormStore = create<FormStore>()(
           typeof performance !== "undefined" ? performance.now() : Date.now();
 
         try {
+          assertBrowserOnline();
           const response = await fetch("/api/submit", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -472,7 +467,11 @@ export const useFormStore = create<FormStore>()(
           get().closeSessionAfterSubmit();
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : "Неизвестная ошибка";
+            error instanceof UnstableConnectionError
+              ? error.message
+              : error instanceof Error && error.message.length > 0
+                ? error.message
+                : UNSTABLE_CONNECTION_MESSAGE;
           screeningClientLog("submit_client_exception", {
             sessionRef,
             errorName: error instanceof Error ? error.name : "unknown",

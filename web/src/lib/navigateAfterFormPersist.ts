@@ -14,3 +14,17 @@ export function navigateAfterFormPersist(router: AppRouterInstance, route: strin
     router.push(route);
   });
 }
+
+/**
+ * Сохраняет persist, дожидается sync и только затем переходит по маршруту.
+ */
+export async function navigateAfterFormPersistWhenSynced(
+  router: AppRouterInstance,
+  route: string,
+  awaitSync: () => Promise<void>
+): Promise<void> {
+  flushFormPersistStateStorage();
+  await awaitSync();
+  ensureBatteryProfSbRouteCookie(route);
+  router.push(route);
+}

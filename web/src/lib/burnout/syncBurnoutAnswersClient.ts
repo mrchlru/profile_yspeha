@@ -1,19 +1,14 @@
-import { debouncedBackgroundSync } from "@/lib/sync/debouncedBackgroundSync";
+import { postJsonRequireOnline } from "@/lib/sync/unstableConnection";
 import { useBurnoutFormStore } from "@/store/useBurnoutFormStore";
 import { useFormStore } from "@/store/useFormStore";
 
-const SYNC_KEY = "burnout-answers";
+/** Не используется: сохранение при завершении теста. */
+export function queueBurnoutAnswersSync(): void {}
 
 /**
- * Планирует фоновую синхронизацию ответов выгорания (debounce 2 с).
+ * Сохраняет ответы теста выгорания на сервер перед финишем.
  */
-export function queueBurnoutAnswersSync(): void {
-  debouncedBackgroundSync(SYNC_KEY, () => {
-    void _syncBurnoutAnswers();
-  });
-}
-
-async function _syncBurnoutAnswers(): Promise<void> {
+export async function syncBurnoutAnswersNow(): Promise<void> {
   const burnout = useBurnoutFormStore.getState();
   const form = useFormStore.getState();
   const accessCode = (burnout.accessCodeSnapshot ?? form.validatedAccessCode ?? "").trim();
@@ -28,22 +23,13 @@ async function _syncBurnoutAnswers(): Promise<void> {
     return;
   }
 
-  try {
-    await fetch("/api/burnout/sync-answers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      keepalive: true,
-      body: JSON.stringify({
-        sessionId: burnout.sessionId,
-        accessCode,
-        firstName: burnout.firstName.trim(),
-        lastName: burnout.lastName.trim(),
-        answers: burnout.answers,
-        personalDataConsent: burnout.personalDataConsent,
-        consentRecordedAt: burnout.consentRecordedAt ?? undefined,
-      }),
-    });
-  } catch {
-    /* localStorage остаётся резервной копией */
-  }
+  await postJsonRequireOnline("/api/burnout/sync-answers", {
+    sessionId: burnout.sessionId,
+    accessCode,
+    firstName: burnout.firstName.trim(),
+    lastName: burnout.lastName.trim(),
+    answers: burnout.answers,
+    personalDataConsent: burnout.personalDataConsent,
+    consentRecordedAt: burnout.consentRecordedAt ?? undefined,
+  });
 }

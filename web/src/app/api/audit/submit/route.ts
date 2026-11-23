@@ -17,7 +17,10 @@ import { screeningServerLog, zodIssuesForLog } from "@/lib/logging/screeningServ
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
 import { prisma } from "@/lib/prisma";
 import { finalizeProctorSessionIfNeeded } from "@/lib/proctor/buildProctorViolationsReport";
+import { mergeAuditSubmitAnswers } from "@/lib/audit/mergeAuditSubmitAnswers";
+import { resolveStep4DataForAuditSubmit } from "@/lib/audit/resolveStep4DataForAuditSubmit";
 import { runAuditSubmitReportPipeline } from "@/lib/audit/runAuditSubmitReportPipeline";
+import type { Step4Data } from "@/lib/step4/step4Types";
 import { auditSubmitBodySchema } from "@/lib/validation/auditSubmitSchema";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +91,31 @@ export async function POST(
 
   const consentAt = new Date(payload.consentRecordedAt);
   const candidateFolderKey = await _resolveCandidateFolderKeyForSubmit(payload.accessCode);
+
+  const existingRow = await prisma.auditSubmission.findUnique({
+    where: { sessionId: payload.sessionId },
+    select: { answers: true },
+  });
+  const serverAnswers =
+    existingRow !== null &&
+    existingRow.answers !== null &&
+    typeof existingRow.answers === "object"
+      ? (existingRow.answers as Record<string, Record<string, unknown>>)
+      : {};
+  const mergedAnswers = mergeAuditSubmitAnswers(
+    serverAnswers,
+    payload.answers as Record<string, Record<string, unknown>>
+  );
+  const resolvedStep4 = await resolveStep4DataForAuditSubmit(
+    payload.sessionId,
+    payload.step4Data as Step4Data | undefined
+  );
+  const pipelinePayload = {
+    ...payload,
+    answers: mergedAnswers,
+    ...(resolvedStep4 !== undefined ? { step4Data: resolvedStep4 } : {}),
+  };
+
   const dbStarted = Date.now();
   try {
     await prisma.auditSubmission.upsert({
@@ -100,7 +128,7 @@ export async function POST(
         lastName: assessee.lastNameDisplay,
         personalDataConsent: payload.personalDataConsent,
         consentRecordedAt: consentAt,
-        answers: payload.answers as Prisma.InputJsonValue,
+        answers: mergedAnswers as Prisma.InputJsonValue,
         candidateFolderKey,
       },
       update: {
@@ -110,7 +138,7 @@ export async function POST(
         lastName: assessee.lastNameDisplay,
         personalDataConsent: payload.personalDataConsent,
         consentRecordedAt: consentAt,
-        answers: payload.answers as Prisma.InputJsonValue,
+        answers: mergedAnswers as Prisma.InputJsonValue,
         candidateFolderKey,
       },
     });
@@ -161,7 +189,7 @@ export async function POST(
   }
 
   void runAuditSubmitReportPipeline({
-    payload,
+    payload: pipelinePayload,
     sessionRef,
     assessee,
     invite,

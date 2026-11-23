@@ -2,12 +2,12 @@
 
 import React from "react";
 
-import { SyncOutboxBootstrap } from "@/components/SyncOutboxBootstrap";
+import { OnlineConnectionBanner } from "@/components/OnlineConnectionBanner";
 import { useFormStoreHydrated } from "@/hooks/useAccessGate";
 import { useFormStore } from "@/store/useFormStore";
 
 /**
- * Фоновая догонка очереди sync во время прохождения теста.
+ * Предупреждение при потере сети во время прохождения теста.
  */
 export function TestSessionUiChrome(): React.ReactElement | null {
   const hydrated = useFormStoreHydrated();
@@ -15,5 +15,5 @@ export function TestSessionUiChrome(): React.ReactElement | null {
   if (!hydrated || validatedAccessCode === null) {
     return null;
   }
-  return <SyncOutboxBootstrap />;
+  return <OnlineConnectionBanner />;
 }

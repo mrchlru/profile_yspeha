@@ -35,7 +35,10 @@ import { shouldShowOdIdentityCheck } from "@/lib/identity/shouldShowOdIdentityCh
 import type { OdIdentityChallenge } from "@/lib/identity/odIdentityTypes";
 import type { OdIdentityCheckOutcome } from "@/lib/identity/odIdentityTypes";
 import { readProctorStepContext } from "@/lib/proctor/proctorStepContext";
-import { navigateAfterFormPersist } from "@/lib/navigateAfterFormPersist";
+import { navigateAfterFormPersistWhenSynced } from "@/lib/navigateAfterFormPersist";
+import { StepSaveErrorNotice } from "@/components/StepSaveErrorNotice";
+import { awaitStepTransitionClientSync } from "@/lib/sync/flushClientSync";
+import { formatStepSaveError } from "@/lib/sync/formatStepSaveError";
 import { scrollPageToTop } from "@/lib/scrollPageToTop";
 
 /**
@@ -80,6 +83,8 @@ export default function AuditStepPage(): React.ReactElement {
   const [identityChallenge, setIdentityChallenge] = useState<OdIdentityChallenge | null>(
     null
   );
+  const [stepSaveError, setStepSaveError] = useState<string | null>(null);
+  const [stepSaveInFlight, setStepSaveInFlight] = useState(false);
 
   useEffect(() => {
     if (step === null) {
@@ -141,23 +146,38 @@ export default function AuditStepPage(): React.ReactElement {
       }
       clearStepTimer(completedStep.stepIndex);
       markStepCompleted(completedStep.stepIndex);
-      if (battery !== null && batteryStepSequence !== null) {
-        const nextRoute = getBatteryNextRouteAfterStep(
-          batteryStepSequence,
-          completedStep.stepIndex
-        );
-        if (nextRoute !== null) {
-          navigateAfterFormPersist(router, nextRoute);
-          return;
+
+      void (async () => {
+        setStepSaveInFlight(true);
+        setStepSaveError(null);
+        try {
+          await awaitStepTransitionClientSync({
+            auditStepIndex: completedStep.stepIndex,
+          });
+
+          if (battery !== null && batteryStepSequence !== null) {
+            const nextRoute = getBatteryNextRouteAfterStep(
+              batteryStepSequence,
+              completedStep.stepIndex
+            );
+            if (nextRoute !== null) {
+              await navigateAfterFormPersistWhenSynced(router, nextRoute, async () => {});
+              return;
+            }
+            await navigateAfterFormPersistWhenSynced(router, "/audit/finish", async () => {});
+            return;
+          }
+          if (next !== null) {
+            await navigateAfterFormPersistWhenSynced(router, `/audit/${next.slug}`, async () => {});
+            return;
+          }
+          await navigateAfterFormPersistWhenSynced(router, "/audit/finish", async () => {});
+        } catch (err) {
+          setStepSaveError(formatStepSaveError(err));
+        } finally {
+          setStepSaveInFlight(false);
         }
-        navigateAfterFormPersist(router, "/audit/finish");
-        return;
-      }
-      if (next !== null) {
-        navigateAfterFormPersist(router, `/audit/${next.slug}`);
-        return;
-      }
-      navigateAfterFormPersist(router, "/audit/finish");
+      })();
     },
     [battery, batteryStepSequence, clearStepTimer, inheritStepTimer, markStepCompleted, router]
   );
@@ -258,6 +278,7 @@ export default function AuditStepPage(): React.ReactElement {
 
   return (
     <StepLayout>
+      <StepSaveErrorNotice message={stepSaveError} saving={stepSaveInFlight} />
       {identityChallenge !== null ? (
         <OdIdentityCheckOverlay
           challenge={identityChallenge}

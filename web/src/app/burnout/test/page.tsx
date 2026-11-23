@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { BurnoutQuestionsLayout } from "@/components/burnout/BurnoutQuestionsLayout";
 import { MaslachBurnoutLikertList } from "@/components/burnout/MaslachBurnoutLikertList";
 import { StepLayout } from "@/components/StepLayout";
+import { StepSaveErrorNotice } from "@/components/StepSaveErrorNotice";
+import { syncBurnoutAnswersNow } from "@/lib/burnout/syncBurnoutAnswersClient";
+import { formatStepSaveError } from "@/lib/sync/formatStepSaveError";
 import { useBurnoutAccessReady } from "@/hooks/useBurnoutAccessGate";
 import {
   coerceMaslachBurnoutAnswer,
@@ -42,11 +45,25 @@ export default function BurnoutTestPage(): React.ReactElement {
   const answered = getBurnoutAnsweredCount(answers);
   const canComplete = answered >= MASLACH_BURNOUT_QUESTION_COUNT;
 
+  const [stepSaveError, setStepSaveError] = useState<string | null>(null);
+  const [stepSaveInFlight, setStepSaveInFlight] = useState(false);
+
   function handleComplete(): void {
-    if (!canComplete) {
+    if (!canComplete || stepSaveInFlight) {
       return;
     }
-    router.push("/burnout/finish");
+    void (async () => {
+      setStepSaveInFlight(true);
+      setStepSaveError(null);
+      try {
+        await syncBurnoutAnswersNow();
+        router.push("/burnout/finish");
+      } catch (err) {
+        setStepSaveError(formatStepSaveError(err));
+      } finally {
+        setStepSaveInFlight(false);
+      }
+    })();
   }
 
   if (!accessReady) {
@@ -72,6 +89,7 @@ export default function BurnoutTestPage(): React.ReactElement {
 
   return (
     <StepLayout>
+      <StepSaveErrorNotice message={stepSaveError} saving={stepSaveInFlight} />
       <BurnoutQuestionsLayout
         answered={answered}
         total={MASLACH_BURNOUT_QUESTION_COUNT}

@@ -1,16 +1,19 @@
 import { screeningClientLog } from "@/lib/logging/screeningClientLog";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
-import { postJsonWithSyncOutbox } from "@/lib/sync/syncOutbox";
+import { postJsonRequireOnline } from "@/lib/sync/unstableConnection";
 import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useFormStore } from "@/store/useFormStore";
 
 export type ScreeningSyncStep = 1 | 2 | 3 | 4;
 
+/** Не используется: сохранение только при переходе на следующий шаг. */
+export function queueScreeningStepSync(_step: ScreeningSyncStep): void {}
+
 /**
- * Отправляет ответы завершённого шага скрининга на сервер в фоне.
+ * Сохраняет шаг скрининга на сервер; при ошибке сети бросает исключение.
  */
-export function queueScreeningStepSync(step: ScreeningSyncStep): void {
-  void _syncScreeningStep(step);
+export async function syncScreeningStepNow(step: ScreeningSyncStep): Promise<void> {
+  await _syncScreeningStep(step);
 }
 
 async function _syncScreeningStep(step: ScreeningSyncStep): Promise<void> {
@@ -52,12 +55,7 @@ async function _syncScreeningStep(step: ScreeningSyncStep): Promise<void> {
     personalDataConsent: form.personalDataConsent || audit.personalDataConsent,
     consentRecordedAt: form.consentRecordedAt ?? audit.consentRecordedAt ?? undefined,
   };
-  const outboxId = `screening:${accessCode}:${sessionId}:step${String(step)}`;
 
-  const ok = await postJsonWithSyncOutbox("/api/submit/sync-answers", body, outboxId);
-  if (ok) {
-    screeningClientLog("screening_step_sync_ok", { sessionRef, step: String(step) });
-  } else {
-    screeningClientLog("screening_step_sync_queued", { sessionRef, step: String(step) });
-  }
+  await postJsonRequireOnline("/api/submit/sync-answers", body);
+  screeningClientLog("screening_step_sync_ok", { sessionRef, step: String(step) });
 }

@@ -50,3 +50,20 @@ export function runPendingBackgroundSync(key: string): void {
   pendingFns.delete(key);
   run?.();
 }
+
+/**
+ * Выполняет отложенный фоновый sync и дожидается Promise, если колбэк async.
+ */
+export async function awaitPendingBackgroundSync(key: string): Promise<void> {
+  const existing = timers.get(key);
+  if (existing !== undefined) {
+    clearTimeout(existing);
+    timers.delete(key);
+  }
+  const run = pendingFns.get(key);
+  pendingFns.delete(key);
+  if (run === undefined) {
+    return;
+  }
+  await Promise.resolve(run());
+}

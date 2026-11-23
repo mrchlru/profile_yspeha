@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { AttestationDdoPairs } from "@/components/attestation/AttestationDdoPairs";
@@ -28,7 +28,9 @@ import {
   SPIELBERGER_OPTIONS,
   SPIELBERGER_QUESTIONS,
 } from "@/lib/attestation/attestationQuestions";
-import { queueAttestationAnswersSync } from "@/lib/attestation/syncAttestationAnswersClient";
+import { StepSaveErrorNotice } from "@/components/StepSaveErrorNotice";
+import { syncAttestationAnswersNow } from "@/lib/attestation/syncAttestationAnswersClient";
+import { formatStepSaveError } from "@/lib/sync/formatStepSaveError";
 import { useAttestationFormStore } from "@/store/useAttestationFormStore";
 
 /**
@@ -49,16 +51,37 @@ export default function AttestationTestPage(): React.ReactElement {
   const answeredTotal = countAttestationAnswered(answers);
   const isLastBlock = currentBlockIndex >= ATTESTATION_BLOCKS.length - 1;
 
+  const [stepSaveError, setStepSaveError] = useState<string | null>(null);
+  const [stepSaveInFlight, setStepSaveInFlight] = useState(false);
+
   const handleAdvance = useCallback((): void => {
-    if (!blockComplete) {
+    if (!blockComplete || stepSaveInFlight) {
       return;
     }
     if (isLastBlock) {
-      router.push("/attestation/finish");
+      void (async () => {
+        setStepSaveInFlight(true);
+        setStepSaveError(null);
+        try {
+          await syncAttestationAnswersNow();
+          router.push("/attestation/finish");
+        } catch (err) {
+          setStepSaveError(formatStepSaveError(err));
+        } finally {
+          setStepSaveInFlight(false);
+        }
+      })();
       return;
     }
     setCurrentBlockIndex(currentBlockIndex + 1);
-  }, [blockComplete, currentBlockIndex, isLastBlock, router, setCurrentBlockIndex]);
+  }, [
+    blockComplete,
+    currentBlockIndex,
+    isLastBlock,
+    router,
+    setCurrentBlockIndex,
+    stepSaveInFlight,
+  ]);
 
   const blockContent = useMemo(() => {
     switch (block.id) {
@@ -119,7 +142,6 @@ export default function AttestationTestPage(): React.ReactElement {
                 }
                 return { answers: nextAnswers };
               });
-              queueAttestationAnswersSync();
             }}
           />
         );
@@ -159,6 +181,7 @@ export default function AttestationTestPage(): React.ReactElement {
 
   return (
     <StepLayout>
+      <StepSaveErrorNotice message={stepSaveError} saving={stepSaveInFlight} />
       <AttestationQuestionsLayout
         blockTitle={block.candidateTitle}
         instruction={block.instruction}

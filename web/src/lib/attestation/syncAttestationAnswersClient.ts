@@ -1,19 +1,14 @@
-import { debouncedBackgroundSync } from "@/lib/sync/debouncedBackgroundSync";
+import { postJsonRequireOnline } from "@/lib/sync/unstableConnection";
 import { useFormStore } from "@/store/useFormStore";
 import { useAttestationFormStore } from "@/store/useAttestationFormStore";
 
-const SYNC_KEY = "attestation-answers";
+/** Не используется: сохранение при завершении теста. */
+export function queueAttestationAnswersSync(): void {}
 
 /**
- * Планирует фоновую синхронизацию ответов аттестации (debounce 2 с).
+ * Сохраняет ответы аттестации на сервер перед финишем.
  */
-export function queueAttestationAnswersSync(): void {
-  debouncedBackgroundSync(SYNC_KEY, () => {
-    void _syncAttestationAnswers();
-  });
-}
-
-async function _syncAttestationAnswers(): Promise<void> {
+export async function syncAttestationAnswersNow(): Promise<void> {
   const attestation = useAttestationFormStore.getState();
   const form = useFormStore.getState();
   const accessCode = (attestation.accessCodeSnapshot ?? form.validatedAccessCode ?? "").trim();
@@ -32,23 +27,14 @@ async function _syncAttestationAnswers(): Promise<void> {
     return;
   }
 
-  try {
-    await fetch("/api/attestation/sync-answers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      keepalive: true,
-      body: JSON.stringify({
-        sessionId: attestation.sessionId,
-        accessCode,
-        firstName: attestation.firstName.trim(),
-        lastName: attestation.lastName.trim(),
-        jobTitle: attestation.jobTitle.trim(),
-        answers: attestation.answers,
-        personalDataConsent: attestation.personalDataConsent,
-        consentRecordedAt: attestation.consentRecordedAt ?? undefined,
-      }),
-    });
-  } catch {
-    /* localStorage остаётся резервной копией */
-  }
+  await postJsonRequireOnline("/api/attestation/sync-answers", {
+    sessionId: attestation.sessionId,
+    accessCode,
+    firstName: attestation.firstName.trim(),
+    lastName: attestation.lastName.trim(),
+    jobTitle: attestation.jobTitle.trim(),
+    answers: attestation.answers,
+    personalDataConsent: attestation.personalDataConsent,
+    consentRecordedAt: attestation.consentRecordedAt ?? undefined,
+  });
 }

@@ -16,12 +16,14 @@ import {
 import { useScreeningStepLog } from "@/lib/logging/useScreeningStepLog";
 import { TOTAL_QUESTIONS_COUNT, getAllAnsweredCount } from "@/lib/progress";
 import { setScreeningMaxStepCookie } from "@/lib/screeningProgressCookie";
-import { queueScreeningStepSync } from "@/lib/screening/syncScreeningStepClient";
-import { runPendingBackgroundSync } from "@/lib/sync/debouncedBackgroundSync";
+import { StepSaveErrorNotice } from "@/components/StepSaveErrorNotice";
+import { formatStepSaveError } from "@/lib/sync/formatStepSaveError";
+import { flushFormPersistStateStorage } from "@/store/formPersistStorage";
 import { getContinueButtonLabel } from "@/lib/testMotivation";
 import { BATTERY_PROF_SB_STEP_MARKER } from "@/lib/audit/batteryStepMarkers";
 import { getBatteryNextRouteAfterStep } from "@/lib/audit/batteryNavigation";
-import { navigateAfterFormPersist } from "@/lib/navigateAfterFormPersist";
+import { navigateAfterFormPersistWhenSynced } from "@/lib/navigateAfterFormPersist";
+import { awaitStepTransitionClientSync } from "@/lib/sync/flushClientSync";
 import {
   getBatterySequenceStepProgress,
 } from "@/lib/audit/auditBatteries";
@@ -303,6 +305,8 @@ export default function Step4Page(): React.ReactElement {
   const step3Data = useFormStore((s) => s.step3Data);
   const step4Data = useFormStore((s) => s.step4Data);
   const setStep4Data = useFormStore((s) => s.setStep4Data);
+  const [stepSaveError, setStepSaveError] = useState<string | null>(null);
+  const [stepSaveInFlight, setStepSaveInFlight] = useState(false);
   const [step4HighlightSectionId, setStep4HighlightSectionId] =
     useState<Step4RequiredSectionDomId | null>(null);
   const step4HighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -455,6 +459,7 @@ export default function Step4Page(): React.ReactElement {
 
   return (
     <StepLayout>
+      <StepSaveErrorNotice message={stepSaveError} saving={stepSaveInFlight} />
       <div className={stepPageContentClass}>
         {!tuBatteryMode ? (
           <div className="mb-2">
@@ -1366,26 +1371,44 @@ export default function Step4Page(): React.ReactElement {
             }`}
             onClick={() => {
               if (complete) {
-                runPendingBackgroundSync("screening-step4-draft");
-                queueScreeningStepSync(4);
-                if (tuBatteryMode && batteryStepSequence !== null) {
-                  markStepCompleted(BATTERY_PROF_SB_STEP_MARKER);
-                  const nextRoute = getBatteryNextRouteAfterStep(
-                    batteryStepSequence,
-                    BATTERY_PROF_SB_STEP_MARKER
-                  );
-                  if (nextRoute !== null) {
-                    navigateAfterFormPersist(router, nextRoute);
-                    return;
+                void (async () => {
+                  setStepSaveInFlight(true);
+                  setStepSaveError(null);
+                  try {
+                    if (tuBatteryMode && batteryStepSequence !== null) {
+                      markStepCompleted(BATTERY_PROF_SB_STEP_MARKER);
+                      await awaitStepTransitionClientSync({
+                        auditStepIndex: BATTERY_PROF_SB_STEP_MARKER,
+                        syncScreeningStep4: true,
+                      });
+                      const nextRoute = getBatteryNextRouteAfterStep(
+                        batteryStepSequence,
+                        BATTERY_PROF_SB_STEP_MARKER
+                      );
+                      if (nextRoute !== null) {
+                        await navigateAfterFormPersistWhenSynced(router, nextRoute, async () => {});
+                        return;
+                      }
+                      await navigateAfterFormPersistWhenSynced(router, "/audit/finish", async () => {});
+                      return;
+                    }
+                    await awaitStepTransitionClientSync({ syncScreeningStep4: true });
+                    if (standaloneProfMode) {
+                      await navigateAfterFormPersistWhenSynced(
+                        router,
+                        "/prof-sb-education/finish",
+                        async () => {}
+                      );
+                      return;
+                    }
+                    flushFormPersistStateStorage();
+                    router.push("/finish");
+                  } catch (err) {
+                    setStepSaveError(formatStepSaveError(err));
+                  } finally {
+                    setStepSaveInFlight(false);
                   }
-                  navigateAfterFormPersist(router, "/audit/finish");
-                  return;
-                }
-                if (standaloneProfMode) {
-                  navigateAfterFormPersist(router, "/prof-sb-education/finish");
-                  return;
-                }
-                router.push("/finish");
+                })();
                 return;
               }
               const id = getFirstIncompleteStep4SectionDomId(step4Data);

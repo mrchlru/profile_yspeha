@@ -1,36 +1,13 @@
 import { screeningClientLog } from "@/lib/logging/screeningClientLog";
 import { shortSessionRef } from "@/lib/logging/screeningSessionRef";
-import { postJsonWithSyncOutbox } from "@/lib/sync/syncOutbox";
+import { postJsonRequireOnline } from "@/lib/sync/unstableConnection";
 import { useAuditFormStore } from "@/store/useAuditFormStore";
 import { useFormStore } from "@/store/useFormStore";
 
-const stepDraftTimers = new Map<number, ReturnType<typeof setTimeout>>();
-
 /**
- * Отправляет ответы завершённого шага аудита на сервер в фоне.
+ * Сохраняет ответы шага аудита на сервер; без сети переход блокируется.
  */
-export function queueAuditStepSync(stepIndex: number): void {
-  void _syncAuditStepAnswers(stepIndex);
-}
-
-/**
- * Черновик шага: sync через короткую задержку после изменения ответа.
- */
-export function queueAuditStepSyncDebounced(stepIndex: number, delayMs: number = 600): void {
-  const existing = stepDraftTimers.get(stepIndex);
-  if (existing !== undefined) {
-    clearTimeout(existing);
-  }
-  stepDraftTimers.set(
-    stepIndex,
-    setTimeout(() => {
-      stepDraftTimers.delete(stepIndex);
-      void _syncAuditStepAnswers(stepIndex);
-    }, delayMs)
-  );
-}
-
-async function _syncAuditStepAnswers(stepIndex: number): Promise<void> {
+export async function syncAuditStepAnswersNow(stepIndex: number): Promise<void> {
   const audit = useAuditFormStore.getState();
   const form = useFormStore.getState();
   const accessCode = (audit.accessCodeSnapshot ?? form.validatedAccessCode ?? "").trim();
@@ -57,12 +34,15 @@ async function _syncAuditStepAnswers(stepIndex: number): Promise<void> {
     personalDataConsent: audit.personalDataConsent,
     consentRecordedAt: audit.consentRecordedAt ?? undefined,
   };
-  const outboxId = `audit:${accessCode}:${audit.sessionId}:step${String(stepIndex)}`;
 
-  const ok = await postJsonWithSyncOutbox("/api/audit/sync-answers", body, outboxId);
-  if (ok) {
-    screeningClientLog("audit_step_sync_ok", { sessionRef, step: String(stepIndex) });
-  } else {
-    screeningClientLog("audit_step_sync_queued", { sessionRef, step: String(stepIndex) });
-  }
+  await postJsonRequireOnline("/api/audit/sync-answers", body);
+  screeningClientLog("audit_step_sync_ok", { sessionRef, step: String(stepIndex) });
 }
+
+/** Не используется: сохранение только при переходе на следующий шаг. */
+export function queueAuditStepSync(_stepIndex: number): void {}
+
+/** Не используется: сохранение только при переходе на следующий шаг. */
+export function queueAuditStepSyncDebounced(_stepIndex: number, _delayMs: number = 600): void {}
+
+export async function flushAuditDebouncedStepSync(_stepIndex: number): Promise<void> {}

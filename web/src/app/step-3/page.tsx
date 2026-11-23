@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -15,7 +15,9 @@ import {
 import { isGerchikovStep2Complete } from "@/lib/gerchikov/validation";
 import { TOTAL_QUESTIONS_COUNT, getAllAnsweredCount, isProfileReady } from "@/lib/progress";
 import { setScreeningMaxStepCookie } from "@/lib/screeningProgressCookie";
-import { queueScreeningStepSync } from "@/lib/screening/syncScreeningStepClient";
+import { StepSaveErrorNotice } from "@/components/StepSaveErrorNotice";
+import { syncScreeningStepNow } from "@/lib/screening/syncScreeningStepClient";
+import { formatStepSaveError } from "@/lib/sync/formatStepSaveError";
 import { getContinueButtonLabel } from "@/lib/testMotivation";
 import { LikertAnswer, Step3Data, useFormStore } from "@/store/useFormStore";
 import { useScreeningAccessReady } from "@/hooks/useAccessGate";
@@ -47,6 +49,8 @@ function isStep3Complete(data: Step3Data): boolean {
 
 export default function Step3Page(): React.ReactElement {
   const router = useRouter();
+  const [stepSaveError, setStepSaveError] = useState<string | null>(null);
+  const [stepSaveInFlight, setStepSaveInFlight] = useState(false);
   const accessReady = useScreeningAccessReady();
   const profileName = useFormStore((s) => s.profileName);
   const personalDataConsent = useFormStore((s) => s.personalDataConsent);
@@ -129,6 +133,7 @@ export default function Step3Page(): React.ReactElement {
 
   return (
     <StepLayout>
+      <StepSaveErrorNotice message={stepSaveError} saving={stepSaveInFlight} />
       <div className={stepPageContentClass}>
         <div className="mb-2">
           <ProgressBar answeredQuestions={answeredCount} totalQuestions={TOTAL_QUESTIONS_COUNT} />
@@ -169,9 +174,19 @@ export default function Step3Page(): React.ReactElement {
           <Button
             disabled={!complete}
             onClick={() => {
-              setScreeningMaxStepCookie(4);
-              queueScreeningStepSync(3);
-              router.push("/step-4");
+              void (async () => {
+                setStepSaveInFlight(true);
+                setStepSaveError(null);
+                try {
+                  setScreeningMaxStepCookie(4);
+                  await syncScreeningStepNow(3);
+                  router.push("/step-4");
+                } catch (err) {
+                  setStepSaveError(formatStepSaveError(err));
+                } finally {
+                  setStepSaveInFlight(false);
+                }
+              })();
             }}
             className={stepNavPrimaryButtonClass}
           >

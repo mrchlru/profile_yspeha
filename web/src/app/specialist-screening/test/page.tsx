@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { SpecialistScreeningLikertList } from "@/components/specialistScreening/SpecialistScreeningLikertList";
 import { SpecialistScreeningQuestionsLayout } from "@/components/specialistScreening/SpecialistScreeningQuestionsLayout";
 import { StepLayout } from "@/components/StepLayout";
+import { StepSaveErrorNotice } from "@/components/StepSaveErrorNotice";
+import { syncSpecialistScreeningAnswersNow } from "@/lib/specialistScreening/syncSpecialistScreeningAnswersClient";
+import { formatStepSaveError } from "@/lib/sync/formatStepSaveError";
 import { useSpecialistScreeningAccessReady } from "@/hooks/useSpecialistScreeningAccessGate";
 import {
   coerceSpecialistScreeningAnswer,
@@ -63,11 +66,25 @@ export default function SpecialistScreeningTestPage(): React.ReactElement {
   const answered = getSpecialistScreeningAnsweredCount(answers);
   const canComplete = answered >= SPECIALIST_SCREENING_QUESTION_COUNT;
 
+  const [stepSaveError, setStepSaveError] = useState<string | null>(null);
+  const [stepSaveInFlight, setStepSaveInFlight] = useState(false);
+
   function handleComplete(): void {
-    if (!canComplete) {
+    if (!canComplete || stepSaveInFlight) {
       return;
     }
-    router.push("/specialist-screening/finish");
+    void (async () => {
+      setStepSaveInFlight(true);
+      setStepSaveError(null);
+      try {
+        await syncSpecialistScreeningAnswersNow();
+        router.push("/specialist-screening/finish");
+      } catch (err) {
+        setStepSaveError(formatStepSaveError(err));
+      } finally {
+        setStepSaveInFlight(false);
+      }
+    })();
   }
 
   if (!accessReady) {
@@ -93,6 +110,7 @@ export default function SpecialistScreeningTestPage(): React.ReactElement {
 
   return (
     <StepLayout>
+      <StepSaveErrorNotice message={stepSaveError} saving={stepSaveInFlight} />
       <SpecialistScreeningQuestionsLayout
         answered={answered}
         total={SPECIALIST_SCREENING_QUESTION_COUNT}
